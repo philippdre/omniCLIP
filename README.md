@@ -25,7 +25,15 @@ omniCLIP can call peaks for CLIP-Seq data data while accounting for confounding 
 
 ## Installation
 
+### Manual installation
 
+### Conda
+
+in progress...
+
+### Galaxy
+
+in progress...
 
 ## Usage
 
