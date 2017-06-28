@@ -59,8 +59,7 @@ in progress...
 
 
 ## Examples
-
-
+An example dataset can be  downloaded [here](https://ohlerlab.mdc-berlin.de/files/omniCLIP/example_data.tar.gz).
 ## Contributors
 
 
