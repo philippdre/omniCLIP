@@ -4,6 +4,8 @@ omniCLIP is a Bayesian peak caller that can be applied to data from CLIP-Seq dat
 ## Overview
 
 [Introduction](#introduction)
+omniCLIP can call peaks for CLIP-Seq data data while accounting for confounding factors such as the gene expression and it automatically learns relevant diagnostic events from the data. Furtermore, it can leverage replicate information and model technical and biological variance.
+
 
 [Dependencies](#dependencies)
 
