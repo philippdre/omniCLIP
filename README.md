@@ -41,6 +41,11 @@ omniCLIP requires Python (v.2.7) and the following python libraries.:
 ## Installation
 
 ### Manual installation
+The latest stable release int the ***master*** branch can be downloaded by executing:
+```
+$ git clone -b master https://github.com/philippdre/omniCLIP.git
+```
+After this the follwing comand has to be executed:
 
 ### Conda
 
