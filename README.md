@@ -93,4 +93,4 @@ An example dataset can be  downloaded [here](https://ohlerlab.mdc-berlin.de/file
 
 
 ## License
-BSD licence (v3)
+GNU GPL lincene (v3)
