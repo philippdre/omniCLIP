@@ -65,6 +65,11 @@ in progress...
 in progress...
 
 ## Usage
+omniCLIP requires the gene annotation to be in an SQL database. This database can be generated from a gff3 file by typing:
+```
+$ python data_parsing/CreateGeneAnnotDB.py INPUT.gff OUTPUT.gff.db
+```
+
 omniCLIP has the following commanline arguments
 ```
     --annot	File where gene annotation is stored
