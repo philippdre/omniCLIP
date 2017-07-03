@@ -46,6 +46,15 @@ The latest stable release int the ***master*** branch can be downloaded by execu
 $ git clone -b master https://github.com/philippdre/omniCLIP.git
 ```
 After this the follwing comand has to be executed:
+```
+$ cd omniCLIP/stat
+$ ./CompileCython.sh
+```
+Note that if your python libraries is not in the directory "/usr/include/python2.7", then you need to change in CompileCython.sh in the line 
+```
+gcc -shared -pthread -fPIC -fwrapv -O2 -Wall -fno-strict-aliasing -I/usr/include/python2.7 -o viterbi.so viterbi.c
+``` 
+-I/usr/include/python2.7" to the path to your python installation.
 
 ### Conda
 
