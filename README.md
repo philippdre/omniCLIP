@@ -72,20 +72,22 @@ $ python data_parsing/CreateGeneAnnotDB.py INPUT.gff OUTPUT.gff.db
 
 omniCLIP has the following commanline arguments
 ```
+Required
     --annot	File where gene annotation is stored
     --genome-dir	Directory where fasta files are stored
     --clip-files	Bam-files for CLIP-libraries
+    --bg-files	Bam-files for bg-libraries or files with counts per gene
+    --out-dir	Output directory for results
+Optional
     --restart-from-iter	restart from existing run
     --overwrite-CLIP-data	Overwrite the existing CLIP data
     --collapsed-CLIP	CLIP-reads are collapsed
-    --bg-files	Bam-files for bg-libraries or files with counts per gene
     --overwrite-bg-data	Overwrite the existing CLIP data
     --collapsed-bg	bg-reads are collapsed
     --bck-var	Parse variants for background reads
     --verbosity	Verbosity
     --max-it	Maximal number of iterations
     --max-it-glm	Maximal number of iterations in GLM
-    --out-dir	Output directory for results
     --gene-sample	Nr of genes to sample
     --no-subsample	Disabaple subsampling for parameter estimations (Warning: Leads to slow estimation)
     --filter-snps	Do not fit diagnostic events at SNP-positions
