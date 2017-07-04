@@ -22,7 +22,7 @@ omniCLIP is a Bayesian peak caller that can be applied to data from CLIP-Seq dat
 omniCLIP can call peaks for CLIP-Seq data data while accounting for confounding factors such as the gene expression and it automatically learns relevant diagnostic events from the data. Furtermore, it can leverage replicate information and model technical and biological variance.
 
 ## Dependencies
-omniCLIP requires Python (v.2.7) and the following python libraries.:
+omniCLIP requires Python (v.2.7) and the following python libraries:
 
 * brewer2mpl (> v.1.4)
 * gffutils (> v.0.8.7.1)
@@ -41,7 +41,7 @@ omniCLIP requires Python (v.2.7) and the following python libraries.:
 ## Installation
 
 ### Manual installation
-The latest stable release int the ***master*** branch can be downloaded by executing:
+The latest stable release in the ***master*** branch can be downloaded by executing:
 ```
 $ git clone -b master https://github.com/philippdre/omniCLIP.git
 ```
@@ -50,7 +50,7 @@ After this the follwing comand has to be executed:
 $ cd omniCLIP/stat
 $ ./CompileCython.sh
 ```
-Note that if your python libraries is not in the directory "/usr/include/python2.7", then you need to change in CompileCython.sh in the line 
+This compiles the cyton code for the viterbi algorithm. Note that if your python libraries is not in the directory "/usr/include/python2.7", then you need to change in CompileCython.sh in the line 
 ```
 gcc -shared -pthread -fPIC -fwrapv -O2 -Wall -fno-strict-aliasing -I/usr/include/python2.7 -o viterbi.so viterbi.c
 ``` 
