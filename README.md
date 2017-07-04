@@ -69,7 +69,11 @@ omniCLIP requires the gene annotation to be in an SQL database. This database ca
 ```
 $ python data_parsing/CreateGeneAnnotDB.py INPUT.gff OUTPUT.gff.db
 ```
+omniCLIP can be run as follows:
 
+```
+$ python omniCLIP.py [Commands]
+```
 omniCLIP has the following commanline arguments
 ```
 Required
