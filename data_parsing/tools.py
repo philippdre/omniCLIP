@@ -38,8 +38,8 @@ import emission
 import trans
 import multiprocessing
 import itertools
-import viterbi
 from scipy.stats import nbinom
+import random
 
 
 def GetModelIx(Sequences, gene, Type = 'all', snps_thresh = 0.4, snps_min_cov = 10, Background = None):
@@ -994,8 +994,35 @@ def ParallelGetMostLikelyPathForGene(data):
 def subsample_suff_stat(Counts, NrOfCounts, subsample_size=10000000):
     '''This function  creates a subsample of the counts'''
 
-    #iterate over the keys
+
+
+    #Check whether any of the counts is non-zero. If yes take random samples from the other Counts
+    zero_ix = []
+    nonzero_ix = []
     for key in Counts:
+        if Counts[key].shape[0] == 0:
+           zero_ix.append(key)
+        else:
+           nonzero_ix.append(key)
+
+    for key in zero_ix:
+        sample_key = random.choice(nonzero_ix)
+        new_counts = np.random.multinomial(min(10, np.sum(NrOfCounts[sample_key][0,:])), NrOfCounts[sample_key][0,:]/np.float64(np.sum(NrOfCounts[sample_key][0,:])), size=1)
+        ix = new_counts > NrOfCounts[sample_key]
+        new_counts[ix] = NrOfCounts[sample_key][ix]
+        #if no count is there take the original sample
+        if np.sum(new_counts) == 0:
+            new_counts = NrOfCounts[sample_key][0,:]
+
+        ix_non_zero = new_counts > 0
+        temp_counts = np.zeros((1, np.sum(new_counts > 0)))
+        temp_counts[0, :] = new_counts[ix_non_zero]
+        NrOfCounts[key] = temp_counts
+        Counts[key] = Counts[sample_key][:, ix_non_zero[0,:]]
+
+
+    #iterate over the keys
+    for key in nonzero_ix:
         #Determine the new sample
         new_counts = np.random.multinomial(min(subsample_size, np.sum(NrOfCounts[key][0,:])), NrOfCounts[key][0,:]/np.float64(np.sum(NrOfCounts[key][0,:])), size=1)
         #Check that not more sample than orignialy existing were present
