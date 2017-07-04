@@ -65,22 +65,33 @@ in progress...
 in progress...
 
 ## Usage
+omniCLIP requires the gene annotation to be in an SQL database. This database can be generated from a gff3 file by typing:
+```
+$ python data_parsing/CreateGeneAnnotDB.py INPUT.gff OUTPUT.gff.db
+```
+omniCLIP can be run as follows:
+
+```
+$ python omniCLIP.py [Commands]
+```
 omniCLIP has the following commanline arguments
 ```
+Required
     --annot	File where gene annotation is stored
     --genome-dir	Directory where fasta files are stored
     --clip-files	Bam-files for CLIP-libraries
+    --bg-files	Bam-files for bg-libraries or files with counts per gene
+    --out-dir	Output directory for results
+Optional
     --restart-from-iter	restart from existing run
     --overwrite-CLIP-data	Overwrite the existing CLIP data
     --collapsed-CLIP	CLIP-reads are collapsed
-    --bg-files	Bam-files for bg-libraries or files with counts per gene
     --overwrite-bg-data	Overwrite the existing CLIP data
     --collapsed-bg	bg-reads are collapsed
     --bck-var	Parse variants for background reads
     --verbosity	Verbosity
     --max-it	Maximal number of iterations
     --max-it-glm	Maximal number of iterations in GLM
-    --out-dir	Output directory for results
     --gene-sample	Nr of genes to sample
     --no-subsample	Disabaple subsampling for parameter estimations (Warning: Leads to slow estimation)
     --filter-snps	Do not fit diagnostic events at SNP-positions
@@ -96,7 +107,13 @@ omniCLIP has the following commanline arguments
 ```
 
 ## Examples
-An example dataset can be  downloaded [here](https://ohlerlab.mdc-berlin.de/files/omniCLIP/example_data.tar.gz).
+An example dataset can be  downloaded [here](https://ohlerlab.mdc-berlin.de/files/omniCLIP/example_data.tar.gz). Extract it into the omniCLIP folder for the example below.
+
+Then you can run omniCLIP on the example data by:
+```
+$ python omniCLIP.py --annot example_data/gencode.v19.annotation.chr1.gtf.db --genome-dir example_data/hg37/ --clip-files example_data/PUM2_rep1_chr1.bam --clip-files example_data/PUM2_rep2_chr1.bam --bg-files example_data/RZ_rep1_chr1.bam --bg-files example_data/RZ_rep2_chr1.bam --out-dir example_data --collapsed-CLIP 
+```
+
 ## Contributors
 
 
