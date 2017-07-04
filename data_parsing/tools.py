@@ -38,6 +38,7 @@ import emission
 import trans
 import multiprocessing
 import itertools
+import viterbi
 from scipy.stats import nbinom
 
 

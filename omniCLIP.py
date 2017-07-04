@@ -36,6 +36,7 @@ import cPickle
 import resource
 import gc
 from collections import defaultdict
+from intervaltree import Interval, IntervalTree
 
 def run_sclip(args):
     # Get the args
@@ -169,7 +170,8 @@ def run_sclip(args):
     #initialise the parameter vector alpha
     alphashape = (Sequences[gene]['Variants'][0].shape[0] + Sequences[gene]['Coverage'][0].shape[0] + Sequences[gene]['Read-ends'][0].shape[0])
     alpha = {}
-    for state in range(NrOfStates):
+    for state in range(NrOfStates):        
+            alpha[state] = np.random.uniform(0.9, 1.1, size=(alphashape, args.nr_mix_comp))
 
     EmissionParameters['Diag_event_params']['alpha'] = alpha
     EmissionParameters['Diag_event_type'] = args.diag_event_mod
@@ -697,7 +699,7 @@ if __name__ == '__main__':
     parser.add_argument('--restart-from-iter', action='store_true', default=False, dest='restart_from_file', help='restart from existing run')
 
     # Overwrite existing FG .dat files
-    parser.add_argument('--overwrite-CLIP-data', action='store_true', default=False, dest='overwrite_fg', help='Overwrite the existing CLIP data')
+    parser.add_argument('--overwrite-CLIP-data', action='store_false', default=True, dest='overwrite_fg', help='Overwrite the existing CLIP data')
 
     # FG collapsed
     parser.add_argument('--collapsed-CLIP', action='store_true', default=False, dest='fg_collapsed', help='CLIP-reads are collapsed')
@@ -706,7 +708,7 @@ if __name__ == '__main__':
     parser.add_argument('--bg-files', action='append', dest='bg_libs', default=[], help='Bam-files for bg-libraries or files with counts per gene')
 
     # Overwrite existing BG .dat files
-    parser.add_argument('--overwrite-bg-data', action='store_true', default=False, dest='overwrite_bg', help='Overwrite the existing CLIP data')
+    parser.add_argument('--overwrite-bg-data', action='store_false', default=True, dest='overwrite_bg', help='Overwrite the existing CLIP data')
 
     # BG collapsed
     parser.add_argument('--collapsed-bg', action='store_true', default=False, dest='bg_collapsed', help='bg-reads are collapsed')
@@ -724,10 +726,10 @@ if __name__ == '__main__':
     parser.add_argument('--verbosity', action='store', dest='verbosity', help='Verbosity', type=int, default=0)
 
     # save temporary results
-    parser.add_argument('--save-tmp', action='store_true', default=True, dest='safe_tmp', help='Safe temporary results')
+    parser.add_argument('--save-tmp', action='store_false', default=True, dest='safe_tmp', help='Safe temporary results')
 
     # only predict sites using existing mode
-    parser.add_argument('--pred-sties', action='store_true', default=False, dest='pred_sites', help='Only predict sites')
+    parser.add_argument('--pred-sites', action='store_true', default=False, dest='pred_sites', help='Only predict sites')
 
     # Likelihood treshold
     parser.add_argument('--thresh', action='store', dest='thresh', help='Likelihood threshold after which to stop the iterations', type=float)
@@ -753,7 +755,7 @@ if __name__ == '__main__':
     parser.add_argument('--no-subsample', action='store_false', default=True, dest='subs', help='Disabaple subsampling for parameter estimations (Warning: Leads to slow estimation)')
 
     #Do not fit diagnostic events at SNP-Positions
-    parser.add_argument('--filter-snps', action='store_true', default=True, dest='filter_snps', help='Do not fit diagnostic events at SNP-positions')
+    parser.add_argument('--filter-snps', action='store_false', default=True, dest='filter_snps', help='Do not fit diagnostic events at SNP-positions')
 
     #Criterion for definition of SNPs
     parser.add_argument('--snp-ratio', action='store', dest='snps_thresh', help='Ratio of reads showing the SNP', type=float, default = 0.2)
@@ -769,10 +771,10 @@ if __name__ == '__main__':
     parser.add_argument('--nb-cores', action='store', dest='nb_proc', help='Number of cores o use', type=int, default = 1)
 
     #Mask miRNA positions
-    parser.add_argument('--mask-miRNA', action='store_true', default=True, dest='mask_miRNA', help='Mask miRNA positions')
+    parser.add_argument('--mask-miRNA', action='store_false', default=True, dest='mask_miRNA', help='Mask miRNA positions')
     
     #Ignore overlping gene regions for diagnostic event model
-    parser.add_argument('--mask-ovrlp', action='store_true', default=True, dest='mask_ovrlp', help='Ignore overlping gene regions for diagnostic event model fitting')
+    parser.add_argument('--mask-ovrlp', action='store_false', default=True, dest='mask_ovrlp', help='Ignore overlping gene regions for diagnostic event model fitting')
 
     #Ignore diagnostic event model for scoring
     parser.add_argument('--ign-diag', action='store_true', default=False, dest='ign_diag', help='Ignore diagnostic event model for scoring')
@@ -784,13 +786,13 @@ if __name__ == '__main__':
     parser.add_argument('--only-pred', action='store_true', default=False, dest='only_pred', help='only predict the sites. No model fitting')
     
     #Estimate diagnostic events on background
-    parser.add_argument('--diag-bg', action='store_true', default=True, dest='diag_bg', help='estimate diagnostic events for the background states on the background')
+    parser.add_argument('--diag-bg', action='store_false', default=True, dest='diag_bg', help='estimate diagnostic events for the background states on the background')
 
     #Estimate diagnostic events on background
     parser.add_argument('--emp-var', action='store_true', default=False, dest='emp_var', help='use the empirical variance if it larger than the expected variance')
 
     #Normalize class weights during glm fit
-    parser.add_argument('--norm_class', action='store_true', default=True, dest='norm_class', help='Normalize class weights during glm fit')
+    parser.add_argument('--norm_class', action='store_false', default=True, dest='norm_class', help='Normalize class weights during glm fit')
 
     # reweight glm and diagnostic events
     parser.add_argument('--glm_weight', action='store', dest='glm_weight', help='weight of the glm score with respect to the diagnostic event score', type=float, default = -1.0)
