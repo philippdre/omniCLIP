@@ -16,7 +16,9 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     
-    The code in this file has been adapted from the stasmodels pacakgage. 
+    The code in this file has been adapted from the statsmodels package:
+    https://github.com/statsmodels/statsmodels/blob/master/statsmodels/genmod/generalized_linear_model.py
+    Thus, for this file the licence of the original file applies additionally.
 '''
 
 
