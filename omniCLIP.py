@@ -71,6 +71,10 @@ def run_sclip(args):
         random.seed(args.rnd_seed)
         print 'setting seed'
 
+
+    #Set the p-value cutoff for the bed-file creation
+    pv_cutoff = args.pv_cutoff
+
     #Load the gene annotation
     print 'Loading gene annotation'
     GeneAnnotation = gffutils.FeatureDB(args.gene_anno_file, keep_order=True)
@@ -308,8 +312,7 @@ def run_sclip(args):
     print 'Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     fg_state, bg_state = emission.get_fg_and_bck_state(EmissionParameters, final_pred=True)
     
-    tools.GeneratePred(Paths, Sequences, Background, IterParameters, GeneAnnotation, OutFile, fg_state, bg_state)
-
+    tools.GeneratePred(Paths, Sequences, Background, IterParameters, GeneAnnotation, OutFile, fg_state, bg_state, pv_cutoff)
     print 'Done'
 
     return
@@ -811,6 +814,10 @@ if __name__ == '__main__':
 
     # mask read ends fo diag event counting
     parser.add_argument('--seed', action='store', default=None, dest='rnd_seed', help='Set a seed for the random number generators')
+
+    # bonferroni cutoff
+    parser.add_argument('--pv', action='store', dest='pv_cutoff', help='bonferroni corrected p-value cutoff for peaks in bed-file', type=float, default = 0.05)
+ 
 
    
 

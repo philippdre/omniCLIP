@@ -40,7 +40,7 @@ import multiprocessing
 import itertools
 from scipy.stats import nbinom
 import random
-
+import pandas as pd
 
 def GetModelIx(Sequences, gene, Type = 'all', snps_thresh = 0.4, snps_min_cov = 10, Background = None):
     '''
@@ -433,7 +433,7 @@ def repl_track_nr(ex_list, offset):
     return new_list
 
 ###
-def GeneratePred(Paths, Sequences, Background, IterParameters, GeneAnnotation, OutFile, fg_state = 1, noise_state = 0 ):
+def GeneratePred(Paths, Sequences, Background, IterParameters, GeneAnnotation, OutFile, fg_state = 1, noise_state = 0, pv_cutoff=0.05):
     '''
     This function writes the predictions
     '''
@@ -449,8 +449,46 @@ def GeneratePred(Paths, Sequences, Background, IterParameters, GeneAnnotation, O
     #Write the results
     WriteResults(Sequences, Background, ScoredSites, OutFile, GeneAnnotation)
 
+    generate_bed(file, pv_cutoff=0.05)
     return
 
+
+def generate_bed(file, pv_cutoff=0.05):
+    df = pd.read_table(file)
+
+    #Determine the cutoff for the p-vales aften Bonferroni
+    cutoff = np.log( 0.05 /  df.shape[0])
+    df = df[df['pv'] < cutoff]
+
+    
+    #Make the names unique
+    df['Gene'] = df['Gene'] + ['_' + str(i) for i in range(df.shape[0])]
+
+    #Transform the Score to be betweeen 0 and 1000
+    df['SiteScore'] /= np.max(df['SiteScore']) * 1000
+
+
+    #Compute thickstart and end
+    df['ThickStart'] = 0
+    df['ThickStop'] = 0
+
+    df.ix[df['Strand'] == 1, 'ThickStart'] = df['Start'] + df['max_pos']
+    df.ix[df['Strand'] == -1, 'ThickStart'] = df['Stop'] - df['max_pos'] 
+
+
+    df.ix[df['Strand'] == 1, 'ThickStop'] = df['Start'] + df['max_pos'] + 1
+    df.ix[df['Strand'] == -1, 'ThickStop'] = df['Stop'] - df['max_pos'] + 1 
+
+    #rename the strands
+    df.ix[df['Strand'] == 1, 'Strand'] = '+'
+    df.ix[df['Strand'] == -1, 'Strand'] = '-'
+
+    #Keep only the columns that are relevant for the bed-file
+    df = df[['ChrName', 'Start', 'Stop', 'Gene', 'SiteScore', 'Strand' , 'ThickStart', 'ThickStop']].sort_values('SiteScore', ascending=False)
+
+    #Write the output
+    df.to_csv(file.replace('.txt', '.bed') , sep = '\t', header=False, index=False)
+    return
 
 def GetSites(Paths, Sequences, Background, EmissionParameters, TransitionParameters, TransitionTypeFirst, fg_state, merge_neighbouring_sites, minimal_site_length):
     ''' 
