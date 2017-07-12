@@ -21,7 +21,7 @@ omniCLIP is a Bayesian peak caller that can be applied to data from CLIP-Seq dat
 ## Introduction
 omniCLIP can call peaks for CLIP-Seq data data while accounting for confounding factors such as the gene expression and it automatically learns relevant diagnostic events from the data. Furtermore, it can leverage replicate information and model technical and biological variance.
 
-## Dependencies
+## Dependencies and Requirements
 omniCLIP requires Python (v.2.7) and the following python libraries:
 
 * brewer2mpl (> v.1.4)
@@ -37,6 +37,9 @@ omniCLIP requires Python (v.2.7) and the following python libraries:
 * scikit-learn (> v.0.18.1)
 * biopython (> v.1.68)
 * cython (> v.0.24.1)
+
+Currently, omniCLIP requires a standard workstation with 32 Gb of RAM.
+
 
 ## Installation
 
@@ -111,6 +114,7 @@ Argument  | Description
 --max-mismatch | Maximal number of mismatches that is allowed per read (default: 2)
 --mask_flank_mm | Do not consider mismatches in the N bp at the ends of reads for diagnostic event modelling 
 --seed | Set a seed for the random number generators
+--pv | Bonferroni corrected p-value cutoffs for peaks in bed-file
 
 
 ## Examples
@@ -120,6 +124,17 @@ Then you can run omniCLIP on the example data by:
 ```
 $ python omniCLIP.py --annot example_data/gencode.v19.annotation.chr1.gtf.db --genome-dir example_data/hg37/ --clip-files example_data/PUM2_rep1_chr1.bam --clip-files example_data/PUM2_rep2_chr1.bam --bg-files example_data/RZ_rep1_chr1.bam --bg-files example_data/RZ_rep2_chr1.bam --out-dir example_data --collapsed-CLIP 
 ```
+This command creats the files below:
+
+File Name | Description
+------------- | -------------
+pred.bed | This file contains the peaks that are signifikant after Bonferroni correction
+pred.txt | This file contains all peaks 
+fg_reads.dat | This file contains the parsed reads from the CLIP libraries
+bg_reads.dat | This file contains the parsed reads from the background libraries
+IterSaveFile.dat | This file contains the learnt parameters of the model
+IterSaveFileHist.dat | This file contains the learnt parameters of the model in each iteration
+
 
 ## Contributors
 
