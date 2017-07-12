@@ -13,7 +13,7 @@ if __name__ == "__main__":
     FileNameGFF = sys.argv[1]
     
     FileNameDB = sys.argv[2]
-    print 'Creatin annotation database'
+    print 'Creating annotation database'
     CreateDB(FileNameGFF, FileNameDB)
 
 

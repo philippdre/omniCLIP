@@ -34,6 +34,7 @@ import argparse
 import tools
 import cPickle
 import resource
+import random
 import gc
 from collections import defaultdict
 from intervaltree import Interval, IntervalTree
@@ -64,6 +65,11 @@ def run_sclip(args):
     if not (bg_type == 'Coverage' or  bg_type == 'Coverage_bck'):
         print 'Bg-type: ' + bg_type + ' has not been implemented yet'
         return 
+
+    #Set seed for the random number generators
+    if args.rnd_seed is not None:
+        random.seed(args.rnd_seed)
+        print 'setting seed'
 
     #Load the gene annotation
     print 'Loading gene annotation'
@@ -699,7 +705,7 @@ if __name__ == '__main__':
     parser.add_argument('--restart-from-iter', action='store_true', default=False, dest='restart_from_file', help='restart from existing run')
 
     # Overwrite existing FG .dat files
-    parser.add_argument('--overwrite-CLIP-data', action='store_false', default=True, dest='overwrite_fg', help='Overwrite the existing CLIP data')
+    parser.add_argument('--use-parsed-CLIP-data', action='store_false', default=True, dest='overwrite_fg', help='Reuse already parsed CLIP data')
 
     # FG collapsed
     parser.add_argument('--collapsed-CLIP', action='store_true', default=False, dest='fg_collapsed', help='CLIP-reads are collapsed')
@@ -708,7 +714,7 @@ if __name__ == '__main__':
     parser.add_argument('--bg-files', action='append', dest='bg_libs', default=[], help='Bam-files for bg-libraries or files with counts per gene')
 
     # Overwrite existing BG .dat files
-    parser.add_argument('--overwrite-bg-data', action='store_false', default=True, dest='overwrite_bg', help='Overwrite the existing CLIP data')
+    parser.add_argument('--use-parsed-bg-data', action='store_false', default=True, dest='overwrite_bg', help='Reuse already parsed CLIP data')
 
     # BG collapsed
     parser.add_argument('--collapsed-bg', action='store_true', default=False, dest='bg_collapsed', help='bg-reads are collapsed')
@@ -803,7 +809,10 @@ if __name__ == '__main__':
     # mask read ends fo diag event counting
     parser.add_argument('--mask_flank_mm', action='store', dest='mask_flank_variants', help='Do not consider mismatches in the N bp at the ends of reads for diagnostic event modelling (default: 3)', type=int, default = 3)
 
-    
+    # mask read ends fo diag event counting
+    parser.add_argument('--seed', action='store', default=None, dest='rnd_seed', help='Set a seed for the random number generators')
+
+   
 
     #Check if only sites should be predicted
     args = parser.parse_args()

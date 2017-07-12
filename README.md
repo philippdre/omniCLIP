@@ -110,6 +110,7 @@ Argument  | Description
 --norm_class | Normalize class weights during glm fit
 --max-mismatch | Maximal number of mismatches that is allowed per read (default: 2)
 --mask_flank_mm | Do not consider mismatches in the N bp at the ends of reads for diagnostic event modelling 
+--seed | Set a seed for the random number generators
 
 
 ## Examples
