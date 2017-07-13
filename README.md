@@ -83,8 +83,8 @@ Argument  | Description
 ------------- | -------------
 --annot | File where gene annotation is stored
 --genome-dir | Directory where fasta files are stored
---clip-files | Bam-files for CLIP-libraries
---bg-files | Bam-files for bg-libraries or files with counts per gene
+--clip-files | Bam-file for CLIP-library. The alignments need to have the NM and MD tag. 
+--bg-files | Bam-file for bg-library. The alignments need to have the NM and MD tag.
 --out-dir | Output directory for results
 
 
