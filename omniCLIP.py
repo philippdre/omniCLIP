@@ -124,8 +124,8 @@ def run_omniCLIP(args):
         f_name_read_fg_tmp = EmissionParameters['DataOutFile_seq'].replace('fg_reads.dat', 'fg_reads.tmp.dat')
         f_name_read_bg_tmp = EmissionParameters['DataOutFile_bck'].replace('bg_reads.dat', 'bg_reads.tmp.dat')
     else:
-        temp_name_fg = os.path.join(EmissionParameters['tmp_dir'], next(tempfile._get_candidate_names()) + '.dat') 
-        temp_name_bg = os.path.join(EmissionParameters['tmp_dir'], next(tempfile._get_candidate_names()) + '.dat') 
+        f_name_read_fg_tmp = os.path.join(EmissionParameters['tmp_dir'], next(tempfile._get_candidate_names()) + '.dat') 
+        f_name_read_bg_tmp = os.path.join(EmissionParameters['tmp_dir'], next(tempfile._get_candidate_names()) + '.dat') 
         
     shutil.copy(f_name_read_fg, f_name_read_fg_tmp)
     shutil.copy(f_name_read_bg, f_name_read_bg_tmp)
@@ -374,7 +374,7 @@ def run_omniCLIP(args):
         Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
         Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
 
-    tools.GeneratePred(Paths, Sequences, Background, IterParameters, GeneAnnotation, OutFile, fg_state, bg_state, seq_file=EmissionParameters['DataOutFile_seq'], bck_file=EmissionParameters['DataOutFile_bck'],  pv_cutoff=pv_cutoff)
+    tools.GeneratePred(Paths, Sequences, Background, IterParameters, GeneAnnotation, OutFile, fg_state, bg_state, seq_file=EmissionParameters['DataOutFile_seq'], bck_file=EmissionParameters['DataOutFile_bck'], pv_cutoff=pv_cutoff)
     print 'Done'
 
     #Remove the temporary files
@@ -789,16 +789,16 @@ if __name__ == '__main__':
     parser.add_argument('--restart-from-iter', action='store_true', default=False, dest='restart_from_file', help='restart from existing run')
 
     # Overwrite existing FG .dat files
-    parser.add_argument('--use-precomp-CLIP-data', action='store_true', default=True, dest='overwrite_fg', help='Use existing fg_reads.dat file. This skips parsing the CLIP reads.')
+    parser.add_argument('--use-precomp-CLIP-data', action='store_true', default=True, dest='overwrite_fg', help='Use existing fg_data.dat file')
 
     # FG collapsed
     parser.add_argument('--collapsed-CLIP', action='store_true', default=False, dest='fg_collapsed', help='CLIP-reads are collapsed')
 
     # BG files
-    parser.add_argument('--bg-files', action='append', dest='bg_libs', default=[], help='Bam-files for bg-libraries or files with counts per gene. This skips parsing the bg reads.')
+    parser.add_argument('--bg-files', action='append', dest='bg_libs', default=[], help='Bam-files for bg-libraries or files with counts per gene')
 
     # Overwrite existing BG .dat files
-    parser.add_argument('--use-precomp-bg-data', action='store_true', default=True, dest='overwrite_bg', help='Use existing bg_reads.dat data')
+    parser.add_argument('--use-precomp-bg-data', action='store_true', default=True, dest='overwrite_bg', help='Use existing bg_data.dat data')
 
     # BG collapsed
     parser.add_argument('--collapsed-bg', action='store_true', default=False, dest='bg_collapsed', help='bg-reads are collapsed')
