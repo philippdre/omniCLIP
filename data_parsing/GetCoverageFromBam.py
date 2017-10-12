@@ -17,15 +17,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
-
-import os
-import sys
-import pysam
 import h5py
 import numpy as np
+import pysam
 import re
 
-
+#@profile
 def GetRawCoverageFromBam(InFile, HDF5OutFile, Collapse = False, CovType = 'coverage', Genome = ''):
     '''
     This function gets from a BAM-file the coverage and returns it as a sparse vector for each chromosome and strand
@@ -59,14 +56,20 @@ def GetRawCoverageFromBam(InFile, HDF5OutFile, Collapse = False, CovType = 'cove
     OutFile.close()
     SamReader.close()
 
+    return
 
-def GetRawCoverageFromRegion(SamReader, Chr, Start, Stop, Collapse = False, CovType = 'coverage', Genome = '', legacy = True, mask_flank_variants=3, max_mm=2):
+
+#@profile
+def GetRawCoverageFromRegion(SamReader, Chr, Start, Stop, Collapse = False, CovType = 'coverage', Genome = '', legacy = True, mask_flank_variants=3, max_mm=2, ign_out_rds=False, rev_strand=None, gene_strand=0):
     '''
     This function gets from a BAM-file the coverage and returns it as a sparse vector for each chromosome and strand
     '''
 
     #Initate nucleotide lookup
     NuclDict = {'A':0, 'C':1, 'G':2, 'T':3, 'D':4}
+
+    #Prepare regular expression
+    r = re.compile('([\\^]*[ACGT]+)[0]*')
     
     #Compute Length of the region
     RegionLength = Stop - Start 
@@ -77,18 +80,55 @@ def GetRawCoverageFromRegion(SamReader, Chr, Start, Stop, Collapse = False, CovT
     else:
         CurrChrCoverage = np.zeros((1, RegionLength), dtype = np.int32)
 
+    #modificy gene_strand if the reads are coming from the reverse strand
+    if rev_strand is not None:
+        if rev_strand == 0:
+            gene_strand *= -1 #Swap the strand
+
+    
     #iterate over Reads
     iter = SamReader.fetch(Chr, Start, Stop)
     for CurrRead in iter:
+        CurrReadstart = CurrRead.pos - Start 
+
+        if ign_out_rds:
+            LastPos = CurrReadstart + sum([e[1] for e in CurrRead.cigar if e[0] != 4]) - 1
+            
+            if (CurrReadstart < 0) or (LastPos > Stop - Start):
+                continue
+    
+        #Check wether the read strand matcheselse skip this read
+        if rev_strand is not None:
+            #Check if read is paired
+            if CurrRead.flag & 1:
+                if gene_strand == -1:
+                    # CurrRead.flag & 16 means read is on reverse strand
+                    # CurrRead.flag & 16 means read is first in pair
+                    # CurrRead.flag & 16 means read is second in pair
+                    if ((CurrRead.flag & 16) > 0) & ((CurrRead.flag & 64) > 0):
+                        continue
+                    if ((CurrRead.flag & 16) == 0) & ((CurrRead.flag & 128) > 0):
+                        continue
+                else:
+                    if ((CurrRead.flag & 16) > 0) & ((CurrRead.flag & 128) > 0):
+                        continue
+                    if ((CurrRead.flag & 16) == 0) & ((CurrRead.flag & 64) > 0):
+                        continue
+            else:
+                if gene_strand == -1:
+                    if ((CurrRead.flag & 16) > 0):
+                        continue
+                else:
+                    if ((CurrRead.flag & 16) == 0):
+                        continue
+
         if CurrRead.get_tag('NM') > max_mm:
             continue
-
         CurrReadstart = CurrRead.pos - Start 
         if CovType == 'variants':
             FirstPos = CurrReadstart
-            LastPos = FirstPos + np.sum(np.array([e[1] for e in CurrRead.cigar if e[0] != 4])) - 1 
-            GlobalVariantPos = GetVariantsFromRead(CurrRead)
-
+            LastPos = FirstPos + sum([e[1] for e in CurrRead.cigar if e[0] != 4]) - 1 
+            GlobalVariantPos = GetVariantsFromRead(CurrRead, r)
             #Transform letters into numbers, A - 0, C - 1, G - 2, T - 3
             for e in GlobalVariantPos:
                 #Check if variant falls into flanks
@@ -108,12 +148,11 @@ def GetRawCoverageFromRegion(SamReader, Chr, Start, Stop, Collapse = False, CovT
                     CurrChrCoverage[NuclDict[e[1]], e[0] - Start] += int(Mult[-1])
                 else:
                     CurrChrCoverage[NuclDict[e[1]], e[0] - Start] += 1
-
         elif CovType == 'read-ends':
             if CurrRead.flag & 1:
-                #Check if the read is paried end. If yes chose the outer ends as ends
+                #Check if the read is paired end. If yes chose the outer ends as ends
                 FirstPos = CurrReadstart
-                LastPos = FirstPos + np.sum(np.array([e[1] for e in CurrRead.cigar if e[0] != 4]))
+                LastPos = FirstPos + sum([e[1] for e in CurrRead.cigar if e[0] != 4])
                 if Collapse:
                     Mult = CurrRead.qname.split('-')
                     if len(Mult) == 1:
@@ -141,7 +180,8 @@ def GetRawCoverageFromRegion(SamReader, Chr, Start, Stop, Collapse = False, CovT
                             CurrChrCoverage[0, LastPos - 1] += 1
             else:
                 FirstPos = CurrReadstart
-                LastPos = FirstPos + np.sum(np.array([e[1] for e in CurrRead.cigar if e[0] != 4]))  
+                LastPos = FirstPos + sum([e[1] for e in CurrRead.cigar if e[0] != 4]) 
+                
                 if Collapse:
                     Mult = CurrRead.qname.split('-')
                     if len(Mult) == 1:
@@ -182,6 +222,7 @@ def GetCoverageFromBam(InFile, HDF5OutFile, Collapse = False):
     '''
     This function gets from a BAM-file the coverage and returns it as a sparse vector for each chromosome and strand 
     '''
+
     GetRawCoverageFromBam(InFile, HDF5OutFile, Collapse, 'coverage')
 
 
@@ -189,6 +230,7 @@ def GetDeletionsFromBAM(InFile, HDF5OutFile, Collapse = False):
     '''
     This function  gets from a BAM-file the deletions and returns them as a sparse vector for each chromosome  and strand
     '''
+
     GetRawCoverageFromBam(InFile, HDF5OutFile, Collapse, 'deletions')
     
    
@@ -196,6 +238,7 @@ def GetReadEndsFromBAM(InFile, HDF5OutFile, Collapse = False):
     '''
     This function  gets from a BAM-file the deletions and returns them as a sparse vector for each chromosome  and strand
     '''
+
     GetRawCoverageFromBam(InFile, HDF5OutFile, Collapse, 'read_ends')
      
     
@@ -205,27 +248,24 @@ def GetVariantsFromBAM(InFile, HDF5OutFile, Collapse = False):
     This function  gets from a BAM-file the Variants and returns them as a sparse vector for each chromosome
     Variants are coded by a four bit flag where the first two bytes code for the reference and the last two for the observed variants and strand
     '''
+
     GetRawCoverageFromBam(InFile, HDF5OutFile, Collapse, 'variants')
     
-
-def GetVariantsFromRead(CurrRead):
+#@profile
+def GetVariantsFromRead(CurrRead, r):
     '''
     This function takes a pysam read and returns based on the MD Tag the Variants and their absolute positions
     '''
+
     # Get the sequence
     Seq = CurrRead.seq
     Tag = ''
      
     # Get the MD tag
-    TagList = [e[1] for e in CurrRead.tags if e[0] == 'MD']
-    if len(TagList) == 0:
-        warnings.warn("Warning: No MD tag found in read " + CurrRead.qname)
-        return []
-    else:
-        Tag = TagList[0]
+    Tag = CurrRead.get_tag('MD')
         
     # Split the string
-    SplitTag = [e for e in re.split('([A-Z]+|\^[A-Z]+)',Tag) if len(e)>0]
+    SplitTag = [e for e in r.split(Tag) if len(e)>0]
     if len(SplitTag) == 1:
         return [] 
     
@@ -238,14 +278,13 @@ def GetVariantsFromRead(CurrRead):
         else:
             if SplitTag[i][0] == '^':# Check if it is a deletion
                 continue
-                #TempPos += len(SplitTag[i]) - 1
             else:
                 for l in range(len(SplitTag[i])):
                     PosList.append([TempPos, Seq[TempPos]])
-                    #PosList.append([TempPos, SplitTag[i][l]])
                     TempPos += 1
         
     # Convert the local positions from PosList to global positions.
+    ReadPos = 0
     CurrGlobalPos = CurrRead.pos
     GlobalPos = []
  

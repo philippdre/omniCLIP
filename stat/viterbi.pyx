@@ -20,8 +20,6 @@
 #'''
 
 
-
-
 cimport cython
 from cython.view cimport array as cvarray
 import numpy as np
@@ -31,8 +29,6 @@ DTYPE = np.float64
 ctypedef np.float64_t DTYPE_t
 
 @cython.boundscheck(False)
-
-
 def viterbi(np.ndarray[DTYPE_t, ndim=2] EmmisionProbabilites, np.ndarray[DTYPE_t, ndim=3] TransistionProbabilities, np.ndarray[DTYPE_t, ndim=2] PriorProbabilities):
 	"""
 	This function determines the most likely path using the Viterbi algorithm
@@ -41,19 +37,16 @@ def viterbi(np.ndarray[DTYPE_t, ndim=2] EmmisionProbabilites, np.ndarray[DTYPE_t
 	cdef int [:,:] TraceBack
 	cdef unsigned int SeqLen = EmmisionProbabilites.shape[1]
 	cdef unsigned int NrOfStates = EmmisionProbabilites.shape[0]
-	#cdef int [:] Path
 	cdef np.ndarray[np.int_t, ndim=1] Path = np.zeros(SeqLen, dtype=np.int)
 	cdef double [:,:] V
 	cdef double CurrMax, Temp
-	#cdef double LogLik
 	cdef LogLik = np.float64
 	cdef unsigned int D_SIZE = sizeof(double)
 	cdef unsigned int I_SIZE = sizeof(int)
 
 	TraceBack = cvarray(shape=(NrOfStates, SeqLen + 1), itemsize=I_SIZE, format='i', mode="c")
-	#Path = np.zeros(SeqLen, dtype=np.int64)
-	V = cvarray(shape=(NrOfStates, SeqLen + 1), itemsize=D_SIZE, format='d', mode="c")
 
+	V = cvarray(shape=(NrOfStates, SeqLen + 1), itemsize=D_SIZE, format='d', mode="c")
 
 	#First step of Viterbi
 	for j in xrange(NrOfStates):
@@ -69,12 +62,11 @@ def viterbi(np.ndarray[DTYPE_t, ndim=2] EmmisionProbabilites, np.ndarray[DTYPE_t
 				if CurrMax < Temp:
 					CurrMax = Temp
 					CurrArgmax = k
-
+			
 			TraceBack[j, i] = CurrArgmax
 			V[j, i + 1] = V[CurrArgmax, i] + EmmisionProbabilites[j, i] + TransistionProbabilities[CurrArgmax, j, i]
 
 	#Perform traceback
-
 	CurrArgmax = 0
 	CurrMax = V[0, SeqLen]
 	for k in xrange(1, NrOfStates):

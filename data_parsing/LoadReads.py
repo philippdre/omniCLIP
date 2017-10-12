@@ -17,35 +17,36 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
-
-import numpy as np
-from Bio import SeqIO
-import os
-import re
 import sys
+sys.path.append('./Analysis/')
 sys.path.append('./CFG/')
 sys.path.append('./DataParsing/')
-sys.path.append('./Utils/')
-sys.path.append('./Analysis/')
 sys.path.append('./Model/')
-from scipy.sparse import *
-import cPickle
-import gzip
+sys.path.append('./Utils/')
+from Bio import SeqIO
 from collections import defaultdict
-import pysam
+from scipy.sparse import *
 import GetCoverageFromBam
-import pdb
+import gzip
+import h5py
+import numpy as np
+import os
+import pysam
 
-def load_data(bam_files, genome_dir, gene_annotation, out_file, load_from_file = False, save_results = True, Collapse = False, OnlyCoverage = False, select_chrom = None, store_gene_seq=False, mask_flank_variants=3, max_mm=2):
+
+#@profile
+def load_data(bam_files, genome_dir, gene_annotation, out_file, load_from_file = False, save_results = True, Collapse = False, OnlyCoverage = False, select_chrom = None, store_gene_seq=False, mask_flank_variants=3, max_mm=2, ign_out_rds=False, rev_strand=None):
 	'''
 	This function reads the data from the bam-files
 	'''
+	
 	if load_from_file:
-		with gzip.GzipFile(out_file, 'r') as f:
-			GeneConversionEvents = cPickle.load(f)
+		GeneConversionEvents = h5py.File(out_file, 'r+')
 		return GeneConversionEvents
 	else:
-		GeneConversionEvents = defaultdict(dict)
+		if save_results:
+			GeneConversionEvents = h5py.File(out_file, 'w')
+
 		if OnlyCoverage:
 			print('Loading coverage only')
 
@@ -95,60 +96,61 @@ def load_data(bam_files, genome_dir, gene_annotation, out_file, load_from_file =
 					if gene.chrom == CurrChr:
 						Start = gene.start
 						Stop = gene.stop 
+						new_gene_name = gene.id.split('.')[0]
 						Strand =  1 if gene.strand == '+' else -1
 						#get the data
-						Coverage = GetCoverageFromBam.GetRawCoverageFromRegion(SamReader, CurrChr, Start, Stop, Collapse = Collapse, CovType = 'coverage', Genome = '', legacy = False, mask_flank_variants=mask_flank_variants, max_mm=max_mm)
+						Coverage = GetCoverageFromBam.GetRawCoverageFromRegion(SamReader, CurrChr, Start, Stop, Collapse = Collapse, CovType = 'coverage', Genome = '', legacy = False, mask_flank_variants=mask_flank_variants, max_mm=max_mm, ign_out_rds=ign_out_rds, gene_strand=Strand, rev_strand=rev_strand)
+
 						if not OnlyCoverage:
-							Variants = GetCoverageFromBam.GetRawCoverageFromRegion(SamReader, CurrChr, Start, Stop, Collapse = Collapse, CovType = 'variants', Genome = '', legacy = False, mask_flank_variants=mask_flank_variants, max_mm=max_mm)
-							ReadEnds = GetCoverageFromBam.GetRawCoverageFromRegion(SamReader, CurrChr, Start, Stop, Collapse = Collapse, CovType = 'read-ends', Genome = '', legacy = False, mask_flank_variants=mask_flank_variants, max_mm=max_mm)
+							Variants = GetCoverageFromBam.GetRawCoverageFromRegion(SamReader, CurrChr, Start, Stop, Collapse = Collapse, CovType = 'variants', Genome = '', legacy = False, mask_flank_variants=mask_flank_variants, max_mm=max_mm, ign_out_rds=ign_out_rds, gene_strand=Strand, rev_strand=rev_strand)
+							ReadEnds = GetCoverageFromBam.GetRawCoverageFromRegion(SamReader, CurrChr, Start, Stop, Collapse = Collapse, CovType = 'read-ends', Genome = '', legacy = False, mask_flank_variants=mask_flank_variants, max_mm=max_mm, ign_out_rds=ign_out_rds, gene_strand=Strand, rev_strand=rev_strand)
+							#pdb.set_trace()
 							Coverage = Coverage - np.sum(Variants, axis = 0) - ReadEnds
 
 							#Get the TC conversions
-							CurrSeq = str(CurrChrSeq.seq[Start : Stop])
+							CurrSeq = str(CurrChrSeq.seq[Start : Stop]).upper()
 							GeneSeq = np.zeros((1, len(CurrSeq)), dtype=np.uint8)
 							
-							Ix = [m.start() for m in re.finditer('C', CurrSeq.upper())]
-							GeneSeq[0, Ix] = 1
-							del Ix
-							Ix = [m.start() for m in re.finditer('G', CurrSeq.upper())]
-							GeneSeq[0, Ix] = 2
-							del Ix
-							Ix = [m.start() for m in re.finditer('T', CurrSeq.upper())]
-							GeneSeq[0, Ix] = 3
+							trdict = {"A":0,"C":1,"G":2,"T":3, "N":4}
+							GeneSeq[0, :] = np.array([trdict[e] for e in list(CurrSeq)])
 
-							del Ix
+							#Check that group already exists, otherwise create it
+							if not new_gene_name in GeneConversionEvents:
+								GeneConversionEvents.create_group(new_gene_name)
 
-							if not GeneConversionEvents[gene.id.split('.')[0]].has_key('Coverage'):
-								if store_gene_seq:
-									GeneConversionEvents[gene.id.split('.')[0]]['GeneSeq'] = {}
-								GeneConversionEvents[gene.id.split('.')[0]]['Variants'] = {}
-								GeneConversionEvents[gene.id.split('.')[0]]['Coverage'] = {}
-								GeneConversionEvents[gene.id.split('.')[0]]['Read-ends'] = {}
-
+							if not 'Coverage' in GeneConversionEvents[new_gene_name]:
+								if store_gene_seq and str(i)=='0':
+									GeneConversionEvents[new_gene_name].create_group('GeneSeq')
+								GeneConversionEvents[new_gene_name].create_group('Variants')
+								GeneConversionEvents[new_gene_name].create_group('Coverage')
+								GeneConversionEvents[new_gene_name].create_group('Read-ends')
+							
 							non_zer_var = np.where(Variants)
 							ij = np.vstack((GeneSeq[0, non_zer_var[1]] * 5 + non_zer_var[0], non_zer_var[1]))
-							SparseVarMat = csr_matrix((Variants[np.where(Variants)], ij), shape=(20,len(CurrSeq)))
+							Variants = csr_matrix((Variants[np.where(Variants)], ij), shape=(20,len(CurrSeq))).toarray()
+							del non_zer_var, ij
+
 							if store_gene_seq:
-								GeneConversionEvents[gene.id.split('.')[0]]['GeneSeq'][i] = GeneSeq
-							GeneConversionEvents[gene.id.split('.')[0]]['Variants'][i] = SparseVarMat
+								GeneConversionEvents[new_gene_name]['GeneSeq'].create_dataset(str(i), data=GeneSeq, compression="gzip", compression_opts=9, chunks=GeneSeq.shape)
+							GeneConversionEvents[new_gene_name]['Variants'].create_dataset(str(i), data=Variants, compression="gzip", compression_opts=9, chunks=Variants.shape)
+
 							#Only save the positions where a read in one of the replicates occured
-							GeneConversionEvents[gene.id.split('.')[0]]['Read-ends'][i] = csr_matrix(ReadEnds)
-							del Variants, ReadEnds,  non_zer_var, ij, SparseVarMat, CurrSeq, GeneSeq
+							GeneConversionEvents[new_gene_name]['Read-ends'].create_dataset(str(i), data=ReadEnds, compression="gzip", compression_opts=9, chunks=ReadEnds.shape)
+							del Variants, ReadEnds, CurrSeq, GeneSeq
 						else:
-							if not GeneConversionEvents[gene.id.split('.')[0]].has_key('Coverage'):
-								GeneConversionEvents[gene.id.split('.')[0]]['Coverage'] = {}
-						GeneConversionEvents[gene.id.split('.')[0]]['strand'] = Strand
-						GeneConversionEvents[gene.id.split('.')[0]]['Coverage'][i] = csr_matrix(Coverage)
+							if not 'Coverage' in GeneConversionEvents[new_gene_name]:								
+								GeneConversionEvents[new_gene_name].create_group('Coverage')
+						GeneConversionEvents[new_gene_name]['Coverage'].create_dataset(str(i), data=Coverage, compression="gzip", compression_opts=9, chunks=Coverage.shape)
+						if str(i)=='0':
+							GeneConversionEvents[new_gene_name].create_dataset('strand', data=Strand)
 						del Coverage
 
 			del CurrChrSeq
 			del record_dict
 			
 		print 'Saving results'
-		del Genes
-		if save_results:
-			with gzip.GzipFile(out_file, 'w') as f:
-					cPickle.dump(GeneConversionEvents, f, protocol=-1)
+		GeneConversionEvents.close()
+		GeneConversionEvents = h5py.File(out_file, 'r+')
 	return GeneConversionEvents
 
 

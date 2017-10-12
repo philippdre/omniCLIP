@@ -17,14 +17,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
-
-import os
-import sys
-
 def FilterRead(Read, Filter):
     '''
     This function determines whether a read should be filtered or not
     '''
+
     if True:
         return True
     
@@ -32,5 +29,5 @@ def FilterRead(Read, Filter):
     if Read.alen < Filter['Length']:
         return False
     #Filter for quality
-    #if Read.
+
     return True

@@ -1,3 +1,4 @@
+
 '''
     omniCLIP is a CLIP-Seq peak caller
 
@@ -22,29 +23,24 @@
 '''
 
 
-
-import sys
-import numpy as np
-import statsmodels
-import scipy
-import numpy as np
-from statsmodels.genmod import families
-import statsmodels.regression.linear_model as lm
 from scipy.sparse import csc_matrix, linalg as sla
-from statsmodels.tools.sm_exceptions import PerfectSeparationError
+from statsmodels.genmod import families
 from statsmodels.genmod.generalized_linear_model import *
 from statsmodels.tools.decorators import cache_readonly, resettable_cache
+from statsmodels.tools.sm_exceptions import PerfectSeparationError
 import cPickle
-import statsmodels.base.model as base
-import statsmodels.regression.linear_model as lm
-import statsmodels.base.wrapper as wrap
+import numpy as np
+import pdb
+import scipy
+import statsmodels
 import statsmodels.api as sm
+import statsmodels.base.model as base
+import statsmodels.base.wrapper as wrap
+import statsmodels.regression.linear_model as lm
+import statsmodels.regression.linear_model as lm
 import time
-from copy import deepcopy
 
 __all__ = ['GLM']
-
-
 
 
 def _check_convergence(criterion, iteration, tol):
@@ -69,13 +65,14 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
             exposure = np.log(exposure)
         if offset is not None:  # this should probably be done upstream
             offset = np.asarray(offset)
-
+        
         self._check_inputs(family, self.offset, self.exposure, self.endog)
         if offset is None:
             delattr(self, 'offset')
         if exposure is None:
             delattr(self, 'exposure')
         #things to remove_data
+        
 
     def fit(self, start_params=None, maxiter=100, method='IRLS', tol=1e-8,
             scale=None, cov_type='nonrobust', cov_kwds=None, use_t=None,
@@ -128,8 +125,7 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
         -----
         This method does not take any extra undocumented ``kwargs``.
         """
-
-        
+      
         endog = self.endog
         self.df_resid = self.endog.shape[0] - self.exog.shape[1]
         
@@ -181,6 +177,7 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
         Fits a generalized linear model for a given family using
         iteratively reweighted least squares (IRLS).
         """ 
+
         if not scipy.sparse.issparse(self.exog):
         	raise ValueError("Matrix not sparse")
 
@@ -191,25 +188,23 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
             mu = self.family.starting_mu(self.endog)
             lin_pred = self.family.predict(mu)
         else:
-            #This is a hack for a faster warm start                                                                                                                                                                                      
-            start_params_temp = deepcopy(start_params)
+            #This is a hack for a faster warm start       
             start_params[start_params > 1e2] = 1e2
             start_params[start_params < -1e2] = -1e2
             lin_pred = wlsexog.dot(start_params) + self._offset_exposure
-            
             mu = self.family.fitted(lin_pred)
-            #mu = start_params_temp
-        dev = self.family.deviance(self.endog, mu)
+
+        dev = self.family.deviance(self.endog[self.endog[:,0]>0,:], mu[self.endog[:,0]>0,:])
         if np.isnan(dev):
             if not (start_params is None):
                 #This is a hack for a faster warm start
-                #start_params_temp = deepcopy(start_params)
                 start_params[start_params > 1e1] = 1e1
                 start_params[start_params < -1e1] = -1e1
                 lin_pred = wlsexog.dot(start_params) + self._offset_exposure
                 mu = self.family.fitted(lin_pred)
 
                 dev = self.family.deviance(self.endog, mu)
+
                 if np.isnan(dev):
                     cPickle.dump([lin_pred, mu, endog, exog, start_params], open('/home/pdrewe/tmp/tmpdump.' + time.asctime().replace(' ', '_') + '.dat', 'w'))
                     raise ValueError("The first guess on the deviance function "
@@ -227,6 +222,7 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
         criterion = history['deviance']
         # This special case is used to get the likelihood for a specific
         # params vector.
+
         if maxiter == 0:
             pass
         for iteration in range(maxiter):
@@ -234,9 +230,11 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
             wlsendog = (lin_pred + self.family.link.deriv(mu) * (self.endog-mu)
                         - self._offset_exposure)
             W = scipy.sparse.diags(self.weights[:, 0], 0)
-            
-            lu = sla.splu(wlsexog.transpose().dot(W.dot(wlsexog)))
-            wls_results = lu.solve(wlsexog.transpose().dot(W.dot(wlsendog)))
+
+            #Compute x for current interation
+            temp_mat = wlsexog.transpose().dot(W)
+            lu = sla.splu(temp_mat.dot(wlsexog))
+            wls_results = lu.solve(temp_mat.dot(wlsendog))
             wls_results[wls_results > 1e2] = 1e2
             wls_results[wls_results < -1e2] = -1e2
 
@@ -246,8 +244,6 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
             history['params'].append(wls_results)
             history['deviance'].append(self.family.deviance(self.endog, mu))
 
-            self.scale = self.estimate_scale(mu)
-            
             if endog.squeeze().ndim == 1 and np.allclose(mu - endog, 0):
                 msg = "Perfect separation detected, results not available"
                 raise PerfectSeparationError(msg)
@@ -255,6 +251,27 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
             if converged:
                 break
         self.mu = mu
+
         history['iteration'] = iteration + 1
-        
+
         return [wls_results, history]
+
+
+    def _check_inputs(self, family, offset, exposure, endog):
+        # Default family is Gaussian
+        if family is None:
+            family = families.Gaussian()
+        self.family = family
+
+        if exposure is not None:
+            if not isinstance(self.family.link, families.links.Log):
+                raise ValueError("exposure can only be used with the log "
+                                 "link function")
+            elif exposure.shape[0] != endog.shape[0]:
+                raise ValueError("exposure is not the same length as endog")
+
+        if offset is not None:
+            if offset.shape[0] != endog.shape[0]:
+                raise ValueError("offset is not the same length as endog")
+
+

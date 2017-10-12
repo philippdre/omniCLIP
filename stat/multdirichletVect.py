@@ -20,7 +20,6 @@
 
 from scipy.special import gammaln
 import numpy as np
-from scipy.misc import comb
 import pdb
 
 
@@ -47,6 +46,7 @@ def TwoBinomlog_pdf(k1, k2, alpha):
     Pos = gammaln(np.sum(k1) + 1) + gammaln(np.sum(k2) + 1) + gammaln(np.sum(alpha)) + np.sum(gammaln(alpha + k))
     Neg = np.sum(gammaln(k1 + 1)) + np.sum(gammaln(k2 + 1)) + gammaln(np.sum(alpha + k)) + np.sum(gammaln(alpha))
     log = Pos - Neg
+
     return log
 
 
@@ -65,6 +65,7 @@ def log_pdf_vect(k, alpha):
     Pos = gammaln(np.sum(k, axis=0) + 1) + np.tile(gammaln(np.sum(alpha)), (1, Ks)) + np.sum(gammaln(np.tile(alpha, (1, Ks)) + k), axis=0)
     Neg = np.sum(gammaln(k + 1), axis=0) + gammaln(np.sum(np.tile(alpha, (1, Ks)) + k, axis=0)) + np.tile(np.sum(gammaln(alpha)), (1, Ks))
     log = Pos - Neg
+
     return log
 
 
@@ -80,7 +81,7 @@ def expand_k(k):
         Ks = k.shape[1]
     return k, Ks
 
-
+#@profile
 def log_pdf_vect_rep(Counts, alpha, tracks_per_rep, NrOfReplicates):
     '''
     This function computes the log pdf for an array of counts
@@ -95,7 +96,6 @@ def log_pdf_vect_rep(Counts, alpha, tracks_per_rep, NrOfReplicates):
     for rep in range(1, NrOfReplicates):  
         new_k, Ks = expand_k(Counts[rep * tracks_per_rep:(rep + 1) * tracks_per_rep, :])
         k += new_k
-    
 
     #Compute the factors that are independent of the replicates
     Pos = np.sum(gammaln(k + np.tile(alpha, (1, Ks))), axis=0) + np.tile(gammaln(np.sum(alpha)), (1, Ks)) 
@@ -111,12 +111,12 @@ def log_pdf_vect_rep(Counts, alpha, tracks_per_rep, NrOfReplicates):
 
     return log
 
-
+#@profile
 def TwoBinomlog_pdf_vect(k1, k2, alpha):
     '''
     This is the pdf for an array of counts for the case when two multinomial distributions are observed
     '''
-    
+
     alpha = np.expand_dims(alpha, axis=1)
     if len(k1.shape) == 1:
         Ks = 1
@@ -125,11 +125,11 @@ def TwoBinomlog_pdf_vect(k1, k2, alpha):
     else:
         Ks = k1.shape[1]
     k = k1 + k2
-    
     Pos = gammaln(np.sum(k1, axis=0) + 1) + gammaln(np.sum(k2, axis=0) + 1) + np.tile(gammaln(np.sum(alpha)),(1,Ks)) + np.sum(gammaln(np.tile(alpha, (1, Ks)) + k), axis=0)
     Neg = np.sum(gammaln(k1 + 1), axis=0) + np.sum(gammaln(k2 + 1), axis=0) + gammaln(np.sum(np.tile(alpha, (1, Ks)) + k, axis=0)) + np.tile(np.sum(gammaln(alpha)), (1, Ks))
     log = Pos - Neg
     return log
+
 
 def __init__(self, Parameters):
     self.name = 'MultDirichlet'

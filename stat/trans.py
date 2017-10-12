@@ -18,19 +18,19 @@
 '''
 
 
-import numpy as np
 import sys
 sys.path.append('../data_parsing/')
 sys.path.append('../data_parsing/')
-from scipy.sparse import *
-import pdb
-import time
-from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
-import random
-from sklearn.linear_model import SGDClassifier
 from scipy.misc import logsumexp
-import tools
+from scipy.sparse import *
+from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
+from sklearn.linear_model import SGDClassifier
+import numpy as np
+import pdb
+import random
 import resource
+import time
+import tools
 
 
 def PredictTransistions(Counts, TransitionParameters, NrOfStates, Type = 'multi'):
@@ -85,7 +85,6 @@ def PredictTransistionsUnif(Counts, TransitionParameters, NrOfStates):
     #Genererate the features
     CovMat = GenerateFeatures(np.array(range(Counts.shape[1] - 1)), Counts)
     
-    
     CurrClass = 0
     TempProb = TransitionParametersLogReg.predict_log_proba(CovMat.T).T
     for CurrentState in range(NrOfStates):
@@ -111,7 +110,6 @@ def PredictTransistionsMultinomialSeparate(Counts, TransitionParameters, NrOfSta
     #Genererate the features
     CovMat = GenerateFeatures(np.array(range(Counts.shape[1] - 1)), Counts)
     
-    
     CurrClass = 0
     for CurrentState in range(NrOfStates):
         CurrClass = 0
@@ -120,6 +118,8 @@ def PredictTransistionsMultinomialSeparate(Counts, TransitionParameters, NrOfSta
         for NextState in range(NrOfStates):
             TransistionProb[NextState, CurrentState, 1:] = TempProb[CurrClass, :]
             CurrClass += 1      
+
+        #Normalize the transition probabilities 
         NormFactor = np.log(np.sum(np.exp(TransistionProb[:, CurrentState, 1:]), axis = 0))
         for NextState in range(NrOfStates):
             TransistionProb[NextState, CurrentState, 1:] -= NormFactor
@@ -127,8 +127,7 @@ def PredictTransistionsMultinomialSeparate(Counts, TransitionParameters, NrOfSta
     del TempProb
     return TransistionProb
 
-
-
+#@profile
 def PredictTransistionsSimple(Counts, TransitionParameters, NrOfStates):
     '''
     This function predicts the transistion probabilities for a gene given the transition parameters
@@ -139,15 +138,17 @@ def PredictTransistionsSimple(Counts, TransitionParameters, NrOfStates):
 
     #Genererate the features
     CovMat = GenerateFeatures(np.array(range(Counts.shape[1] - 1)), Counts)
+
     #Ceate the probailities 
     TempProb = TransitionParametersLogReg.predict_log_proba(CovMat.T).T
-    
+
     for CurrentState in range(NrOfStates):
         for NextState in range(NrOfStates):
             if CurrentState == NextState:
                 TransistionProb[NextState, CurrentState, 1:] = TempProb[1, :]
             else:
                 TransistionProb[NextState, CurrentState, 1:] = TempProb[0, :]
+
         #Normalize the transition probabilities
         NormFactor = logsumexp(TransistionProb[:, CurrentState, 1:], axis = 0)
         for NextState in range(NrOfStates):
@@ -169,7 +170,7 @@ def PredictTransistionsSimpleBck(Counts, TransitionParameters, NrOfStates):
     CovMat = GenerateFeatures(np.array(range(Counts.shape[1] - 1)), Counts)
     #Ceate the probailities 
     TempProb = TransitionParametersLogReg.predict_log_proba(CovMat.T).T
-    
+    #pdb.set_trace()
     for CurrentState in range(NrOfStates):
         for NextState in range(NrOfStates):
             if CurrentState == NextState:
@@ -196,24 +197,23 @@ def PredictTransistionsMultinomialSeparateManual(Counts, TransitionParameters, N
     #Genererate the features
     CovMat = GenerateFeatures(np.array(range(Counts.shape[1] - 1)), Counts)
 
-    
     CurrClass = 0
     for CurrentState in range(NrOfStates):
         CurrClass = 0
         #Ceate the probailities for the current state
+
         TempProb = TransitionParametersLogReg[CurrentState][0].predict_log_proba(CovMat.T).T
         for NextState in TransitionParametersLogReg[CurrentState][1]:
             TransistionProb[NextState, CurrentState, 1:] = TempProb[CurrClass, :]
             CurrClass += 1      
-        #Normalize the transition probabilities    
-        #TransistionProb[0,1,:] = -500
-        #TransistionProb[1,0,:] = -500
+
         NormFactor = np.log(np.sum(np.exp(TransistionProb[:, CurrentState, 1:]), axis = 0))
         for NextState in range(NrOfStates):
             TransistionProb[NextState, CurrentState, 1:] -= NormFactor
         
     del TempProb
     return TransistionProb
+
 
 def PredictTransistionsMultinomial(Counts, TransitionParameters, NrOfStates):
     '''
@@ -228,7 +228,7 @@ def PredictTransistionsMultinomial(Counts, TransitionParameters, NrOfStates):
     CovMat[CovMat < 0] = 0
     #Ceate the probailities for the current state
     TempProb = TransitionParametersLogReg.predict_log_proba(CovMat.T).T
-    
+    #pdb.set_trace()
     CurrClass = 0
     for CurrentState in range(NrOfStates):
         for NextState in range(NrOfStates):
@@ -240,6 +240,7 @@ def PredictTransistionsMultinomial(Counts, TransitionParameters, NrOfStates):
             TransistionProb[NextState, CurrentState, 1:] -= NormFactor
         
     del TempProb
+    
 
     return TransistionProb
 
@@ -278,12 +279,14 @@ def FitTransistionParametersUnif2(Sequences, Background, TransitionParameters, C
     TransitionMatrix = TransitionParameters[0]
     NewTransitionParametersLogReg = {}
     t = time.time()
+
     #Iterate over the possible transistions
     assert (TransitionMatrix.shape[0] > 1), 'Only two states are currently allowed'
     for CurrState in range(TransitionMatrix.shape[0]):
         print "Learning transistion model for State " + str(CurrState)
         SampleSame = []
         SampleOther = []
+
         #Iterate over the genes
         print 'Loading data'
         for i, gene in enumerate(CurrPath.keys()):
@@ -297,7 +300,8 @@ def FitTransistionParametersUnif2(Sequences, Background, TransitionParameters, C
             #Positions where the path changes from the current state to the other state
             Ix = np.where(Ix1 * Ix2)[0]
             #CovMat = Sequences[gene]['CovNr'].toarray()
-            CovMat = tools.StackData(Sequences, gene, add = 'all')
+            Sequences_per_gene = PreloadSequencesForGene(Sequences, gene)
+            CovMat = tools.StackData(Sequences_per_gene, add = 'all')
             CovMat = GenerateFeatures(Ix, CovMat)
             SampleOther.append(CovMat[:, np.sum(CovMat, axis = 0) > 0])
 
@@ -308,7 +312,8 @@ def FitTransistionParametersUnif2(Sequences, Background, TransitionParameters, C
             #Positions where the path stays in the current stae
             Ix = np.where(Ix1 * Ix2)[0]
             #CovMat = Sequences[gene]['CovNr'].toarray()
-            CovMat = tools.StackData(Sequences, gene, add = 'all')
+            Sequences_per_gene = PreloadSequencesForGene(Sequences, gene)
+            CovMat = tools.StackData(Sequences_per_gene, add = 'all')
             CovMat = GenerateFeatures(Ix, CovMat)
             SampleSame.append(CovMat[:, np.sum(CovMat, axis = 0) > 0])
             del CovMat
@@ -319,7 +324,6 @@ def FitTransistionParametersUnif2(Sequences, Background, TransitionParameters, C
         Y0 = np.zeros((1, np.sum([Mat.shape[1] for Mat in SampleSame])), dtype=np.int)
         Y1 = np.ones((1, np.sum([Mat.shape[1] for Mat in SampleOther])), dtype=np.int)
         Y = np.hstack((Y0, Y1))[0,:]
-        
         
         Cs = [1e-4, 1e-3, 1e-2, 1e-1, 1, 1e1, 1e2, 1e3, 1e4, 1e5]
         LR = LogisticRegressionCV(Cs = Cs, penalty='l2', tol=0.01, class_weight='auto')
@@ -340,6 +344,7 @@ def FitTransistionParametersUnif(Sequences, Background, TransitionParameters, Cu
     TransitionMatrix = TransitionParameters[0]
     NewTransitionParametersLogReg = {}
     t = time.time()
+
     #Iterate over the possible transistions
     assert (TransitionMatrix.shape[0] > 1), 'Only two states are currently allowed'
     CurrClass = 0
@@ -368,7 +373,9 @@ def FitTransistionParametersUnif(Sequences, Background, TransitionParameters, Cu
             Ix2 = CurrPath[gene][1:] == CurrState
             #Positions where the path changes from the current state to the other state
             Ix = np.where(Ix1 * Ix2)[0]
-            CovMat = tools.StackData(Sequences, gene, add = 'all')
+            #CovMat = Sequences[gene]['CovNr'].toarray()
+            Sequences_per_gene = PreloadSequencesForGene(Sequences, gene)
+            CovMat = tools.StackData(Sequences_per_gene, add = 'all')
             nr_of_samples = CovMat.shape[0]
             CovMat[CovMat < 0] = 0
             if np.sum(np.sum(np.isnan(CovMat)))> 0:
@@ -383,7 +390,7 @@ def FitTransistionParametersUnif(Sequences, Background, TransitionParameters, Cu
                 SampleSame.append(CovMat)
             del CovMat
             Ix = np.where((Ix1 * Ix2) == 0)[0]
-            CovMat = tools.StackData(Sequences, gene, add = 'all')
+            CovMat = tools.StackData(Sequences_per_gene, add = 'all')
             CovMat[CovMat < 0] = 0
             if np.sum(np.sum(np.isnan(CovMat)))> 0:
                 pdb.set_trace()
@@ -405,7 +412,7 @@ def FitTransistionParametersUnif(Sequences, Background, TransitionParameters, Cu
     Y = np.hstack((np.ones((1, X_P.shape[1])), np.zeros((1, X_N.shape[1]))))[0,:]
     del X_P, X_N
     n_iter = max(5, np.ceil(10**6 / len(Y)))
-    
+
     LR = SGDClassifier(loss="log", n_iter = n_iter).fit(X.T, Y.T)
 
     NewTransitionParametersLogReg = LR
@@ -452,8 +459,12 @@ def FitTransistionParametersUnifBck(Sequences, Background, TransitionParameters,
             Ix2 = CurrPath[gene][1:] == CurrState
             #Positions where the path changes from the current state to the other state
             Ix = np.where(Ix1 * Ix2)[0]
-            CovMatSeq = tools.StackData(Sequences, gene, add = 'all')
-            CovMatBck = tools.StackData(Background, gene, add = 'only_cov')
+
+            Sequences_per_gene = PreloadSequencesForGene(Sequences, gene)
+            Background_per_gene = PreloadSequencesForGene(Background, gene)
+
+            CovMatSeq = tools.StackData(Sequences_per_gene, add = 'all')
+            CovMatBck = tools.StackData(Background_per_gene, add = 'only_cov')
             CovMat = np.vstack((CovMatSeq, CovMatBck))
             nr_of_samples = CovMat.shape[0]
             CovMat[CovMat < 0] = 0
@@ -469,8 +480,8 @@ def FitTransistionParametersUnifBck(Sequences, Background, TransitionParameters,
                 SampleSame.append(CovMat)
             del CovMat
             Ix = np.where((Ix1 * Ix2) == 0)[0]
-            CovMatSeq = tools.StackData(Sequences, gene, add = 'all')
-            CovMatBck = tools.StackData(Background, gene, add = 'only_cov')
+            CovMatSeq = tools.StackData(Sequences_per_gene, add = 'all')
+            CovMatBck = tools.StackData(Background_per_gene, add = 'only_cov')
             CovMat = np.vstack((CovMatSeq, CovMatBck))
             CovMat[CovMat < 0] = 0
             if np.sum(np.sum(np.isnan(CovMat)))> 0:
@@ -493,8 +504,9 @@ def FitTransistionParametersUnifBck(Sequences, Background, TransitionParameters,
     Y = np.hstack((np.ones((1, X_P.shape[1])), np.zeros((1, X_N.shape[1]))))[0,:]
     del X_P, X_N
     n_iter = max(5, np.ceil(10**6 / len(Y)))
-    
+
     LR = SGDClassifier(loss="log", n_iter = n_iter).fit(X.T, Y.T)
+
     NewTransitionParametersLogReg = LR
     del Ix1, Ix2,  Ix, SampleSame, SampleOther, X, Y, Xs, Ys 
     print 'Done: Elapsed time: ' + str(time.time() - t)
@@ -539,8 +551,8 @@ def FitTransistionParametersMultinomialSeparate(Sequences, Background, Transitio
                 Ix2 = CurrPath[gene][1:] == NextState
                 #Positions where the path changes from the current state to the other state
                 Ix = np.where(Ix1 * Ix2)[0]
-                CovMat = tools.StackData(Sequences, gene, add = 'all')
-
+                Sequences_per_gene = tools.PreloadSequencesForGene(Sequences, gene)
+                CovMat = tools.StackData(Sequences_per_gene, add = 'all')
                 CovMat[CovMat < 0] = 0
                 if np.sum(np.sum(np.isnan(CovMat)))> 0:
                     pdb.set_trace()
@@ -551,7 +563,6 @@ def FitTransistionParametersMultinomialSeparate(Sequences, Background, Transitio
                     CovMat = np.zeros((2, 1))
                     SampleOther.append(CovMat)
                 else:
-                    #SampleOther.append(CovMat[:, np.sum(CovMat, axis = 0) > 0])
                     SampleOther.append(CovMat)
                 del CovMat
             print '\n'
@@ -562,13 +573,12 @@ def FitTransistionParametersMultinomialSeparate(Sequences, Background, Transitio
             Xs.append(X)
             Ys.append(Y)
             CurrClass += 1
-        
+
         X = np.concatenate(Xs, axis = 1)
         Y = np.concatenate(Ys)
         n_iter = max(5, np.ceil(10**6 / len(Y)))
         LR = SGDClassifier(loss="log", n_iter = n_iter).fit(X.T, Y.T)
-        #LR.fit(X.T, Y.T)
-        #NewTransitionParametersLogReg = LR
+
         NewTransitionParametersLogReg[CurrState] = LR
         del Ix1, Ix2,  Ix, SampleSame, SampleOther, X, Y, Xs, Ys 
     print 'Done: Elapsed time: ' + str(time.time() - t)
@@ -605,7 +615,8 @@ def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, 
             sys.stdout.write('.')
             sys.stdout.flush()
         #Get data
-        CovMat = tools.StackData(Sequences, gene, add = 'all')
+        Sequences_per_gene = tools.PreloadSequencesForGene(Sequences, gene)
+        CovMat = tools.StackData(Sequences_per_gene, add = 'all')
         CovMat[CovMat < 0] = 0
         nr_of_samples = CovMat.shape[0]
         for CurrState in range(NrOfStates):
@@ -644,6 +655,7 @@ def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, 
 
     X = np.concatenate(SampleSame + SampleOther, axis =1)
     del SampleSame, SampleOther
+
     #Create Y
     Y = np.hstack((np.ones((1, len_same), dtype=np.int), np.zeros((1, len_other), dtype=np.int)))[0,:]
     print 'Fitting transistion parameters: III'
@@ -661,11 +673,11 @@ def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, 
     return NewTransitionParametersLogReg
 
 
+#@profile
 def FitTransistionParametersSimpleBck(Sequences, Background, TransitionParameters, CurrPath, C):
     '''
     This function determines the optimal parameters of the logistic regression for predicting the TransitionParameters
     '''
-
     #Generate features from the CurrPaths and the Information in the coverage
     TransitionMatrix = TransitionParameters[0]
     NewTransitionParametersLogReg = {}
@@ -684,14 +696,17 @@ def FitTransistionParametersSimpleBck(Sequences, Background, TransitionParameter
     SampleOther = []
     print "Learning transistion model"
     print "Iterating over genes"
-    
+
     for i, gene in enumerate(genes):
         if i % 1000 == 0:
             sys.stdout.write('.')
             sys.stdout.flush()
         #Get data
-        CovMatSeq = tools.StackData(Sequences, gene, add = 'all')
-        CovMatBck = tools.StackData(Background, gene, add = 'only_cov')
+        Sequences_per_gene = tools.PreloadSequencesForGene(Sequences, gene)
+        Background_per_gene = tools.PreloadSequencesForGene(Background, gene)
+
+        CovMatSeq = tools.StackData(Sequences_per_gene, add = 'all')
+        CovMatBck = tools.StackData(Background_per_gene, add = 'only_cov')
         CovMat = np.vstack((CovMatSeq, CovMatBck))
         nr_of_samples = CovMat.shape[0]
         CovMat[CovMat < 0] = 0
@@ -705,11 +720,9 @@ def FitTransistionParametersSimpleBck(Sequences, Background, TransitionParameter
                 Ix = np.where(Ix1 * Ix2)[0]
                 
                 if np.sum(np.sum(np.isnan(CovMat))) > 0:
-                    
                     continue
                 CovMatIx = GenerateFeatures(Ix, CovMat)
                 if np.sum(np.sum(np.isnan(CovMatIx))) > 0 or np.sum(np.sum(np.isinf(CovMatIx))) > 0:
-                    
                     continue
                 if CurrState == NextState:
                     if CovMatIx.shape[1] == 0:
@@ -726,23 +739,18 @@ def FitTransistionParametersSimpleBck(Sequences, Background, TransitionParameter
         del CovMat, CovMatIx, CovMatSeq, CovMatBck
     X = np.concatenate(SampleSame + SampleOther, axis =1)
     #Create Y 
-
     len_same = np.sum([Mat.shape[1] for Mat in SampleSame])
     len_other = np.sum([Mat.shape[1] for Mat in SampleOther])
     Y = np.hstack((np.ones((1, len_same), dtype=np.int), np.zeros((1, len_other), dtype=np.int)))[0,:]
     
-    #print 'Fitting transistion parameters: III'
-    #print 'Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     n_iter = max(5, np.ceil(10**6 / len(Y)))
     NewTransitionParametersLogReg = SGDClassifier(loss="log", n_iter = n_iter).fit(X.T, Y.T)
-    
-    #print 'Fitting transistion parameters: IV'
-    #print 'Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+
     del Ix1, Ix2,  Ix, SampleSame, SampleOther, X, Y, Xs, Ys 
-    #print 'Fitting transistion parameters: V'
+
     print 'Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     print 'Done: Elapsed time: ' + str(time.time() - t)
-    
+
     return NewTransitionParametersLogReg
 
 
@@ -798,9 +806,10 @@ def FitTransistionParametersMultinomialSeparateManual(Sequences, Background, Tra
             Xs.append(X)
             Ys.append(Y)
             CurrClass += 1
-        
+
         X = np.concatenate(Xs, axis = 1)
         Y = np.concatenate(Ys, axis = 1)
+        
         LR = LogisticRegression(C = 1, penalty='l2', tol=0.01, solver='lbfgs', multi_class='multinomial')
         LR.fit(X.T, Y.T)
         NewTransitionParametersLogReg[CurrState] = [LR, np.unique(Y)]
@@ -847,7 +856,6 @@ def FitTransistionParametersMultinomial(Sequences, Background, TransitionParamet
                     CovMat = np.zeros((2, 1))
                     SampleOther.append(CovMat)
                 else:
-                    #SampleOther.append(CovMat[:, np.sum(CovMat, axis = 0) > 0])
                     SampleOther.append(CovMat)
                 del CovMat
             print '\n'
@@ -859,13 +867,14 @@ def FitTransistionParametersMultinomial(Sequences, Background, TransitionParamet
             Xs.append(X)
             Ys.append(Y)
 
-    
+    #pdb.set_trace()
     X = np.concatenate(Xs, axis = 1)
+    Y = np.concatenate(Ys, axis = 1)
     LR = LogisticRegression(C = 1, penalty='l2', tol=0.1, solver='lbfgs', multi_class='multinomial', verbose = 1, max_iter=1000)
     
     n_iter = max(5, np.ceil(10**6 / len(Y)))
     LR = SGDClassifier(loss="log", n_iter = n_iter).fit(X.T, Y.T)
-
+    
     NewTransitionParametersLogReg = LR
     print 'Done: Elapsed time: ' + str(time.time() - t)
     del Ix1, Ix2,  Ix, SampleSame, SampleOther, X, Y, Xs, Ys 
@@ -878,6 +887,6 @@ def GenerateFeatures(Ix, CovMat):
     '''
     This funnction generates, for a set of positions, the features for the logistic regression from the Coverage matrix
     '''
-    
+
     FeatureMatrix = np.log(1 + CovMat[:, Ix])
     return FeatureMatrix

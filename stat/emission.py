@@ -18,18 +18,19 @@
 '''
 
 
-import numpy as np
-import scipy as sp
+from scipy import special
 from scipy.sparse import *
-from collections import defaultdict
-from scipy.stats import nbinom
 from scipy.sparse import csc_matrix
+from scipy.stats import nbinom
+import h5py
+import itertools
+import multiprocessing
+import numpy as np
+import resource
+import scipy as sp
 import sparse_glm
 import time
-import multiprocessing
-import itertools
-import resource
-from scipy import special
+
 
 def ComputeNBMeanVar(ExprPar):
     '''
@@ -43,6 +44,7 @@ def ComputeNBMeanVar(ExprPar):
     V = nbinom.var(n , p)
     return M, V
 
+#@profile
 def EstimateExpressionParametersMix(NewEmissionParameters, Counts, NrOfCounts, NrOfStates):
     '''
     This function determines the mean and variances of the counts for all states
@@ -57,7 +59,6 @@ def EstimateExpressionParametersMix(NewEmissionParameters, Counts, NrOfCounts, N
         for j in range(2):#Iterate over replicates
             vals = np.sum(Counts[State][range(j,6,2), :], axis = 0)
             weights = NrOfCounts[State]
-
             #Compute the weigted average and weighted squared average
             Means[State][j] = np.sum(vals * weights) / np.sum(weights)
             SqrdMean = np.sum((vals ** 2) * weights) / np.sum(weights)
@@ -69,7 +70,6 @@ def EstimateExpressionParametersMix(NewEmissionParameters, Counts, NrOfCounts, N
             if Means[State][j] >= Vars[State][j]:
                 Vars[State][j] = Means[State][j] + 0.0000001
 
-    
     #Compute the paramaeters from the mean and average
     NewEmissionParameters['ExpBck'] = [np.max(np.sum(Counts[State][range(0,6,2), :], axis = 0)), np.max(np.sum(Counts[State][range(1,6,2), :], axis = 0))]
     NewEmissionParameters['ExpTC'] = [NB_parameter_estimation(Means[1][0], Vars[1][0]), NB_parameter_estimation(Means[1][1], Vars[1][1])]
@@ -86,6 +86,7 @@ def EstimateExpressionParametersMix(NewEmissionParameters, Counts, NrOfCounts, N
 
     return NewEmissionParameters
 
+#@profile
 def EstimateExpressionParametersNB(NewEmissionParameters, Counts, NrOfCounts, NrOfStates):
     '''
     This function determines the mean and variances of the counts for all states
@@ -100,11 +101,11 @@ def EstimateExpressionParametersNB(NewEmissionParameters, Counts, NrOfCounts, Nr
         for j in range(2):#Iterate over replicates
             vals = np.sum(Counts[State][range(j,6,2), :], axis = 0)
             weights = NrOfCounts[State]
-            
+            #pdb.set_trace()
             if State >3:
                 sort_ix = np.argsort(vals)
                 cutoff = round(np.sum(weights) * 0.01)
-                
+                #pdb.set_trace()
                 curr_pos = len(vals) - 1
                 while cutoff > 0:
                     if weights[0, sort_ix[curr_pos]] >= cutoff:
@@ -118,7 +119,6 @@ def EstimateExpressionParametersNB(NewEmissionParameters, Counts, NrOfCounts, Nr
                 vals = vals[zero_ix]
                 weights = weights[0, zero_ix]
 
-            
             #Compute the weigted average and weighted squared average
             Means[State][j] = np.sum(vals * weights) / np.sum(weights)
             SqrdMean = np.sum((vals ** 2) * weights) / np.sum(weights)
@@ -130,7 +130,6 @@ def EstimateExpressionParametersNB(NewEmissionParameters, Counts, NrOfCounts, Nr
             if Means[State][j] >= Vars[State][j]:
                 Vars[State][j] = Means[State][j] + 0.0000001
 
-    
     #Compute the paramaeters from the mean and average
     NewEmissionParameters['ExpBck'] = [NB_parameter_estimation(Means[2][0], Vars[2][0]), NB_parameter_estimation(Means[2][1], Vars[2][1])]
     NewEmissionParameters['ExpTC'] = [NB_parameter_estimation(Means[1][0], Vars[1][0]), NB_parameter_estimation(Means[1][1], Vars[1][1])]
@@ -148,6 +147,7 @@ def EstimateExpressionParametersNB(NewEmissionParameters, Counts, NrOfCounts, Nr
 
     return NewEmissionParameters
 
+#@profile
 def EstimateExpressionParametersNBJoint(NewEmissionParameters, Counts, NrOfCounts, NrOfStates):
     '''
     This function determines the mean and variances of the counts for all states
@@ -161,17 +161,15 @@ def EstimateExpressionParametersNBJoint(NewEmissionParameters, Counts, NrOfCount
         Vars[State] = [0,0]
         for j in range(2):#Iterate over replicates
             if State == 1 or State == 0:
-                
+                #pdb.set_trace()
                 vals = np.hstack((Counts[1][j, :], Counts[0][j, :]))
                 weights = np.hstack((NrOfCounts[1], NrOfCounts[0]))[0, :]
             else:
                 vals = Counts[State][j, :]
                 weights = NrOfCounts[State][0, :]
-            
             if State >3:
                 sort_ix = np.argsort(vals)
                 cutoff = round(np.sum(weights) * 0.01)
-                
                 curr_pos = len(vals) - 1
                 while cutoff > 0:
                     if weights[0, sort_ix[curr_pos]] >= cutoff:
@@ -185,9 +183,9 @@ def EstimateExpressionParametersNBJoint(NewEmissionParameters, Counts, NrOfCount
                 vals = vals[zero_ix]
                 weights = weights[0, zero_ix]
 
-             
             #Compute the weigted average and weighted squared average
             Means[State][j] = np.sum(vals * weights) / np.sum(weights)
+            SqrdMean = np.sum((vals ** 2) * weights) / np.sum(weights)
             Vars[State][j] = SqrdMeanean - (Means[State][j] ** 2)
             if Vars[State][j] < 0.000001:
                 Vars[State][j] = 0.000001
@@ -195,7 +193,6 @@ def EstimateExpressionParametersNBJoint(NewEmissionParameters, Counts, NrOfCount
                 Means[State][j] = 0.0000001
             if Means[State][j] >= Vars[State][j]:
                 Vars[State][j] = Means[State][j] + 0.0000001
-    
     
     #Compute the paramaeters from the mean and average
     NewEmissionParameters['ExpBck'] = [NB_parameter_estimation(Means[2][0], Vars[2][0]), NB_parameter_estimation(Means[2][1], Vars[2][1])]
@@ -214,7 +211,7 @@ def EstimateExpressionParametersNBJoint(NewEmissionParameters, Counts, NrOfCount
 
     return NewEmissionParameters
 
-
+#@profile
 def NB_parameter_estimation(mean, var):
     '''
     This function computes the parameters p and r for the negative binomial distribution
@@ -228,13 +225,12 @@ def NB_parameter_estimation(mean, var):
 
     return p, n
 
-#
+#@profile
 def estimate_expression_param(expr_data):
     EmissionParameters, Sequences, Background, Paths, sample_size, bg_type = expr_data 
     '''
     This function estimates the parameters for the expression GLM
     '''
-
     print('Start estimation of expression parameters')
     # 1) Get the library size
     bg_type = EmissionParameters['BckType']
@@ -244,48 +240,59 @@ def estimate_expression_param(expr_data):
     disp = EmissionParameters['ExpressionParameters'][1]
 
 
-    # 2) Estimate dispersion 
+    # 2) Estimate dispersion
     print('Constructing GLM matrix')
     t = time.time() 
     # 3) Compute sufficient statistics
     print 'Estimating expression parameters: before GLMMatrix'
     print 'Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
 
+    try:
+        Sequences.close()
+    except:
+        pass
+    try:
+        Background.close()
+    except:
+        pass     
+
+    Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
+    Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
+
     A, w, Y, rep = construct_glm_matrix(EmissionParameters, Sequences, Background, Paths)
 
     print 'Estimating expression parameters: after GLMMatrix'
     print 'Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    #pdb.set_trace()
+    print 'Done: Elapsed time: ' + str(time.time() - t)
     
-    print 'Done: Elapsed time: ' + str(time.time() - t)    
-
     #make sure that matrix A is in the right format
     if not sp.sparse.isspmatrix_csc(A):
         A = csc_matrix(A)
 
     print 'Estimating expression parameters: before GLMMatrix'
     print 'Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+
     #create the offset for the library size
     offset = np.zeros_like(rep)
     for i in range(EmissionParameters['NrOfReplicates']):
-        offset[rep == (i + 1)] = lib_size[i]
+        offset[rep == (i + 1)] = lib_size[str(i)]
     if bg_type != 'None':
         for i in range(EmissionParameters['NrOfBckReplicates']):
-            offset[rep == -(i + 1)] = bck_lib_size[i]
-    
+            offset[rep == -(i + 1)] = bck_lib_size[str(i)]
+
     # 4) Fit GLM
     print('Fitting GLM')
-    
     t = time.time()
-    
 
     print 'Estimating expression parameters: before fitting'
     print 'Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    
+
     start_params, disp = fit_glm(A, w, Y, offset, sample_size, disp, start_params, norm_class=EmissionParameters['norm_class'])
 
     print 'Estimating expression parameters: afer fitting'
     print 'Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    
+
     del A, w, Y, offset
 
     print 'Estimating expression parameters: afer cleanup'
@@ -295,6 +302,7 @@ def estimate_expression_param(expr_data):
     # 5) Process the output
     EmissionParameters['ExpressionParameters'] = [start_params, disp]
     print('Finishes expression parameter estimation')
+
     return EmissionParameters
 
 
@@ -334,18 +342,14 @@ def estimate_disp_from_replicates(exp_mat, lib_size):
     ''' 
     This function estimates the dispersion for a set of replicates
     '''
-
     lib_size_vect = np.zeros(len(lib_size.keys()))
     for i, key in enumerate(lib_size.keys()):
         lib_size_vect[i] = lib_size[key]
 
     return
 
-
+#@profile
 def construct_glm_matrix(EmissionParameters, Sequences, Background, Paths, bg_type = None):
-    '''
-    This function generates the design matrix for the GLM
-    '''
 
     #Determine shape of the matrix
     bg_type = EmissionParameters['BckType']
@@ -365,11 +369,13 @@ def construct_glm_matrix(EmissionParameters, Sequences, Background, Paths, bg_ty
 
     fg_state, bg_state = get_fg_and_bck_state(EmissionParameters)
     #Create a dictionary of unique rows for each gene
+    #Check if parallel processing is activated
+    replicates_fg = Sequences[Sequences.keys()[0]]['Coverage'].keys()
     if np_proc == 1:
         for gene_nr, gene in enumerate(Sequences):
-            for rep in range(nr_of_rep):
+            for rep, curr_rep in enumerate(replicates_fg):
                 #Create the sparse matrix blocks for each replicate
-                curr_data = (Paths[gene], Sequences[gene]['Coverage'][rep], gene, gene_nr, rep, NrOfStates, nr_of_genes, bg_type, fg_state, bg_state, EmissionParameters['Verbosity'])
+                curr_data = (Paths[gene], Sequences[gene]['Coverage'][curr_rep].value, gene, gene_nr, rep, NrOfStates, nr_of_genes, bg_type, fg_state, bg_state, EmissionParameters['Verbosity'])
                 gene_mat, weights, y, reps, new_pos = process_gene_for_glm_mat(curr_data)
                 del curr_data
                 curr_mats.append(gene_mat)
@@ -379,7 +385,7 @@ def construct_glm_matrix(EmissionParameters, Sequences, Background, Paths, bg_ty
     else:
         #Create a function that groups together the values such that an iterator can be defined
         verb = EmissionParameters['Verbosity']
-        f = lambda (gene_nr, gene), rep,  Paths=Paths, Sequences=Sequences, NrOfStates=NrOfStates, nr_of_genes=nr_of_genes, bg_type=bg_type, fg_state=fg_state, bg_state=bg_state, verb=verb: (Paths[gene], Sequences[gene]['Coverage'][rep], gene, gene_nr, rep, NrOfStates, nr_of_genes, bg_type, fg_state, bg_state, verb)
+        f = lambda (gene_nr, gene), rep,  Paths=Paths, Sequences=Sequences, NrOfStates=NrOfStates, nr_of_genes=nr_of_genes, bg_type=bg_type, fg_state=fg_state, bg_state=bg_state, verb=verb: (Paths[gene], Sequences[gene]['Coverage'][rep].value, gene, gene_nr, rep, NrOfStates, nr_of_genes, bg_type, fg_state, bg_state, verb)
         #Create an iterator for the data
         data = itertools.starmap(f, itertools.product(itertools.izip(itertools.count(),Sequences.keys()), range(nr_of_rep)))
     
@@ -394,16 +400,19 @@ def construct_glm_matrix(EmissionParameters, Sequences, Background, Paths, bg_ty
         curr_ys += [res[2] for res in results]
         curr_reps += [res[3] for res in results]
         del results
+    
+    #Add row with pseudo counts
 
     if not bg_type == 'None':
+        replicates_bck = Background[Background.keys()[0]]['Coverage'].keys()
         #Process the background
         if np_proc == 1:
             for gene_nr, gene in enumerate(Sequences):
-                for rep in range(nr_of_bck_rep):
+                for rep, curr_rep in enumerate(replicates_bck):
                     if bg_type == 'Const':
-                        gene_rep_background = Background[gene][rep]
+                        gene_rep_background = Background[gene][curr_rep].value
                     else:
-                        gene_rep_background = Background[gene]['Coverage'][rep]
+                        gene_rep_background = Background[gene]['Coverage'][curr_rep].value
 
                     curr_data = (Paths[gene], gene_rep_background, gene, gene_nr, rep, NrOfStates, nr_of_genes, bg_type, fg_state, bg_state)
                     gene_mat, weights, y, reps, new_pos = process_bck_gene_for_glm_mat(curr_data)
@@ -414,11 +423,11 @@ def construct_glm_matrix(EmissionParameters, Sequences, Background, Paths, bg_ty
         else:
             #Create a function that groups together the values such that an iterator can be defined
             if bg_type == 'Const':
-                f = lambda (gene_nr, gene), rep,  Paths=Paths, Background=Background, NrOfStates=NrOfStates, nr_of_genes=nr_of_genes, bg_type=bg_type, fg_state=fg_state, bg_state=bg_state: (Paths[gene], Background[gene][rep], gene, gene_nr, rep, NrOfStates, nr_of_genes, bg_type, fg_state, bg_state)
+                f = lambda (gene_nr, gene), rep,  Paths=Paths, Background=Background, NrOfStates=NrOfStates, nr_of_genes=nr_of_genes, bg_type=bg_type, fg_state=fg_state, bg_state=bg_state: (Paths[gene], Background[gene][str(rep)].value, gene, gene_nr, rep, NrOfStates, nr_of_genes, bg_type, fg_state, bg_state)
             else:
-                f = lambda (gene_nr, gene), rep,  Paths=Paths, Background=Background, NrOfStates=NrOfStates, nr_of_genes=nr_of_genes, bg_type=bg_type, fg_state=fg_state, bg_state=bg_state: (Paths[gene], Background[gene]['Coverage'][rep], gene, gene_nr, rep, NrOfStates, nr_of_genes, bg_type, fg_state, bg_state)
-            #Create an iterator for the data
+                f = lambda (gene_nr, gene), rep,  Paths=Paths, Background=Background, NrOfStates=NrOfStates, nr_of_genes=nr_of_genes, bg_type=bg_type, fg_state=fg_state, bg_state=bg_state: (Paths[gene], Background[gene]['Coverage'][str(rep)].value, gene, gene_nr, rep, NrOfStates, nr_of_genes, bg_type, fg_state, bg_state)
             
+            #Create an iterator for the data            
             data = itertools.starmap(f, itertools.product(itertools.izip(itertools.count(),Background.keys()), range(nr_of_bck_rep)))
         
             pool = multiprocessing.Pool(number_of_processes, maxtasksperchild=100)
@@ -431,7 +440,7 @@ def construct_glm_matrix(EmissionParameters, Sequences, Background, Paths, bg_ty
             curr_weights += [res[1] for res in results]
             curr_ys += [res[2] for res in results]
             curr_reps += [res[3] for res in results]
-            del results
+            del results       
 
     #remove empty elements
     ix_nz = [curr_mats[i].nnz > 0 for i in range(len(curr_mats))]
@@ -441,7 +450,6 @@ def construct_glm_matrix(EmissionParameters, Sequences, Background, Paths, bg_ty
     curr_reps = [curr_reps[i] for i in range(len(ix_nz)) if ix_nz[i]]
 
     #Merge the componetens of all genes
-
     A = sp.sparse.vstack(curr_mats).tocsc()
     w = np.hstack(curr_weights)
     y = np.hstack(curr_ys)
@@ -449,7 +457,7 @@ def construct_glm_matrix(EmissionParameters, Sequences, Background, Paths, bg_ty
 
     return A, w, y, rep
 
-
+#@profile
 def process_bck_gene_for_glm_mat(data):
     '''
     This function computes how much coverage is at each position in each state. 
@@ -457,19 +465,19 @@ def process_bck_gene_for_glm_mat(data):
     '''
 
     CurrGenePath, gene_rep_back, gene, gene_nr, rep, NrOfStates, nr_of_genes, bg_type, fg_state, bg_state = data
+    
     #1) get the counts
     counts = {}
-
     if bg_type == 'Const':
         gene_length = len(CurrGenePath)
         counts[gene_rep_back/float(gene_length)] = gene_length
     elif bg_type == 'Coverage' or bg_type == 'Coverage_bck':
         for CurrState in xrange(NrOfStates):
-            curr_counts = gene_rep_back.toarray()[0, CurrGenePath == CurrState]
+            curr_counts = gene_rep_back[0, CurrGenePath == CurrState]
             curr_counts[curr_counts < 0] = 0
             counts[CurrState]= np.unique(curr_counts, return_counts=True)
     else: #'Count'   
-        curr_counts = gene_rep_back.toarray()[0, :]
+        curr_counts = gene_rep_back[0, :]
         curr_counts[curr_counts < 0] = 0
         counts[CurrState]= np.unique(curr_counts, return_counts=True)
     
@@ -482,11 +490,12 @@ def process_bck_gene_for_glm_mat(data):
     curr_reps = []
     nr_of_rows = 0
     curr_pos = 0
+
     #Add rows for abundance and weights
     #Estimate the gene expression by a random count
     if bg_type == 'Coverage_bck':
         if np.sum(CurrGenePath == 3) == len(CurrGenePath):
-            tmp_vals =gene_rep_back[0, :].toarray()[0, :]
+            tmp_vals = gene_rep_back[0, :]
             tmp_nb_sample = np.sum(np.sum(tmp_vals > 0))
             if tmp_nb_sample > 0:
                 curr_y.append(np.random.choice(tmp_vals, min(tmp_nb_sample, 10)) + 1)
@@ -508,7 +517,6 @@ def process_bck_gene_for_glm_mat(data):
     if bg_type == 'Coverage_bck' or bg_type == 'Coverage':
         for CurrState in xrange(NrOfStates):
             #Add rows for abundance and weights
-
             temp_y = counts[CurrState][0]
             temp_weights = counts[CurrState][1] 
             curr_weights.append(temp_weights)
@@ -554,7 +562,7 @@ def process_bck_gene_for_glm_mat(data):
                     else:
                         pass
                 else:
-                    #add information for numper of replicates 
+                    #add information for number of replicates 
                     curr_reps.append(-np.ones(nr_of_obs) * (rep + 1))
                     curr_data.append(np.ones(nr_of_obs))
                     curr_rows.append(np.arange(curr_pos, curr_pos + nr_of_obs))
@@ -578,7 +586,7 @@ def process_bck_gene_for_glm_mat(data):
         #add information for numper of replicates 
         curr_reps.append(-np.ones(nr_of_obs) * (rep + 1))
         nr_of_rows += nr_of_obs
-    
+
     #create matrix
     if bg_type == 'Coverage_bck':
         gene_mat = coo_matrix((np.hstack(curr_data), (np.hstack(curr_rows), np.hstack(curr_cols))), shape = (nr_of_rows, nr_of_genes + 2))           
@@ -593,8 +601,7 @@ def process_bck_gene_for_glm_mat(data):
     new_pos = curr_pos
     return gene_mat, weights, y, reps, new_pos
 
-
-
+#@profile
 def process_gene_for_glm_mat(data):
     '''
     This function computes how much coverage is at each position in each state. 
@@ -605,9 +612,9 @@ def process_gene_for_glm_mat(data):
 
     #1) get the counts
     counts = {}
-
+    #CurrGenePath = Paths[gene]
     for CurrState in xrange(NrOfStates):
-        curr_counts = rep_gene_seq.toarray()[0, CurrGenePath == CurrState]
+        curr_counts = rep_gene_seq[0, CurrGenePath == CurrState]
         curr_counts[curr_counts < 0] = 0
         counts[CurrState]= np.unique(curr_counts, return_counts=True)
     
@@ -625,7 +632,7 @@ def process_gene_for_glm_mat(data):
     #Estimate the gene expression by a random count
     if bg_type == 'Coverage_bck':
         if np.sum(CurrGenePath == 3) == len(CurrGenePath):
-            tmp_vals = rep_gene_seq[0, :].toarray()[0, :]
+            tmp_vals = rep_gene_seq[0, :]
             tmp_nb_sample = np.sum(np.sum(tmp_vals > 0))
             if tmp_nb_sample > 0:
                 tmp_vals = tmp_vals[tmp_vals > 0]
@@ -647,13 +654,10 @@ def process_gene_for_glm_mat(data):
                 print 'estimating gene expression on background for gene: ' + gene
             #Assume that it is from the state with lower counts
 
-
-
-
     for CurrState in xrange(NrOfStates):
         #Add rows for abundance and weights
         temp_y = counts[CurrState][0]
-        temp_weights = counts[CurrState][1] 
+        temp_weights = counts[CurrState][1]
         curr_weights.append(temp_weights)
         curr_y.append(temp_y)        
 
@@ -726,11 +730,9 @@ def process_gene_for_glm_mat(data):
                 curr_rows.append(np.arange(curr_pos, curr_pos + nr_of_obs))
                 curr_cols.append(np.ones(nr_of_obs) * (nr_of_genes + CurrState))
 
-
         curr_pos += nr_of_obs
         nr_of_rows += nr_of_obs
-
-    
+  
     #create matrix
     if bg_type == 'None':
         gene_mat = coo_matrix((np.hstack(curr_data), (np.hstack(curr_rows), np.hstack(curr_cols))), shape = (nr_of_rows, NrOfStates))
@@ -745,9 +747,10 @@ def process_gene_for_glm_mat(data):
     y = np.hstack(curr_y)
     reps = np.hstack(curr_reps)
     new_pos = curr_pos
+
     return gene_mat, weights, y, reps, new_pos
 
-
+#@profile
 def process_pseudo_gene_for_glm_mat(Sequences, Background, rep, NrOfStates, curr_pos):
     '''
     This function computes a pseduo row entry for the matrix in order to have full rank
@@ -768,7 +771,7 @@ def process_pseudo_gene_for_glm_mat(Sequences, Background, rep, NrOfStates, curr
 
     #create matrix
     gene_mat = csc_matrix((curr_data, (curr_rows, curr_cols)), shape = (nr_of_rows, nr_of_genes + NrOfStates))
-
+    
     weights = np.array([0.1,0.1,0.1, 0.1])*10.0
     y = np.array([0,0,0,0])
     reps = np.hstack([0,0,0,0])
@@ -777,7 +780,7 @@ def process_pseudo_gene_for_glm_mat(Sequences, Background, rep, NrOfStates, curr
 
     return gene_mat, weights, y, reps, new_pos
 
-
+#@profile
 def fit_glm(A, w, Y, offset, sample_size, disp = None, start_params = None, norm_class=False):
     '''
     This function fits the GLM
@@ -810,17 +813,18 @@ def fit_glm(A, w, Y, offset, sample_size, disp = None, start_params = None, norm
             Ix_expr =(A[:,-1].toarray() == 0) * (A[:,-2].toarray() < 0)
             tempw[Ix_expr] = tempw[Ix_expr] / np.sum(tempw[Ix_expr])
 
-
         glm_binom = sparse_glm.sparse_glm(Y, A, offset = np.log(offset), family = sparse_glm.families.NegativeBinomial(alpha = disp))
         res = glm_binom.fit(method = "irls_sparse", data_weights = tempw, start_params = start_params)
         start_params = res[0] 
         mu = res[1]['mu'] 
         del res, glm_binom
-
+        old_disp = disp
+        
+        disps = []
         print start_params[-3:]
 
-        disp = sp.optimize.minimize_scalar(neg_NB_GLM_loglike, bracket=None, bounds=[0.1, 100], args=(Y, mu, tempw,), method='bounded', tol=0.00001, options=None)['x'] 
-        
+        disp = sp.optimize.minimize_scalar(neg_NB_GLM_loglike, bracket=None, bounds=[0.1, 100], args=(Y, mu, tempw,), method='bounded', tol=0.00001, options=None)['x'] #*10
+
         print 'Dispersion ' + str(disp)
         glm_binom = sparse_glm.sparse_glm(Y, A, offset = np.log(offset), family = sparse_glm.families.NegativeBinomial(alpha = disp))
         res = glm_binom.fit(method = "irls_sparse", data_weights = tempw, start_params = start_params)
@@ -835,7 +839,7 @@ def fit_glm(A, w, Y, offset, sample_size, disp = None, start_params = None, norm
 
     return start_params, disp
 
-
+#@profile
 def neg_NB_GLM_loglike(alpha, endog, mu, weights):
     """
     This function computes the loglikelihood for a fitted NB GLM
@@ -848,35 +852,7 @@ def neg_NB_GLM_loglike(alpha, endog, mu, weights):
 
     return -np.sum((endog * np.log(alpha * exp_lin_pred / (1 + alpha * exp_lin_pred)) - np.log(1 + alpha * exp_lin_pred) / alpha + constant) * weights)
 
-
-def estimate_library_size(Sequences):
-    '''
-    This function estimates the library size of all samples
-    '''
-
-    lib_size_dict = defaultdict(list)
-    lib_size_red = defaultdict(int)
-    #Get the gene expressionns
-    for gene in Sequences.keys():
-        for key in Sequences[gene]['Coverage'].keys():
-            lib_size_dict[key].append(Sequences[gene]['Coverage'][key].sum())
-
-    #Compute the (weighted) median of non zero genes 
-    for key in lib_size_dict:
-        exprs = np.array([g for g in lib_size_dict[key] if g > 0])
-        temp_median = np.median(exprs)
-        temp_med_floor = np.floor(temp_median)
-        temp_med_ceil = np.ceil(temp_median)
-        tot_floor = np.sum(exprs == temp_med_floor)
-        tot_ceil = np.sum(exprs == temp_med_ceil)
-        med =  ((temp_med_floor * tot_floor) + (temp_med_ceil * tot_ceil)) / (tot_floor + tot_ceil)
-        med = temp_median
-        
-        lib_size_red[key] = med
-
-    return lib_size_red
-
-
+#@profile
 def get_expected_mean_and_var(CurrStackSum, State, nr_of_genes, gene_nr, EmissionParameters, curr_type = 'fg'):
     '''
     This function computes the expected means and variances for each of the states
@@ -909,7 +885,7 @@ def get_expected_mean_and_var(CurrStackSum, State, nr_of_genes, gene_nr, Emissio
 
     #check whether the current data is foreground data
     for rep in range(nr_of_rep):
-        GLM_mat[rep, :] += np.ones((1)) * np.log(lib_size[rep])
+        GLM_mat[rep, :] += np.ones((1)) * np.log(lib_size[str(rep)])
         if curr_type == 'fg':
             if bg_type == 'None':
                 GLM_mat[rep, :] += np.ones((1)) * start_params[State, 0]
@@ -960,9 +936,9 @@ def get_expected_mean_and_var(CurrStackSum, State, nr_of_genes, gene_nr, Emissio
                     continue
             else:
                 GLM_mat[rep, :] += np.ones((1)) * start_params[gene_nr, 0]
-    
+
     #Compute the mean of the positions in each state
-    mean_mat = np.exp(np.tile(GLM_mat, (1, gene_len)))\
+    mean_mat = np.tile(np.exp(GLM_mat), (1, gene_len))
 
     #Compute the variance of the position
     var_mat = mean_mat + disp * (mean_mat ** 2)
@@ -972,9 +948,9 @@ def get_expected_mean_and_var(CurrStackSum, State, nr_of_genes, gene_nr, Emissio
         if bg_type == 'Coverage_bck':
             GLM_mat_alt = np.zeros((nr_of_rep, 1))
             for rep in range(nr_of_rep):
-                GLM_mat_alt[rep, :] += np.ones((1)) * np.log(lib_size[rep])
+                GLM_mat_alt[rep, :] += np.ones((1)) * np.log(lib_size[str(rep)])
             GLM_mat_alt +=  start_params[gene_nr, 0] - abs(start_params[nr_of_genes, 0])
-            mean_mat_alt = np.exp(np.tile(GLM_mat_alt, (1, gene_len)))
+            mean_mat_alt = np.tile(np.exp(GLM_mat_alt), (1, gene_len))
             disp_alt = mean_mat_alt * disp / mean_mat
             var_mat_alt = mean_mat * disp_alt * (mean_mat ** 2)
             ix = var_mat_alt > var_mat
@@ -986,7 +962,7 @@ def get_expected_mean_and_var(CurrStackSum, State, nr_of_genes, gene_nr, Emissio
 
     return mean_mat, var_mat
 
-
+#@profile
 def predict_expression_log_likelihood_for_gene(CurrStackSum, State, nr_of_genes, gene_nr, EmissionParameters, curr_type = 'fg'):
     '''
     This function predicts the likelihood of expression for a gene
@@ -1013,7 +989,7 @@ def predict_expression_log_likelihood_for_gene(CurrStackSum, State, nr_of_genes,
     zero_array = nbinom._logpmf(np.zeros((CurrStackSum.shape[0], 1)), np.expand_dims(n[:,0], axis=1), np.expand_dims(p[:,0], axis=1))
 
     loglike = np.tile(zero_array, (1, CurrStackSum.shape[1]))
-    loglike[:, ix_nonzero] = nbinom._logpmf(CurrStackSum[:, ix_nonzero], n[:, ix_nonzero], p[:, ix_nonzero]) 
+    loglike[:, ix_nonzero] = nbinom._logpmf(CurrStackSum[:, ix_nonzero], n[:, ix_nonzero], p[:, ix_nonzero])
 
     #combine the replicates 
     loglike = loglike.sum(axis = 0)

@@ -23,9 +23,7 @@ import sys
 sys.path.append('../data_parsing/')
 sys.path.append('../stat/')
 sys.path.append('../visualisation/')
-
 from scipy.sparse import *
-import FitBinoDirchEmmisionProbabilities
 import diag_event_model
 import viterbi
 import prettyplotlib as ppl
@@ -36,6 +34,8 @@ import tools
 import pylab as plt
 from scipy.misc import logsumexp
 import matplotlib
+
+
 matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
 
@@ -53,11 +53,14 @@ def PlotGene(Sequences, Background, gene, IterParameters, TransitionTypeFirst = 
     TransitionType = EmissionParameters['TransitionType']
     PriorMatrix = EmissionParameters['PriorMatrix']
     NrOfStates = EmissionParameters['NrOfStates']
+    
+    Sequences_per_gene = PreloadSequencesForGene(Sequences, gene)
+    Background_per_gene = PreloadSequencesForGene(Background, gene)
 
     if EmissionParameters['FilterSNPs']:
-        Ix = tools.GetModelIx(Sequences, gene, Type='no_snps_conv', snps_thresh=EmissionParameters['SnpRatio'], snps_min_cov=EmissionParameters['SnpAbs'], Background=Background)
+        Ix = tools.GetModelIx(Sequences_per_gene, Type='no_snps_conv', snps_thresh=EmissionParameters['SnpRatio'], snps_min_cov=EmissionParameters['SnpAbs'], Background=Background_per_gene)
     else:
-        Ix = tools.GetModelIx(Sequences, gene)
+        Ix = tools.GetModelIx(Sequences_per_gene)
 
     #2) Compute the probabilities for both states
     EmmisionProbGene = np.log(np.ones((NrOfStates, Ix.shape[0])) * (1 / np.float64(NrOfStates)))
@@ -65,13 +68,15 @@ def PlotGene(Sequences, Background, gene, IterParameters, TransitionTypeFirst = 
     EmmisionProbGeneNB_fg = np.log(np.ones((NrOfStates, Ix.shape[0])) * (1 / np.float64(NrOfStates)))
     EmmisionProbGeneNB_bg = np.log(np.ones((NrOfStates, Ix.shape[0])) * (1 / np.float64(NrOfStates)))
 
-    CurrStackSum = tools.StackData(Sequences, gene) 
-    CurrStackVar = tools.StackData(Sequences, gene, add = 'no')
+
+    CurrStackSum = tools.StackData(Sequences_per_gene) 
+    CurrStackVar = tools.StackData(Sequences_per_gene, add = 'no')
     nr_of_genes = len(Sequences.keys())
     gene_nr_dict = {}
     for i, curr_gene in enumerate(Sequences.keys()):
         gene_nr_dict[curr_gene] = i
 
+    #Compute the emission probapility
     for State in range(NrOfStates):
         if not EmissionParameters['ExpressionParameters'][0] == None:
             EmmisionProbGene[State, :] = emission.predict_expression_log_likelihood_for_gene(CurrStackSum, State, nr_of_genes, gene_nr_dict[gene], EmissionParameters)
@@ -82,17 +87,18 @@ def PlotGene(Sequences, Background, gene, IterParameters, TransitionTypeFirst = 
             if EmissionParameters['BckType'] == 'Coverage_bck':
                 EmmisionProbGene[State, :] += emission.predict_expression_log_likelihood_for_gene(tools.StackData(Background, gene, add = 'only_cov')+0, State, nr_of_genes, gene_nr_dict[gene], EmissionParameters, curr_type='bg')
                 EmmisionProbGeneNB_bg[State, :] = emission.predict_expression_log_likelihood_for_gene(tools.StackData(Background, gene, add = 'only_cov')+0, State, nr_of_genes, gene_nr_dict[gene], EmissionParameters, curr_type='bg')
-        EmmisionProbGene[State, Ix] += diag_event_model.pred_log_lik(CurrStackVar[:, Ix], State, EmissionParameters)
-        EmmisionProbGene_Dir[State, Ix] = diag_event_model.pred_log_lik(CurrStackVar[:, Ix], State, EmissionParameters)
-
+        if not EmissionParameters['ign_diag']:
+            EmmisionProbGene[State, Ix] += diag_event_model.pred_log_lik(CurrStackVar[:, Ix], State, EmissionParameters)
+            EmmisionProbGene_Dir[State, Ix] = diag_event_model.pred_log_lik(CurrStackVar[:, Ix], State, EmissionParameters)
+        
     #Get the transition probabilities
     if TransitionTypeFirst == 'nonhomo':
         if TransitionType == 'unif_bck' or TransitionType == 'binary_bck':
-            CountsSeq = tools.StackData(Sequences, gene, add = 'all')
-            CountsBck = tools.StackData(Background, gene, add = 'only_cov')
+            CountsSeq = tools.StackData(Sequences_per_gene, add = 'all')
+            CountsBck = tools.StackData(Background_per_gene, add = 'only_cov')
             Counts = np.vstack((CountsSeq, CountsBck))
         else:
-            Counts = tools.StackData(Sequences, gene, add = 'all')
+            Counts = tools.StackData(Sequences_per_gene, add = 'all')
         TransistionProbabilities = np.float64(trans.PredictTransistions(Counts, TransitionParameters, NrOfStates, TransitionType))
     else: 
         TransistionProbabilities = np.float64(np.tile(np.log(TransitionParameters[0]), (EmmisionProbGene.shape[1],1,1)).T)       
@@ -103,11 +109,11 @@ def PlotGene(Sequences, Background, gene, IterParameters, TransitionTypeFirst = 
 
     if no_plot:
         return MostLikelyPath, TransistionProbabilities, EmmisionProbGene
-    
+    #pdb.set_trace()
     fig, axes = plt.subplots(nrows=9, figsize=figsize)
     fig.subplots_adjust(hspace = 1.001)
 
-    Counts = tools.StackData(Sequences, gene , add = 'no')
+    Counts = tools.StackData(Sequences_per_gene, gene , add = 'no')
     if Stop == -1:
         Stop = Counts.shape[1]
     if Stop == -1:
@@ -117,24 +123,25 @@ def PlotGene(Sequences, Background, gene, IterParameters, TransitionTypeFirst = 
 
     i = 0
     color = set2[i]
+    nr_of_rep_fg = len(Sequences[gene]['Coverage'].keys())
     i+=1
-    Ix = repl_track_nr([2, 16], 22) 
+    Ix = repl_track_nr([2, 16], 22, nr_of_rep_fg) 
     ppl.plot(axes[0], plt_rng, (np.sum(Counts[Ix,:], axis=0))[Start:Stop], label='TC', linewidth=2, color = color)
     color = set2[i]
     i += 1
-    Ix = repl_track_nr([0,1,3,5,6,7,8,10,11,12,13,15,17,18], 22) 
+    Ix = repl_track_nr([0,1,3,5,6,7,8,10,11,12,13,15,17,18], 22, nr_of_rep_fg) 
     ppl.plot(axes[0], plt_rng, (np.sum(Counts[Ix,:], axis=0))[Start:Stop], label='NonTC', linewidth=2, color = color)
     color = set2[i]
     i += 1
-    Ix = repl_track_nr([20], 22) 
+    Ix = repl_track_nr([20], 22, nr_of_rep_fg) 
     ppl.plot(axes[0], plt_rng, (np.sum(Counts[Ix,:], axis=0))[Start:Stop], label='Read-ends', linewidth=2, color = color)
     color = set2[i]
     i += 1
-    Ix = repl_track_nr([4,9,14,19], 22) 
+    Ix = repl_track_nr([4,9,14,19], 22, nr_of_rep_fg) 
     ppl.plot(axes[0], plt_rng, (np.sum(Counts[Ix,:], axis=0))[Start:Stop], label='Deletions', linewidth=2, color = color)
     color = set2[i]
     i += 1
-    Ix = repl_track_nr([21], 22) 
+    Ix = repl_track_nr([21], 22, nr_of_rep_fg) 
     ppl.plot(axes[0], plt_rng, (np.sum(Counts[Ix,:], axis=0))[Start:Stop], label='Coverage', linewidth=2, color = color)
     color = set2[i]
     i += 1
@@ -143,10 +150,9 @@ def PlotGene(Sequences, Background, gene, IterParameters, TransitionTypeFirst = 
     axes[0].set_title('Coverage and Conversions')
     axes[0].get_xaxis().get_major_formatter().set_useOffset(False)
 
-
-    BckCov = Background[gene]['Coverage'][0].todense()
-    for i in range(1,len(Background[gene]['Coverage'].keys())):
-        BckCov += Background[gene]['Coverage'][i].todense()
+    BckCov = Background_per_gene['Coverage'][0]
+    for i in range(1,len(Background_per_gene['Coverage'].keys())):
+        BckCov += Background_per_gene['Coverage'][str(i)]
     
     ppl.plot(axes[0], plt_rng, (BckCov.T)[Start:Stop], ls = '-', label='Bck', linewidth=2, color = color)
     ppl.legend(axes[0])
@@ -277,22 +283,23 @@ def PlotTransistions():
     plt.colorbar(imshow_handle, cax=ax, orientation='horizontal')
     plt.show()
 
-
-def repl_track_nr(ex_list, offset):
+def repl_track_nr(ex_list, offset, nr_of_rep):
     '''                                                                                                                                                                                                                                                                                   
     This function computes for a list of tracks in one replicate additionaly the list for the second replicate                                                                                                                                                                            
     '''
-
     new_list = ex_list + list(np.array(ex_list) + offset)
+    
+    for i in range(2, nr_of_rep):
+        new_list += list(np.array(ex_list) + offset * i)
     return new_list
 
 
 
 def load_files():
     '''
-    This function loads the necessary files for standalaone plotting
+    NOT TESTED
+    This function loads the necessary files for standalaone plotting.
     '''
-
     args = parser.parse_args()
     print args
 
@@ -311,17 +318,18 @@ def load_files():
     else:
         out_path = args.out_dir
 
-    MaxIter  = args.max_it
     # process the parameters
-
     if not (bg_type == 'Coverage' or  bg_type == 'Coverage_bck'):
         print 'Bg-type: ' + bg_type + ' has not been implemented yet'
         return 
+
+
 
     #Load the gene annotation
     print 'Loading gene annotation'
     GeneAnnotation = gffutils.FeatureDB(args.gene_anno_file, keep_order=True)
     GenomeDir = args.genome_dir
+
     #Load the reads
     print 'Loading reads'
     DataOutFile = os.path.join(out_path, 'fg_reads.dat')
@@ -339,7 +347,6 @@ def load_files():
 
     TransMat = np.ones((NrOfStates, NrOfStates)) + np.eye(NrOfStates)
     TransMat = TransMat / np.sum(np.sum(TransMat))
-    TransitionParameters = [TransMat, []]
 
     NrOfReplicates = len(args.fg_libs)
     gene = Sequences.keys()[0]
@@ -357,10 +364,4 @@ def load_files():
     EmissionParameters['BckLibrarySize'] =  tools.estimate_library_size(Background)
     EmissionParameters['TransitionType'] = args.tr_type
     EmissionParameters['Verbosity'] = args.verbosity
-
     EmissionParameters['Subsample'] = args.subs
-    # Transistion parameters
-    
-    Thresh = args.thresh
-    IterParameters = [EmissionParameters, TransitionParameters]
-
