@@ -93,14 +93,15 @@ and the following ***optional*** arguments
 Argument  | Description
 ------------- | -------------
 --restart-from-iter | restart from existing run
---overwrite-CLIP-data | Overwrite the existing CLIP data
+--use-precomp-CLIP-data | Use existing fg_reads.dat file. This skips parsing the CLIP reads.
 --collapsed-CLIP | CLIP-reads are collapsed
---overwrite-bg-data | Overwrite the existing CLIP data
+--overwrite-bg-data | Use existing bg_reads.dat data. This skips parsing the CLIP reads.
 --collapsed-bg | bg-reads are collapsed
 --bck-var | Parse variants for background reads
 --verbosity | Verbosity
 --max-it | Maximal number of iterations
 --max-it-glm | Maximal number of iterations in GLM
+--tmp-dir | Output directory for temporary results
 --gene-sample | Nr of genes to sample
 --no-subsample | Disabaple subsampling for parameter estimations (Warning: Leads to slow estimation)
 --filter-snps | Do not fit diagnostic events at SNP-positions
@@ -113,6 +114,8 @@ Argument  | Description
 --norm_class | Normalize class weights during glm fit
 --max-mismatch | Maximal number of mismatches that is allowed per read (default: 2)
 --mask_flank_mm | Do not consider mismatches in the N bp at the ends of reads for diagnostic event modelling 
+--rev_strand | Only consider reads on the forward (0) or reverse strand (1) relative to the gene orientation
+--use_precomp_diagmod | Use a precomputed diagnostic event model (Path to IterSaveFile.dat) 
 --seed | Set a seed for the random number generators
 --pv | Bonferroni corrected p-value cutoffs for peaks in bed-file
 
