@@ -37,6 +37,7 @@ omniCLIP requires Python (v.2.7) and the following python libraries:
 * scikit-learn (> v.0.18.1)
 * biopython (> v.1.68)
 * cython (> v.0.24.1)
+* h5py (> 2.6.0)
 
 Currently, omniCLIP requires a standard workstation with 32 Gb of RAM.
 
