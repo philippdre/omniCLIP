@@ -17,28 +17,30 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
-import numpy as np
-import os
+
 import sys
 sys.path.append('./data_parsing/')
 sys.path.append('./stat/')
 sys.path.append('./visualisation/')
-import gffutils
-from scipy.sparse import *
-import mixture_tools
-import time
-import LoadReads
-import emission
-import trans
-import argparse
-import tools
-import cPickle
-import resource
-import gc
 from collections import defaultdict
-import shutil
+from intervaltree import Interval, IntervalTree
+from scipy.sparse import *
+import argparse
+import cPickle
+import emission
+import gc
+import gffutils
 import h5py
+import LoadReads
+import mixture_tools
+import numpy as np
+import os
+import resource
+import shutil
 import tempfile
+import time
+import tools
+import trans
 
 #@profile
 def run_omniCLIP(args):
