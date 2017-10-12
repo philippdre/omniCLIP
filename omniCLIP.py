@@ -374,7 +374,7 @@ def run_omniCLIP(args):
         Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
         Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
 
-    tools.GeneratePred(Paths, Sequences, Background, IterParameters, GeneAnnotation, OutFile, fg_state, bg_state, seq_file=EmissionParameters['DataOutFile_seq'], bck_file=EmissionParameters['DataOutFile_bck'], pv_cutoff)
+    tools.GeneratePred(Paths, Sequences, Background, IterParameters, GeneAnnotation, OutFile, fg_state, bg_state, seq_file=EmissionParameters['DataOutFile_seq'], bck_file=EmissionParameters['DataOutFile_bck'],  pv_cutoff=pv_cutoff)
     print 'Done'
 
     #Remove the temporary files
