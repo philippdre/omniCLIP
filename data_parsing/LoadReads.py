@@ -100,11 +100,13 @@ def load_data(bam_files, genome_dir, gene_annotation, out_file, load_from_file =
 						Strand =  1 if gene.strand == '+' else -1
 						#get the data
 						Coverage = GetCoverageFromBam.GetRawCoverageFromRegion(SamReader, CurrChr, Start, Stop, Collapse = Collapse, CovType = 'coverage', Genome = '', legacy = False, mask_flank_variants=mask_flank_variants, max_mm=max_mm, ign_out_rds=ign_out_rds, gene_strand=Strand, rev_strand=rev_strand)
-
+						#Check that group already exists, otherwise create it
+						if not new_gene_name in GeneConversionEvents:
+							GeneConversionEvents.create_group(new_gene_name)
 						if not OnlyCoverage:
 							Variants = GetCoverageFromBam.GetRawCoverageFromRegion(SamReader, CurrChr, Start, Stop, Collapse = Collapse, CovType = 'variants', Genome = '', legacy = False, mask_flank_variants=mask_flank_variants, max_mm=max_mm, ign_out_rds=ign_out_rds, gene_strand=Strand, rev_strand=rev_strand)
 							ReadEnds = GetCoverageFromBam.GetRawCoverageFromRegion(SamReader, CurrChr, Start, Stop, Collapse = Collapse, CovType = 'read-ends', Genome = '', legacy = False, mask_flank_variants=mask_flank_variants, max_mm=max_mm, ign_out_rds=ign_out_rds, gene_strand=Strand, rev_strand=rev_strand)
-							#pdb.set_trace()
+							
 							Coverage = Coverage - np.sum(Variants, axis = 0) - ReadEnds
 
 							#Get the TC conversions
