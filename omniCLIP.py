@@ -866,7 +866,7 @@ if __name__ == '__main__':
     parser.add_argument('--nb-cores', action='store', dest='nb_proc', help='Number of cores o use', type=int, default = 1)
 
     #Mask miRNA positions
-    parser.add_argument('--mask-miRNA', action='store_true', default=True, dest='mask_miRNA', help='Mask miRNA positions')
+    parser.add_argument('--mask-miRNA', action='store_true', default=False, dest='mask_miRNA', help='Mask miRNA positions')
     
     #Ignore overlping gene regions for diagnostic event model
     parser.add_argument('--mask-ovrlp', action='store_true', default=True, dest='mask_ovrlp', help='Ignore overlping gene regions for diagnostic event model fitting')
