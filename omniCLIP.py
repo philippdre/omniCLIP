@@ -35,6 +35,7 @@ import LoadReads
 import mixture_tools
 import numpy as np
 import os
+import random
 import resource
 import shutil
 import tempfile
