@@ -675,7 +675,7 @@ def GetSitesForGene(data):
         site['Strand'] = strand
         site['SiteScore'] = EvaluateSite(Score, currsite, fg_state)
         site['Coverage'] = np.sum(np.sum(Counts[:, site['Start'] : site['Stop']], axis=0))
-        site['TC'] = np.sum(np.sum(CurrStack[[16, 38], site['Start'] : site['Stop']], axis=0))
+        site['TC'] = np.sum(np.sum(CurrStack[16, site['Start'] : site['Stop']], axis=0))
         site['NonTC'] = np.sum(np.sum(CurrStack[RowIx, site['Start'] : site['Stop']], axis=0))
         site['mean_mat_fg'] = mean_mat_fg
         site['var_mat_fg'] = var_mat_fg
