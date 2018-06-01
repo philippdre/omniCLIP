@@ -669,7 +669,7 @@ def FitEmissionParameters(Sequences, Background, NewPaths, OldEmissionParameters
     NewEmissionParameters['PriorMatrix'] = CorrectedPriorMatrix
 
     #Add Pseudo gene to Sequences, Background and Paths
-    if NewEmissionParameters['ExpressionParameters'][0] != None:
+    if NewEmissionParameters['ExpressionParameters'][0] is not None:
         Sequences, Background, NewPaths, pseudo_gene_names = add_pseudo_gene(Sequences, Background, NewPaths, PriorMatrix)
 
     #Compute parameters for the expression
