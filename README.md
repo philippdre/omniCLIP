@@ -145,4 +145,4 @@ IterSaveFileHist.dat | This file contains the learnt parameters of the model in 
 
 
 ## License
-GNU GPL lincene (v3)
+GNU GPL license (v3)
