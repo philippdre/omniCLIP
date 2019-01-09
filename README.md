@@ -1,5 +1,5 @@
 # omniCLIP
-omniCLIP is a Bayesian peak caller that can be applied to data from CLIP-Seq data to detect regulatory elements in RNAs. 
+omniCLIP is a Bayesian peak caller that can be applied to data from CLIP-Seq experiments to detect regulatory elements in RNAs. 
 
 ## Overview
 
