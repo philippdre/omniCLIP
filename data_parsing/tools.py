@@ -503,7 +503,7 @@ def generate_bed(file, pv_cutoff=0.05):
     df['Gene'] = df['Gene'] + ['_' + str(i) for i in range(df.shape[0])]
 
     #Transform the Score to be betweeen 0 and 1000
-    df['SiteScore'] /= np.max(df['SiteScore']) * 1000
+    df['SiteScore'] /= np.max(df['SiteScore']) * 0.001
 
 
     #Compute thickstart and end
