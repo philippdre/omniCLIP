@@ -22,7 +22,8 @@ import FitBinoDirchEmmisionProbabilities
 import numpy as np
 import scipy as sp
 
-#@profile
+##@profile
+#@profile 
 def pred_log_lik(counts, state, EmissionParameters, single_mix=None):
 	'''
 	This function computes the log_likelihood for counts
@@ -79,7 +80,8 @@ def pred_log_lik(counts, state, EmissionParameters, single_mix=None):
 
 	return Prob
 
-#@profile
+##@profile
+#@profile 
 def estimate_multinomial_parameters(Counts, NrOfCounts, EmissionParameters, OldAlpha):
 	'''
 	This function estimates for a mixture component the DirchMult parameters

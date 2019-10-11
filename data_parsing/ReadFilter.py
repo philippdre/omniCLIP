@@ -17,6 +17,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
+#@profile 
 def FilterRead(Read, Filter):
     '''
     This function determines whether a read should be filtered or not

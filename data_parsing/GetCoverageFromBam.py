@@ -22,7 +22,8 @@ import numpy as np
 import pysam
 import re
 
-#@profile
+##@profile
+#@profile 
 def GetRawCoverageFromBam(InFile, HDF5OutFile, Collapse = False, CovType = 'coverage', Genome = ''):
     '''
     This function gets from a BAM-file the coverage and returns it as a sparse vector for each chromosome and strand
@@ -33,7 +34,7 @@ def GetRawCoverageFromBam(InFile, HDF5OutFile, Collapse = False, CovType = 'cove
     
     #Open the Bam-file 
     SamReader = pysam.Samfile(InFile,'rb')
-    print 'Parsing: ' + InFile
+    print('Parsing: ' + InFile)
     
     #Get chromsome lengths from Header
     ChromosomeLengths = {}
@@ -41,8 +42,8 @@ def GetRawCoverageFromBam(InFile, HDF5OutFile, Collapse = False, CovType = 'cove
         ChromosomeLengths[Entry['SN']] = Entry['LN']
         
     #Iterate over chromosomes
-    for Chr in ChromosomeLengths.keys():
-        print 'Processing chromsome: ' + Chr
+    for Chr in list(ChromosomeLengths.keys()):
+        print('Processing chromsome: ' + Chr)
         #Initialise the length vectors
         if CovType == 'variants':#Check type to get the coverage for
             CurrChrCoverage = np.zeros((4, ChromosomeLengths[Chr]), dtype = np.int32)
@@ -59,7 +60,8 @@ def GetRawCoverageFromBam(InFile, HDF5OutFile, Collapse = False, CovType = 'cove
     return
 
 
-#@profile
+##@profile
+#@profile 
 def GetRawCoverageFromRegion(SamReader, Chr, Start, Stop, Collapse = False, CovType = 'coverage', Genome = '', legacy = True, mask_flank_variants=3, max_mm=2, ign_out_rds=False, rev_strand=None, gene_strand=0):
     '''
     This function gets from a BAM-file the coverage and returns it as a sparse vector for each chromosome and strand
@@ -218,6 +220,7 @@ def GetRawCoverageFromRegion(SamReader, Chr, Start, Stop, Collapse = False, CovT
     return CurrChrCoverage
 
 
+#@profile 
 def GetCoverageFromBam(InFile, HDF5OutFile, Collapse = False):
     '''
     This function gets from a BAM-file the coverage and returns it as a sparse vector for each chromosome and strand 
@@ -226,6 +229,7 @@ def GetCoverageFromBam(InFile, HDF5OutFile, Collapse = False):
     GetRawCoverageFromBam(InFile, HDF5OutFile, Collapse, 'coverage')
 
 
+#@profile 
 def GetDeletionsFromBAM(InFile, HDF5OutFile, Collapse = False):
     '''
     This function  gets from a BAM-file the deletions and returns them as a sparse vector for each chromosome  and strand
@@ -234,6 +238,7 @@ def GetDeletionsFromBAM(InFile, HDF5OutFile, Collapse = False):
     GetRawCoverageFromBam(InFile, HDF5OutFile, Collapse, 'deletions')
     
    
+#@profile 
 def GetReadEndsFromBAM(InFile, HDF5OutFile, Collapse = False):
     '''
     This function  gets from a BAM-file the deletions and returns them as a sparse vector for each chromosome  and strand
@@ -243,6 +248,7 @@ def GetReadEndsFromBAM(InFile, HDF5OutFile, Collapse = False):
      
     
 
+#@profile 
 def GetVariantsFromBAM(InFile, HDF5OutFile, Collapse = False):
     '''
     This function  gets from a BAM-file the Variants and returns them as a sparse vector for each chromosome
@@ -251,7 +257,8 @@ def GetVariantsFromBAM(InFile, HDF5OutFile, Collapse = False):
 
     GetRawCoverageFromBam(InFile, HDF5OutFile, Collapse, 'variants')
     
-#@profile
+##@profile
+#@profile 
 def GetVariantsFromRead(CurrRead, r):
     '''
     This function takes a pysam read and returns based on the MD Tag the Variants and their absolute positions

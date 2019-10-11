@@ -19,7 +19,7 @@
 
 
 from copy import deepcopy
-from scipy.misc import logsumexp
+from scipy.special import logsumexp
 import diag_event_model
 import emission
 import itertools
@@ -27,7 +27,8 @@ import multiprocessing
 import numpy as np
 
 
-#@profile
+##@profile
+#@profile 
 def em(counts, nr_of_counts, EmissionParameters, x_0=None, First=False, max_nr_iter=15, tol=0.0001, rand_sample_size=10):
 	'''
 	This function performs the EMlagorithm
@@ -38,18 +39,18 @@ def em(counts, nr_of_counts, EmissionParameters, x_0=None, First=False, max_nr_i
 	check = False
 
 	OldEmissionParameters = deepcopy(EmissionParameters)
-	for curr_state in counts.keys():
+	for curr_state in list(counts.keys()):
 		#Only compute the the emission probabilities once
 		if EmissionParameters['diag_bg']:
 			if curr_state != fg_state:
 				if True:
 					if check == True:
-						print 'Using template state ' + str(curr_state)
+						print('Using template state ' + str(curr_state))
 						EmissionParameters['Diag_event_params']['mix_comp'][curr_state] = deepcopy(EmissionParameters['Diag_event_params']['mix_comp'][template_state])
 						EmissionParameters['Diag_event_params']['alpha'][curr_state] = deepcopy(EmissionParameters['Diag_event_params']['alpha'][template_state])
 						continue
 					else:
-						print 'setting template state ' + str(curr_state)
+						print('setting template state ' + str(curr_state))
 						check = True
 						template_state = curr_state
 				else:
@@ -58,7 +59,7 @@ def em(counts, nr_of_counts, EmissionParameters, x_0=None, First=False, max_nr_i
 					EmissionParameters['Diag_event_params']['mix_comp'][curr_state] = deepcopy(EmissionParameters['Diag_event_params']['mix_comp'][template_state])
 					EmissionParameters['Diag_event_params']['alpha'][curr_state] = deepcopy(EmissionParameters['Diag_event_params']['alpha'][template_state])
 					continue
-		print 'Estimating state ' + str(curr_state)
+		print('Estimating state ' + str(curr_state))
 
 		curr_counts = counts[curr_state]
 		curr_nr_of_counts = nr_of_counts[curr_state]
@@ -71,6 +72,7 @@ def em(counts, nr_of_counts, EmissionParameters, x_0=None, First=False, max_nr_i
 
 
 
+#@profile 
 def estimate_mixture_params(EmissionParameters, curr_counts_orig, curr_nr_of_counts_orig, curr_state, rand_sample_size, max_nr_iter, nr_of_iter=20, stop_crit=1.0, nr_of_init=10):
 	'''
 	This function estimates thedirichlet multinomial mixture parameters
@@ -150,7 +152,7 @@ def estimate_mixture_params(EmissionParameters, curr_counts_orig, curr_nr_of_cou
 		else:
 			zero_ix = []
 			for iter_nr in range(max_nr_iter):
-				print 'em-iteration ' + str(iter_nr)
+				print('em-iteration ' + str(iter_nr))
 
 				scored_counts = score_counts(curr_counts, curr_state, EmissionParameters) 
 				scored_counts += np.tile(np.log(mixtures[:, np.newaxis]), (1, scored_counts.shape[1]))
@@ -234,7 +236,8 @@ def estimate_mixture_params(EmissionParameters, curr_counts_orig, curr_nr_of_cou
 	return alpha, mixtures
 
 
-#@profile
+##@profile
+#@profile 
 def Parallel_estimate_mixture_params(EmissionParameters, curr_counts_orig, curr_nr_of_counts_orig, curr_state, rand_sample_size, max_nr_iter, nr_of_iter=20, stop_crit=1.0, nr_of_init=10):
 	'''
 	This function estimates thedirichlet multinomial mixture parameters
@@ -278,17 +281,17 @@ def Parallel_estimate_mixture_params(EmissionParameters, curr_counts_orig, curr_
 	lls_list.append(ll)
  	
 	np_proc = EmissionParameters['NbProc']
-	data = itertools.izip(itertools.repeat(stop_crit), itertools.repeat(rand_sample_size), itertools.repeat(max_nr_iter), range(nr_of_init), itertools.repeat(EmissionParameters), itertools.repeat(curr_state), itertools.repeat(curr_counts), itertools.repeat(curr_nr_of_counts)   )
+	data = zip(itertools.repeat(stop_crit), itertools.repeat(rand_sample_size), itertools.repeat(max_nr_iter), list(range(nr_of_init)), itertools.repeat(EmissionParameters), itertools.repeat(curr_state), itertools.repeat(curr_counts), itertools.repeat(curr_nr_of_counts)   )
 
 	if np_proc == 1:
 		results = [Parallel_estimate_single_mixture_params(args) for args in data]
 	else:
-		print "Spawning processes"
+		print("Spawning processes")
 		pool = multiprocessing.Pool(np_proc, maxtasksperchild=5)
 		results = pool.imap(Parallel_estimate_single_mixture_params, data, chunksize=1)
 		pool.close()
 		pool.join()
-		print "Collecting results"
+		print("Collecting results")
 		results = [res for res in results]
 
 
@@ -304,7 +307,8 @@ def Parallel_estimate_mixture_params(EmissionParameters, curr_counts_orig, curr_
 	mixtures = mixtures_list[max_ll_pos]
 	return alpha, mixtures
 
-#@profile
+##@profile
+#@profile 
 def Parallel_estimate_single_mixture_params(args):
 	'''
 	This function estimates thedirichlet multinomial mixture parameters
@@ -341,7 +345,7 @@ def Parallel_estimate_single_mixture_params(args):
 	else:
 		zero_ix = []
 		for iter_nr in range(max_nr_iter):
-			print 'em-iteration ' + str(iter_nr)	
+			print('em-iteration ' + str(iter_nr))	
 
 			scored_counts = score_counts(curr_counts, curr_state, EmissionParameters) 
 			scored_counts += np.tile(np.log(mixtures[:, np.newaxis]), (1, scored_counts.shape[1]))
@@ -413,7 +417,8 @@ def Parallel_estimate_single_mixture_params(args):
 	
 	return [deepcopy(OldAlpha), mixtures, ll]
 
-#@profile
+##@profile
+#@profile 
 def score_counts(counts, state, EmissionParameters):
 	'''
 	This function scores the the coutns for each mixture component
@@ -424,7 +429,7 @@ def score_counts(counts, state, EmissionParameters):
 	scored_counts = np.zeros((nr_mixture_components, counts.shape[1]))
 
 	#Compute for each state the log-likelihood of the counts
-	for mix_comp in xrange(nr_mixture_components):
+	for mix_comp in range(nr_mixture_components):
 		scored_counts[mix_comp, :] = diag_event_model.pred_log_lik(counts, state, EmissionParameters, single_mix=mix_comp)
 		scored_counts[mix_comp, :] += np.log(EmissionParameters['Diag_event_params']['mix_comp'][state][mix_comp])
 

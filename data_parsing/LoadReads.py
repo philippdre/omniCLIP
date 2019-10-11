@@ -34,7 +34,8 @@ import os
 import pysam
 
 
-#@profile
+##@profile
+#@profile 
 def load_data(bam_files, genome_dir, gene_annotation, out_file, load_from_file = False, save_results = True, Collapse = False, OnlyCoverage = False, select_chrom = None, store_gene_seq=False, mask_flank_variants=3, max_mm=2, ign_out_rds=False, rev_strand=None):
 	'''
 	This function reads the data from the bam-files
@@ -48,9 +49,9 @@ def load_data(bam_files, genome_dir, gene_annotation, out_file, load_from_file =
 			GeneConversionEvents = h5py.File(out_file, 'w')
 
 		if OnlyCoverage:
-			print('Loading coverage only')
+			print ('Loading coverage only')
 
-		print "Parsing the gene annotation"
+		print("Parsing the gene annotation")
 		Iter = gene_annotation.features_of_type('gene')
 		Genes = []
 		for gene in Iter:
@@ -62,7 +63,7 @@ def load_data(bam_files, genome_dir, gene_annotation, out_file, load_from_file =
 			genes_chr_dict[gene.chrom].append(gene)
 
 		#Create a list of cromosomes
-		Chrs = genes_chr_dict.keys()
+		Chrs = list(genes_chr_dict.keys())
 
 		Chrs = [chrom for chrom in Chrs if chrom.lower() != 'chrm']
 
@@ -75,13 +76,13 @@ def load_data(bam_files, genome_dir, gene_annotation, out_file, load_from_file =
 				if select_chrom != CurrChr:
 					continue
 			#Make sure that the CurrChr is indeed a CurrChromosome and not header information
-			print 'Processing ' + CurrChr
+			print('Processing ' + CurrChr)
 			#Get the genome
 			CurrChrFile  = os.path.join(genome_dir, CurrChr + '.fa.gz')
 			if not os.path.isfile(CurrChrFile):
-				print 'Warning, chromosome not found: ' + CurrChrFile
+				print('Warning, chromosome not found: ' + CurrChrFile)
 				continue
-			handle = gzip.open(CurrChrFile, "rU")
+			handle = gzip.open(CurrChrFile, "rt" )
 			record_dict = SeqIO.to_dict(SeqIO.parse(handle, "fasta"))
 			CurrChrSeq = record_dict[CurrChr]
 			handle.close()
@@ -150,7 +151,7 @@ def load_data(bam_files, genome_dir, gene_annotation, out_file, load_from_file =
 			del CurrChrSeq
 			del record_dict
 			
-		print 'Saving results'
+		print('Saving results')
 		GeneConversionEvents.close()
 		GeneConversionEvents = h5py.File(out_file, 'r+')
 	return GeneConversionEvents

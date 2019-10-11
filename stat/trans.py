@@ -21,7 +21,7 @@
 import sys
 sys.path.append('../data_parsing/')
 sys.path.append('../data_parsing/')
-from scipy.misc import logsumexp
+from scipy.special import logsumexp
 from scipy.sparse import *
 from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
 from sklearn.linear_model import SGDClassifier
@@ -33,6 +33,7 @@ import time
 import tools
 
 
+#@profile 
 def PredictTransistions(Counts, TransitionParameters, NrOfStates, Type = 'multi'):
     '''
     This function predicts the transistion probabilities for a gene given the transition parameters
@@ -54,6 +55,7 @@ def PredictTransistions(Counts, TransitionParameters, NrOfStates, Type = 'multi'
     return TransistionProb
 
 
+#@profile 
 def PredictTransistionsUnif2(Counts, TransitionParameters, NrOfStates):
     '''
     This function predicts the transistion probabilities for a gene given the transition parameters
@@ -63,8 +65,8 @@ def PredictTransistionsUnif2(Counts, TransitionParameters, NrOfStates):
     TransistionProb = np.log(np.ones((NrOfStates, NrOfStates, Counts.shape[1])) * (1 / np.float64(NrOfStates)))
 
     #Genererate the features
-    CovMat = GenerateFeatures(np.array(range(Counts.shape[1] - 1)), Counts)
-    for CurrentState in xrange(NrOfStates):
+    CovMat = GenerateFeatures(np.array(list(range(Counts.shape[1] - 1))), Counts)
+    for CurrentState in range(NrOfStates):
         #Ceate the probailities for the current state
         TempProb = TransitionParametersLogReg[CurrentState].predict_log_proba(CovMat.T).T
         TransistionProb[CurrentState, CurrentState, 1:] = TempProb[0, :]
@@ -74,6 +76,7 @@ def PredictTransistionsUnif2(Counts, TransitionParameters, NrOfStates):
     return TransistionProb
 
 
+#@profile 
 def PredictTransistionsUnif(Counts, TransitionParameters, NrOfStates):
     '''
     This function predicts the transistion probabilities for a gene given the transition parameters
@@ -83,7 +86,7 @@ def PredictTransistionsUnif(Counts, TransitionParameters, NrOfStates):
     TransistionProb = np.log(np.ones((NrOfStates, NrOfStates, Counts.shape[1])) * (1 / np.float64(NrOfStates)))
 
     #Genererate the features
-    CovMat = GenerateFeatures(np.array(range(Counts.shape[1] - 1)), Counts)
+    CovMat = GenerateFeatures(np.array(list(range(Counts.shape[1] - 1))), Counts)
     
     CurrClass = 0
     TempProb = TransitionParametersLogReg.predict_log_proba(CovMat.T).T
@@ -99,6 +102,7 @@ def PredictTransistionsUnif(Counts, TransitionParameters, NrOfStates):
     return TransistionProb
 
 
+#@profile 
 def PredictTransistionsMultinomialSeparate(Counts, TransitionParameters, NrOfStates):
     '''
     This function predicts the transistion probabilities for a gene given the transition parameters
@@ -108,7 +112,7 @@ def PredictTransistionsMultinomialSeparate(Counts, TransitionParameters, NrOfSta
     TransistionProb = np.log(np.ones((NrOfStates, NrOfStates, Counts.shape[1])) * (1 / np.float64(NrOfStates)))
 
     #Genererate the features
-    CovMat = GenerateFeatures(np.array(range(Counts.shape[1] - 1)), Counts)
+    CovMat = GenerateFeatures(np.array(list(range(Counts.shape[1] - 1))), Counts)
     
     CurrClass = 0
     for CurrentState in range(NrOfStates):
@@ -127,7 +131,8 @@ def PredictTransistionsMultinomialSeparate(Counts, TransitionParameters, NrOfSta
     del TempProb
     return TransistionProb
 
-#@profile
+##@profile
+#@profile 
 def PredictTransistionsSimple(Counts, TransitionParameters, NrOfStates):
     '''
     This function predicts the transistion probabilities for a gene given the transition parameters
@@ -137,7 +142,7 @@ def PredictTransistionsSimple(Counts, TransitionParameters, NrOfStates):
     TransistionProb = np.log(np.ones((NrOfStates, NrOfStates, Counts.shape[1])) * (1 / np.float64(NrOfStates)))
 
     #Genererate the features
-    CovMat = GenerateFeatures(np.array(range(Counts.shape[1] - 1)), Counts)
+    CovMat = GenerateFeatures(np.array(list(range(Counts.shape[1] - 1))), Counts)
 
     #Ceate the probailities 
     TempProb = TransitionParametersLogReg.predict_log_proba(CovMat.T).T
@@ -158,6 +163,7 @@ def PredictTransistionsSimple(Counts, TransitionParameters, NrOfStates):
     return TransistionProb
 
 
+#@profile 
 def PredictTransistionsSimpleBck(Counts, TransitionParameters, NrOfStates):
     '''
     This function predicts the transistion probabilities for a gene given the transition parameters
@@ -167,7 +173,7 @@ def PredictTransistionsSimpleBck(Counts, TransitionParameters, NrOfStates):
     TransistionProb = np.log(np.ones((NrOfStates, NrOfStates, Counts.shape[1])) * (1 / np.float64(NrOfStates)))
 
     #Genererate the features
-    CovMat = GenerateFeatures(np.array(range(Counts.shape[1] - 1)), Counts)
+    CovMat = GenerateFeatures(np.array(list(range(Counts.shape[1] - 1))), Counts)
     #Ceate the probailities 
     TempProb = TransitionParametersLogReg.predict_log_proba(CovMat.T).T
     #pdb.set_trace()
@@ -186,6 +192,7 @@ def PredictTransistionsSimpleBck(Counts, TransitionParameters, NrOfStates):
     return TransistionProb
 
 
+#@profile 
 def PredictTransistionsMultinomialSeparateManual(Counts, TransitionParameters, NrOfStates):
     '''
     This function predicts the transistion probabilities for a gene given the transition parameters
@@ -195,7 +202,7 @@ def PredictTransistionsMultinomialSeparateManual(Counts, TransitionParameters, N
     TransistionProb = np.log(np.ones((NrOfStates, NrOfStates, Counts.shape[1])) * (1 / np.float64(NrOfStates)))
 
     #Genererate the features
-    CovMat = GenerateFeatures(np.array(range(Counts.shape[1] - 1)), Counts)
+    CovMat = GenerateFeatures(np.array(list(range(Counts.shape[1] - 1))), Counts)
 
     CurrClass = 0
     for CurrentState in range(NrOfStates):
@@ -215,6 +222,7 @@ def PredictTransistionsMultinomialSeparateManual(Counts, TransitionParameters, N
     return TransistionProb
 
 
+#@profile 
 def PredictTransistionsMultinomial(Counts, TransitionParameters, NrOfStates):
     '''
     This function predicts the transistion probabilities for a gene given the transition parameters
@@ -224,7 +232,7 @@ def PredictTransistionsMultinomial(Counts, TransitionParameters, NrOfStates):
     TransistionProb = np.log(np.ones((NrOfStates, NrOfStates, Counts.shape[1])) * (1 / np.float64(NrOfStates)))
 
     #Genererate the features
-    CovMat = GenerateFeatures(np.array(range(Counts.shape[1] - 1)), Counts)
+    CovMat = GenerateFeatures(np.array(list(range(Counts.shape[1] - 1))), Counts)
     CovMat[CovMat < 0] = 0
     #Ceate the probailities for the current state
     TempProb = TransitionParametersLogReg.predict_log_proba(CovMat.T).T
@@ -245,13 +253,14 @@ def PredictTransistionsMultinomial(Counts, TransitionParameters, NrOfStates):
     return TransistionProb
 
 
+#@profile 
 def FitTransistionParameters(Sequences, Background, TransitionParameters, CurrPath, C, Type = 'multi'):
     '''
     This function determines the optimal parameters of the logistic regression for predicting the TransitionParameters
     '''
 
-    print 'Fitting transistion parameters'
-    print 'Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    print('Fitting transistion parameters')
+    print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
     
     if Type == 'binary':
         NewTransitionParametersLogReg = FitTransistionParametersSimple(Sequences, Background, TransitionParameters, CurrPath, C)
@@ -265,11 +274,12 @@ def FitTransistionParameters(Sequences, Background, TransitionParameters, CurrPa
         NewTransitionParametersLogReg = FitTransistionParametersMultinomialSeparate(Sequences, Background, TransitionParameters, CurrPath, C)
     else :# Type == 'complete':
         NewTransitionParametersLogReg = FitTransistionParametersBinary(Sequences, Background, TransitionParameters, CurrPath, C)
-    print 'Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
     
     return NewTransitionParametersLogReg
 
 
+#@profile 
 def FitTransistionParametersUnif2(Sequences, Background, TransitionParameters, CurrPath, C):
     '''
     This function determines the optimal parameters of the logistic regression for predicting the TransitionParameters
@@ -283,12 +293,12 @@ def FitTransistionParametersUnif2(Sequences, Background, TransitionParameters, C
     #Iterate over the possible transistions
     assert (TransitionMatrix.shape[0] > 1), 'Only two states are currently allowed'
     for CurrState in range(TransitionMatrix.shape[0]):
-        print "Learning transistion model for State " + str(CurrState)
+        print("Learning transistion model for State " + str(CurrState))
         SampleSame = []
         SampleOther = []
 
         #Iterate over the genes
-        print 'Loading data'
+        print('Loading data')
         for i, gene in enumerate(CurrPath.keys()):
             if i % 1000 == 0:
                 sys.stdout.write('.')
@@ -317,7 +327,7 @@ def FitTransistionParametersUnif2(Sequences, Background, TransitionParameters, C
             CovMat = GenerateFeatures(Ix, CovMat)
             SampleSame.append(CovMat[:, np.sum(CovMat, axis = 0) > 0])
             del CovMat
-        print '\n'
+        print('\n')
         #Create X
         X = np.concatenate(SampleSame + SampleOther, axis =1)
         #Create Y
@@ -329,12 +339,13 @@ def FitTransistionParametersUnif2(Sequences, Background, TransitionParameters, C
         LR = LogisticRegressionCV(Cs = Cs, penalty='l2', tol=0.01, class_weight='auto')
         LR.fit(X.T, Y.T)
         NewTransitionParametersLogReg[CurrState] = LR
-        print 'Elapsed time: ' + str(time.time() - t)
+        print('Elapsed time: ' + str(time.time() - t))
         del Ix1, Ix2, Ix, SampleSame, SampleOther       
 
     return NewTransitionParametersLogReg
 
 
+#@profile 
 def FitTransistionParametersUnif(Sequences, Background, TransitionParameters, CurrPath, C):
     '''
     This function determines the optimal parameters of the logistic regression for predicting the TransitionParameters
@@ -349,7 +360,7 @@ def FitTransistionParametersUnif(Sequences, Background, TransitionParameters, Cu
     assert (TransitionMatrix.shape[0] > 1), 'Only two states are currently allowed'
     CurrClass = 0
 
-    genes = CurrPath.keys()
+    genes = list(CurrPath.keys())
     genes = random.sample(genes, min(len(genes), 1000))
 
     NrOfStates = TransitionMatrix.shape[0]
@@ -357,12 +368,12 @@ def FitTransistionParametersUnif(Sequences, Background, TransitionParameters, Cu
         CurrClass = 0
         Xs = []
         Ys = []
-        print "Learning transistion model for State " + str(CurrState)
+        print("Learning transistion model for State " + str(CurrState))
         
         SampleSame = []
         SampleOther = []
         #Iterate over the genes
-        print 'Loading data'
+        print('Loading data')
         for i, gene in enumerate(genes):
             if i % 1000 == 0:
                 sys.stdout.write('.')
@@ -404,7 +415,7 @@ def FitTransistionParametersUnif(Sequences, Background, TransitionParameters, Cu
                 SampleOther.append(CovMat)
             del CovMat
             
-        print '\n'
+        print('\n')
         #Create X
     X_P = np.concatenate(SampleSame, axis =1)
     X_N = np.concatenate(SampleOther, axis =1)
@@ -417,11 +428,12 @@ def FitTransistionParametersUnif(Sequences, Background, TransitionParameters, Cu
 
     NewTransitionParametersLogReg = LR
     del Ix1, Ix2,  Ix, SampleSame, SampleOther, X, Y, Xs, Ys 
-    print 'Done: Elapsed time: ' + str(time.time() - t)
+    print('Done: Elapsed time: ' + str(time.time() - t))
 
     return NewTransitionParametersLogReg
 
 
+#@profile 
 def FitTransistionParametersUnifBck(Sequences, Background, TransitionParameters, CurrPath, C):
     '''
     This function determines the optimal parameters of the logistic regression for predicting the TransitionParameters
@@ -435,7 +447,7 @@ def FitTransistionParametersUnifBck(Sequences, Background, TransitionParameters,
     assert (TransitionMatrix.shape[0] > 1), 'Only two states are currently allowed'
     CurrClass = 0
 
-    genes = CurrPath.keys()
+    genes = list(CurrPath.keys())
     genes = random.sample(genes, min(len(genes), 1000))
 
     NrOfStates = TransitionMatrix.shape[0]
@@ -443,12 +455,12 @@ def FitTransistionParametersUnifBck(Sequences, Background, TransitionParameters,
         CurrClass = 0
         Xs = []
         Ys = []
-        print "Learning transistion model for State " + str(CurrState)
+        print("Learning transistion model for State " + str(CurrState))
         
         SampleSame = []
         SampleOther = []
         #Iterate over the genes
-        print 'Loading data'
+        print('Loading data')
         for i, gene in enumerate(genes):
             if i % 1000 == 0:
                 sys.stdout.write('.')
@@ -496,7 +508,7 @@ def FitTransistionParametersUnifBck(Sequences, Background, TransitionParameters,
                 SampleOther.append(CovMat)
             del CovMat
             
-        print '\n'
+        print('\n')
         #Create X
     X_P = np.concatenate(SampleSame, axis =1)
     X_N = np.concatenate(SampleOther, axis =1)
@@ -509,11 +521,12 @@ def FitTransistionParametersUnifBck(Sequences, Background, TransitionParameters,
 
     NewTransitionParametersLogReg = LR
     del Ix1, Ix2,  Ix, SampleSame, SampleOther, X, Y, Xs, Ys 
-    print 'Done: Elapsed time: ' + str(time.time() - t)
+    print('Done: Elapsed time: ' + str(time.time() - t))
 
     return NewTransitionParametersLogReg
 
 
+#@profile 
 def FitTransistionParametersMultinomialSeparate(Sequences, Background, TransitionParameters, CurrPath, C):
     '''
     This function determines the optimal parameters of the logistic regression for predicting the TransitionParameters
@@ -527,7 +540,7 @@ def FitTransistionParametersMultinomialSeparate(Sequences, Background, Transitio
     assert (TransitionMatrix.shape[0] > 1), 'Only two states are currently allowed'
     CurrClass = 0
 
-    genes = CurrPath.keys()
+    genes = list(CurrPath.keys())
     genes = random.sample(genes, min(len(genes), 1000))
 
     NrOfStates = TransitionMatrix.shape[0]
@@ -535,12 +548,12 @@ def FitTransistionParametersMultinomialSeparate(Sequences, Background, Transitio
         CurrClass = 0
         Xs = []
         Ys = []
-        print "Learning transistion model for State " + str(CurrState)
+        print("Learning transistion model for State " + str(CurrState))
         for NextState in range(NrOfStates):
             SampleSame = []
             SampleOther = []
             #Iterate over the genes
-            print 'Loading data'
+            print('Loading data')
             for i, gene in enumerate(genes):
                 if i % 1000 == 0:
                     sys.stdout.write('.')
@@ -565,7 +578,7 @@ def FitTransistionParametersMultinomialSeparate(Sequences, Background, Transitio
                 else:
                     SampleOther.append(CovMat)
                 del CovMat
-            print '\n'
+            print('\n')
                 #Create X
             X = np.concatenate(SampleOther, axis =1)
             #Create Y
@@ -581,11 +594,12 @@ def FitTransistionParametersMultinomialSeparate(Sequences, Background, Transitio
 
         NewTransitionParametersLogReg[CurrState] = LR
         del Ix1, Ix2,  Ix, SampleSame, SampleOther, X, Y, Xs, Ys 
-    print 'Done: Elapsed time: ' + str(time.time() - t)
+    print('Done: Elapsed time: ' + str(time.time() - t))
 
     return NewTransitionParametersLogReg
 
 
+#@profile 
 def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, CurrPath, C):
     '''
     This function determines the optimal parameters of the logistic regression for predicting the TransitionParameters
@@ -598,7 +612,7 @@ def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, 
     #Iterate over the possible transistions
     assert (TransitionMatrix.shape[0] > 1), 'Only two states are currently allowed'
 
-    genes = CurrPath.keys()
+    genes = list(CurrPath.keys())
     genes = random.sample(genes, min(len(genes), 1000))
 
     NrOfStates = TransitionMatrix.shape[0]
@@ -606,10 +620,10 @@ def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, 
     Ys = []
     SampleSame = []
     SampleOther = []
-    print "Learning transistion model"
-    print "Iterating over genes"
-    print 'Fitting transistion parameters: I'
-    print 'Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    print("Learning transistion model")
+    print("Iterating over genes")
+    print('Fitting transistion parameters: I')
+    print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
     for i, gene in enumerate(genes):
         if i % 1000 == 0:
             sys.stdout.write('.')
@@ -647,8 +661,8 @@ def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, 
                     else:
                         SampleOther.append(CovMatIx)
         
-    print 'Fitting transistion parameters: II'
-    print 'Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    print('Fitting transistion parameters: II')
+    print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
     len_same = np.sum([Mat.shape[1] for Mat in SampleSame])
     len_other = np.sum([Mat.shape[1] for Mat in SampleOther])
@@ -658,22 +672,23 @@ def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, 
 
     #Create Y
     Y = np.hstack((np.ones((1, len_same), dtype=np.int), np.zeros((1, len_other), dtype=np.int)))[0,:]
-    print 'Fitting transistion parameters: III'
-    print 'Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    print('Fitting transistion parameters: III')
+    print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
     n_iter = max(5, np.ceil(10**6 / len(Y)))
-    NewTransitionParametersLogReg = SGDClassifier(loss="log", n_iter = n_iter).fit(X.T, Y.T)
+    NewTransitionParametersLogReg = SGDClassifier(loss="log", max_iter = n_iter).fit(X.T, Y.T)
     
-    print 'Fitting transistion parameters: IV'
-    print 'Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    print('Fitting transistion parameters: IV')
+    print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
     del Ix1, Ix2,  Ix, X, Y, Xs, Ys 
-    print 'Done: Elapsed time: ' + str(time.time() - t)
-    print 'Fitting transistion parameters: V'
-    print 'Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    print('Done: Elapsed time: ' + str(time.time() - t))
+    print('Fitting transistion parameters: V')
+    print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
     return NewTransitionParametersLogReg
 
 
-#@profile
+##@profile
+#@profile 
 def FitTransistionParametersSimpleBck(Sequences, Background, TransitionParameters, CurrPath, C):
     '''
     This function determines the optimal parameters of the logistic regression for predicting the TransitionParameters
@@ -686,7 +701,7 @@ def FitTransistionParametersSimpleBck(Sequences, Background, TransitionParameter
     #Iterate over the possible transistions
     assert (TransitionMatrix.shape[0] > 1), 'Only two states are currently allowed'
 
-    genes = CurrPath.keys()
+    genes = list(CurrPath.keys())
     genes = random.sample(genes, min(len(genes), 1000))
 
     NrOfStates = TransitionMatrix.shape[0]
@@ -694,8 +709,8 @@ def FitTransistionParametersSimpleBck(Sequences, Background, TransitionParameter
     Ys = []
     SampleSame = []
     SampleOther = []
-    print "Learning transistion model"
-    print "Iterating over genes"
+    print("Learning transistion model")
+    print("Iterating over genes")
 
     for i, gene in enumerate(genes):
         if i % 1000 == 0:
@@ -748,12 +763,13 @@ def FitTransistionParametersSimpleBck(Sequences, Background, TransitionParameter
 
     del Ix1, Ix2,  Ix, SampleSame, SampleOther, X, Y, Xs, Ys 
 
-    print 'Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    print 'Done: Elapsed time: ' + str(time.time() - t)
+    print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    print('Done: Elapsed time: ' + str(time.time() - t))
 
     return NewTransitionParametersLogReg
 
 
+#@profile 
 def FitTransistionParametersMultinomialSeparateManual(Sequences, Background, TransitionParameters, CurrPath, C):
     '''
     This function determines the optimal parameters of the logistic regression for predicting the TransitionParameters
@@ -772,12 +788,12 @@ def FitTransistionParametersMultinomialSeparateManual(Sequences, Background, Tra
         CurrClass = 0
         Xs = []
         Ys = []
-        print "Learning transistion model for State " + str(CurrState)
+        print("Learning transistion model for State " + str(CurrState))
         for NextState in range(NrOfStates):
             SampleSame = []
             SampleOther = []
             #Iterate over the genes
-            print 'Loading data'
+            print('Loading data')
             for i, gene in enumerate(CurrPath.keys()):
                 if i % 1000 == 0:
                     sys.stdout.write('.')
@@ -798,7 +814,7 @@ def FitTransistionParametersMultinomialSeparateManual(Sequences, Background, Tra
                     SampleOther.append(CovMat)
                 
                 del CovMat
-            print '\n'
+            print('\n')
                 #Create X
             X = np.concatenate(SampleOther, axis =1)
             #Create Y
@@ -814,11 +830,12 @@ def FitTransistionParametersMultinomialSeparateManual(Sequences, Background, Tra
         LR.fit(X.T, Y.T)
         NewTransitionParametersLogReg[CurrState] = [LR, np.unique(Y)]
         del Ix1, Ix2,  Ix, SampleSame, SampleOther, X, Y, Xs, Ys 
-    print 'Done: Elapsed time: ' + str(time.time() - t)
+    print('Done: Elapsed time: ' + str(time.time() - t))
 
     return NewTransitionParametersLogReg
 
 
+#@profile 
 def FitTransistionParametersMultinomial(Sequences, Background, TransitionParameters, CurrPath, C):
     '''
     This function determines the optimal parameters of the logistic regression for predicting the TransitionParameters
@@ -834,12 +851,12 @@ def FitTransistionParametersMultinomial(Sequences, Background, TransitionParamet
     Ys = []
     NrOfStates = TransitionMatrix.shape[0]
     for CurrState in range(NrOfStates):
-        print "Learning transistion model for State " + str(CurrState)
+        print("Learning transistion model for State " + str(CurrState))
         for NextState in range(NrOfStates):
             SampleSame = []
             SampleOther = []
             #Iterate over the genes
-            print 'Loading data'
+            print('Loading data')
             for i, gene in enumerate(CurrPath.keys()):
                 if i % 1000 == 0:
                     sys.stdout.write('.')
@@ -858,7 +875,7 @@ def FitTransistionParametersMultinomial(Sequences, Background, TransitionParamet
                 else:
                     SampleOther.append(CovMat)
                 del CovMat
-            print '\n'
+            print('\n')
                 #Create X
             X = np.concatenate(SampleOther, axis =1)
             #Create Y
@@ -876,13 +893,14 @@ def FitTransistionParametersMultinomial(Sequences, Background, TransitionParamet
     LR = SGDClassifier(loss="log", n_iter = n_iter).fit(X.T, Y.T)
     
     NewTransitionParametersLogReg = LR
-    print 'Done: Elapsed time: ' + str(time.time() - t)
+    print('Done: Elapsed time: ' + str(time.time() - t))
     del Ix1, Ix2,  Ix, SampleSame, SampleOther, X, Y, Xs, Ys 
 
     return NewTransitionParametersLogReg
 
 
 
+#@profile 
 def GenerateFeatures(Ix, CovMat):
     '''
     This funnction generates, for a set of positions, the features for the logistic regression from the Coverage matrix

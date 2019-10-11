@@ -21,6 +21,7 @@ from collections import defaultdict
 import numpy as np
 
 
+#@profile 
 def load_ground_truth(file_name_motif):
 	'''
 	This file load the ground truth from the FIMO motif file
@@ -38,6 +39,7 @@ def load_ground_truth(file_name_motif):
 	return motifs
 
 
+#@profile 
 def filter_expressed_motifs(motifs):
 	'''
 	This function returns only the motifs that are in expressed genes
@@ -46,6 +48,7 @@ def filter_expressed_motifs(motifs):
 	return motifs
 
 
+#@profile 
 def evaluate_predictions(motifs, predictions, measure = 'overlap'):
 	'''
 	This function evaluates the Motif Predictions
@@ -60,7 +63,7 @@ def evaluate_predictions(motifs, predictions, measure = 'overlap'):
 
 	#Measure the overlap
 	if measure == 'overlap':
-		genes = list(set(motifs.keys() + predictions.keys()))
+		genes = list(set(list(motifs.keys()) + list(predictions.keys())))
 		for gene in genes:
 			curr_motifs = motifs[gene]
 			curr_pred = predictions[gene]
@@ -81,6 +84,7 @@ def evaluate_predictions(motifs, predictions, measure = 'overlap'):
 	return [nr_pred, nr_of_overlap, nr_pos_motifs, nr_of_pos_pred, nr_of_overlap_pred]
 
 
+#@profile 
 def convert_paths_to_sites(Paths, fg_state, merge_neighbouring_sites, minimal_site_length):
 	'''
 	This function takes the paths and computes the site predictions (defined by the state fg_state)
@@ -97,7 +101,7 @@ def convert_paths_to_sites(Paths, fg_state, merge_neighbouring_sites, minimal_si
 		Starts = np.where(np.concatenate(([curr_path[0]], curr_path[:-1] != curr_path[1:], [curr_path[-1]])))[0][::2]
 		Stops = np.where(np.concatenate(([curr_path[0]], curr_path[:-1] != curr_path[1:], [curr_path[-1]])))[0][1::2]
 		nr_sites = Starts.shape[0]
-		sites[gene] = [[Starts[i], Stops[i]] for i in xrange(nr_sites) if (Stops[i] - Starts[i] >= minimal_site_length)]
+		sites[gene] = [[Starts[i], Stops[i]] for i in range(nr_sites) if (Stops[i] - Starts[i] >= minimal_site_length)]
 
 	return sites
 

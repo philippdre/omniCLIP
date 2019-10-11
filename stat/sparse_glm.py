@@ -26,9 +26,8 @@
 from scipy.sparse import csc_matrix, linalg as sla
 from statsmodels.genmod import families
 from statsmodels.genmod.generalized_linear_model import *
-from statsmodels.tools.decorators import cache_readonly, resettable_cache
 from statsmodels.tools.sm_exceptions import PerfectSeparationError
-import cPickle
+import pickle
 import numpy as np
 import pdb
 import scipy
@@ -43,6 +42,7 @@ import time
 __all__ = ['GLM']
 
 
+#@profile 
 def _check_convergence(criterion, iteration, tol):
     return not (np.fabs(criterion[iteration] - criterion[iteration-1]) > tol)
 
@@ -114,7 +114,7 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
             See LikelihoodModelResults notes section for more information.
             Not used if methhod is IRLS.
         disp : bool, optional
-            Set to True to print convergence messages.  Not used if method is
+            Set to True to print  convergence messages.  Not used if method is
             IRLS.
         max_start_irls : int
             The number of IRLS iterations used to obtain starting
@@ -206,7 +206,7 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
                 dev = self.family.deviance(self.endog, mu)
 
                 if np.isnan(dev):
-                    cPickle.dump([lin_pred, mu, endog, exog, start_params], open('/home/pdrewe/tmp/tmpdump.' + time.asctime().replace(' ', '_') + '.dat', 'w'))
+                    pickle.dump([lin_pred, mu, endog, exog, start_params], open('/home/pdrewe/tmp/tmpdump.' + time.asctime().replace(' ', '_') + '.dat', 'w'))
                     raise ValueError("The first guess on the deviance function "
                                  "returned a nan.  This could be a boundary "
                                  " problem and should be reported.")

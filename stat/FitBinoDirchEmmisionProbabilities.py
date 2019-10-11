@@ -25,6 +25,7 @@ import multdirichletVect
 import numpy as np
 
 
+#@profile 
 def ComputePrior(*args):
     '''
     This function computes the prior for the dirichlet model
@@ -38,7 +39,7 @@ def ComputePrior(*args):
 
     PriorMatrix = np.zeros_like(OldPriorMatrix)
     #Iterate over the states:
-    for State in Counts.keys():
+    for State in list(Counts.keys()):
         #Computet the likelihood for the current observation for both models
 
         #State 0 
@@ -46,8 +47,8 @@ def ComputePrior(*args):
         p_1 = EmissionParameters['ExpNonTC'][1][0]
         n_0 = EmissionParameters['ExpNonTC'][0][1]
         n_1 = EmissionParameters['ExpNonTC'][1][1]
-        ExprLikelihood = nbinom.logpmf(np.sum(Counts[State][range(0,6,2), :], axis = 0), n_0, p_0) + nbinom.logpmf(np.sum(Counts[State][range(1,6,2), :], axis = 0), n_1, p_1)
-        RatioLikelihood = (multdirichletVect.log_pdf_vect(Counts[State][range(0,6,2), :], alpha[3:6]) + multdirichletVect.log_pdf_vect(Counts[State][range(1,6,2), :], alpha[3:6]))
+        ExprLikelihood = nbinom.logpmf(np.sum(Counts[State][list(range(0,6,2)), :], axis = 0), n_0, p_0) + nbinom.logpmf(np.sum(Counts[State][list(range(1,6,2)), :], axis = 0), n_1, p_1)
+        RatioLikelihood = (multdirichletVect.log_pdf_vect(Counts[State][list(range(0,6,2)), :], alpha[3:6]) + multdirichletVect.log_pdf_vect(Counts[State][list(range(1,6,2)), :], alpha[3:6]))
         CurrLogLikelihoodNeg = (ExprLikelihood + RatioLikelihood)
 
         #State 1
@@ -55,8 +56,8 @@ def ComputePrior(*args):
         p_1 = EmissionParameters['ExpTC'][1][0]
         n_0 = EmissionParameters['ExpTC'][0][1]
         n_1 = EmissionParameters['ExpTC'][1][1]
-        ExprLikelihood = nbinom.logpmf(np.sum(Counts[State][range(0,6,2), :], axis = 0), n_0, p_0) + nbinom.logpmf(np.sum(Counts[State][range(1,6,2), :], axis = 0), n_1, p_1)
-        RatioLikelihood = (multdirichletVect.TwoBinomlog_pdf_vect(Counts[State][range(0,6,2), :], Counts[State][range(1,6,2), :], alpha[0:3]))
+        ExprLikelihood = nbinom.logpmf(np.sum(Counts[State][list(range(0,6,2)), :], axis = 0), n_0, p_0) + nbinom.logpmf(np.sum(Counts[State][list(range(1,6,2)), :], axis = 0), n_1, p_1)
+        RatioLikelihood = (multdirichletVect.TwoBinomlog_pdf_vect(Counts[State][list(range(0,6,2)), :], Counts[State][list(range(1,6,2)), :], alpha[0:3]))
         CurrLogLikelihoodPos = (ExprLikelihood + RatioLikelihood)
 
         #State 2
@@ -64,8 +65,8 @@ def ComputePrior(*args):
         p_1 = EmissionParameters['ExpBck'][1][0]
         n_0 = EmissionParameters['ExpBck'][0][1]
         n_1 = EmissionParameters['ExpBck'][1][1]
-        ExprLikelihood = nbinom.logpmf(np.sum(Counts[State][range(0,6,2), :], axis = 0), n_0, p_0) + nbinom.logpmf(np.sum(Counts[State][range(1,6,2), :], axis = 0), n_1, p_1)
-        RatioLikelihood = (multdirichletVect.log_pdf_vect(Counts[State][range(0,6,2), :], alpha[6:9]) + multdirichletVect.log_pdf_vect(Counts[State][range(1,6,2), :], alpha[6:9]))
+        ExprLikelihood = nbinom.logpmf(np.sum(Counts[State][list(range(0,6,2)), :], axis = 0), n_0, p_0) + nbinom.logpmf(np.sum(Counts[State][list(range(1,6,2)), :], axis = 0), n_1, p_1)
+        RatioLikelihood = (multdirichletVect.log_pdf_vect(Counts[State][list(range(0,6,2)), :], alpha[6:9]) + multdirichletVect.log_pdf_vect(Counts[State][list(range(1,6,2)), :], alpha[6:9]))
         CurrLogLikelihoodBack = (ExprLikelihood + RatioLikelihood)
 
         #Determine the likelihodd that are not inf 
@@ -93,6 +94,7 @@ def ComputePrior(*args):
 
     return PriorMatrix
 
+#@profile 
 def ComputeStateProbForGeneMD_unif(*args):
     '''
     This function computes the prior for the dirichlet model
@@ -129,7 +131,8 @@ def ComputeStateProbForGeneMD_unif(*args):
 
     return Prob
 
-#@profile
+##@profile
+#@profile 
 def ComputeStateProbForGeneMD_unif_rep(*args):
     '''
     This function computes the prior for the dirichlet model
@@ -159,13 +162,18 @@ def ComputeStateProbForGeneMD_unif_rep(*args):
 
     if np.sum(IxZeros) > 0:
         Prob[IxNonZeros] =  RatioLikelihood[0, 1:]
-        Prob[IxZeros] = np.tile(RatioLikelihood[0, 0] , (1, np.sum(IxZeros)))
+
+        #if len(Prob[IxZeros].shape) ==1:
+        Prob[IxZeros] = RatioLikelihood[0, 0]
+        #else:
+        #Prob[IxZeros] = np.tile(RatioLikelihood[0, 0] , (1, np.sum(IxZeros)))
     else:
         Prob = RatioLikelihood[0, :]
 
     return Prob
 
-#@profile
+##@profile
+#@profile 
 def MDK_f_joint_vect_unif(x, *args):
     '''
     This function computes the lieklihood of the parameters
@@ -186,7 +194,8 @@ def MDK_f_joint_vect_unif(x, *args):
     return -LogLikelihood
 
 
-#@profile
+##@profile
+#@profile 
 def MDK_f_prime_joint_vect_unif(x, *args):
     Counts, NrOfCounts, EmissionParameters = args
     
@@ -200,7 +209,7 @@ def MDK_f_prime_joint_vect_unif(x, *args):
 
     k = Counts[0 : tracks_per_rep, :]
     k, Ks = multdirichletVect.expand_k(k)
-    for rep in range(1, NrOfReplicates):
+    for rep in range(1, int(NrOfReplicates)):
         new_k, Ks = multdirichletVect.expand_k(Counts[rep * tracks_per_rep:(rep + 1) * tracks_per_rep, :])
         k += new_k
 
@@ -216,7 +225,8 @@ def MDK_f_prime_joint_vect_unif(x, *args):
 
 
 
-#@profile
+##@profile
+#@profile 
 def MD_f_joint_vect_unif(x, *args):
     '''
     This function computes the lieklihood of the parameters
@@ -232,7 +242,7 @@ def MD_f_joint_vect_unif(x, *args):
     NrOfReplicates = Counts.shape[0] / tracks_per_rep
 
     RatioLikelihood = multdirichletVect.log_pdf_vect(Counts[0 : tracks_per_rep, :], alpha)
-    for i in range(1, NrOfReplicates):
+    for i in range(1, int(NrOfReplicates)):
         RatioLikelihood += multdirichletVect.log_pdf_vect(Counts[i * tracks_per_rep:(i + 1) * tracks_per_rep, :], alpha)
     CurrLogLikelihood = RatioLikelihood * np.float64(NrOfCounts)
     LogLikelihood += np.sum(CurrLogLikelihood[np.isinf(CurrLogLikelihood) == 0])
@@ -240,7 +250,8 @@ def MD_f_joint_vect_unif(x, *args):
     return -LogLikelihood
 
 
-#@profile
+##@profile
+#@profile 
 def MD_f_prime_joint_vect_unif(x, *args):
     Counts, NrOfCounts, EmissionParameters = args
     
@@ -255,7 +266,7 @@ def MD_f_prime_joint_vect_unif(x, *args):
     curr_alpha = x
 
     DBase = NrOfReplicates * psi(np.sum(curr_alpha)) - psi(np.sum(curr_k, axis=0) + np.sum(curr_alpha)) 
-    for rep in range(1, NrOfReplicates):
+    for rep in range(1, int(NrOfReplicates)):
         curr_k = Counts[rep * tracks_per_rep:(rep + 1) * tracks_per_rep, :]
         DBase -=  psi(np.sum(curr_k, axis=0) + np.sum(curr_alpha))  
 
@@ -269,7 +280,7 @@ def MD_f_prime_joint_vect_unif(x, *args):
         else:
             D[ix_zero] = psi(curr_alpha[J] + curr_k[ix_zero]) -  psi(curr_alpha[J])
 
-        for rep in range(1, NrOfReplicates):
+        for rep in range(1, int(NrOfReplicates)):
             curr_k = Counts[rep * tracks_per_rep + J, :]
             ix_zero = curr_k == 0
             if np.isscalar(D):

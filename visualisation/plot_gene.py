@@ -20,6 +20,7 @@
 
 import numpy as np
 import sys
+import importlib
 sys.path.append('../data_parsing/')
 sys.path.append('../stat/')
 sys.path.append('../visualisation/')
@@ -45,8 +46,8 @@ def PlotGene(Sequences, Background, gene, IterParameters, TransitionTypeFirst = 
     This function plot the coverage and the parameters for the model
     '''
 
-    reload(diag_event_model)
-    reload(emission)
+    importlib.reload(diag_event_model)
+    importlib.reload(emission)
     set2 = brewer2mpl.get_map('Dark2', 'qualitative', 8).mpl_colors
     TransitionParameters = IterParameters[1]
     EmissionParameters = IterParameters[0]
@@ -71,7 +72,7 @@ def PlotGene(Sequences, Background, gene, IterParameters, TransitionTypeFirst = 
 
     CurrStackSum = tools.StackData(Sequences_per_gene) 
     CurrStackVar = tools.StackData(Sequences_per_gene, add = 'no')
-    nr_of_genes = len(Sequences.keys())
+    nr_of_genes = len(list(Sequences.keys()))
     gene_nr_dict = {}
     for i, curr_gene in enumerate(Sequences.keys()):
         gene_nr_dict[curr_gene] = i
@@ -105,7 +106,7 @@ def PlotGene(Sequences, Background, gene, IterParameters, TransitionTypeFirst = 
 
     MostLikelyPath, LogLik = viterbi.viterbi(np.float64(EmmisionProbGene), TransistionProbabilities, np.float64(np.log(PriorMatrix)))
     for j in range(NrOfStates):
-        print str(np.sum(MostLikelyPath == j))
+        print(str(np.sum(MostLikelyPath == j)))
 
     if no_plot:
         return MostLikelyPath, TransistionProbabilities, EmmisionProbGene
@@ -117,13 +118,13 @@ def PlotGene(Sequences, Background, gene, IterParameters, TransitionTypeFirst = 
     if Stop == -1:
         Stop = Counts.shape[1]
     if Stop == -1:
-        plt_rng = np.array(range(Start, Counts.shape[1]))
+        plt_rng = np.array(list(range(Start, Counts.shape[1])))
     else:
-        plt_rng = np.array(range(Start, Stop))
+        plt_rng = np.array(list(range(Start, Stop)))
 
     i = 0
     color = set2[i]
-    nr_of_rep_fg = len(Sequences[gene]['Coverage'].keys())
+    nr_of_rep_fg = len(list(Sequences[gene]['Coverage'].keys()))
     i+=1
     Ix = repl_track_nr([2, 16], 22, nr_of_rep_fg) 
     ppl.plot(axes[0], plt_rng, (np.sum(Counts[Ix,:], axis=0))[Start:Stop], label='TC', linewidth=2, color = color)
@@ -151,7 +152,7 @@ def PlotGene(Sequences, Background, gene, IterParameters, TransitionTypeFirst = 
     axes[0].get_xaxis().get_major_formatter().set_useOffset(False)
 
     BckCov = Background_per_gene['Coverage'][0]
-    for i in range(1,len(Background_per_gene['Coverage'].keys())):
+    for i in range(1,len(list(Background_per_gene['Coverage'].keys()))):
         BckCov += Background_per_gene['Coverage'][str(i)]
     
     ppl.plot(axes[0], plt_rng, (BckCov.T)[Start:Stop], ls = '-', label='Bck', linewidth=2, color = color)
@@ -220,7 +221,7 @@ def PlotGene(Sequences, Background, gene, IterParameters, TransitionTypeFirst = 
     axes[6].get_xaxis().get_major_formatter().set_useOffset(False)
 
     fg_state, bg_state = emission.get_fg_and_bck_state(EmissionParameters, final_pred=True)
-    ix_bg = range(EmmisionProbGene.shape[0])
+    ix_bg = list(range(EmmisionProbGene.shape[0]))
     ix_bg.remove(fg_state)
     FGScore = EmmisionProbGene[fg_state, :]
     AltScore = EmmisionProbGene[ix_bg,:]
@@ -230,7 +231,7 @@ def PlotGene(Sequences, Background, gene, IterParameters, TransitionTypeFirst = 
     if np.sum(ix_ok) < norm.shape[0]:
         SiteScore = FGScore[ix_ok == 0] - norm[ix_ok == 0]
     else:
-        print 'Score problematic'
+        print('Score problematic')
         SiteScore = FGScore
     ppl.plot(axes[7], plt_rng, SiteScore[Start:Stop])
     axes[7].set_ylabel('log-odd score')
@@ -247,7 +248,7 @@ def PlotGene(Sequences, Background, gene, IterParameters, TransitionTypeFirst = 
     if np.sum(ix_ok) < norm.shape[0]:
         SiteScore = FGScore[ix_ok == 0] - norm[ix_ok == 0]
     else:
-        print 'Score problematic'
+        print('Score problematic')
         SiteScore = FGScore
     ppl.plot(axes[8], plt_rng, SiteScore[Start:Stop])
     axes[8].set_ylabel('DMM log-odd score')
@@ -255,7 +256,7 @@ def PlotGene(Sequences, Background, gene, IterParameters, TransitionTypeFirst = 
     axes[8].set_title('DMM log-odd score')
     axes[8].get_xaxis().get_major_formatter().set_useOffset(False)
     if not (out_name is None):
-        print 'Saving result'
+        print('Saving result')
         fig.savefig(out_name)
     
     plt.show()
@@ -264,11 +265,11 @@ def PlotGene(Sequences, Background, gene, IterParameters, TransitionTypeFirst = 
 
 
 def PlotTransistions():
-    xx = np.array(range(0,100))
-    yy = np.array(range(0,100)).T
+    xx = np.array(list(range(0,100)))
+    yy = np.array(list(range(0,100))).T
     xx, yy = np.meshgrid(xx, yy)
     Xfull = np.c_[xx.ravel(), yy.ravel()].T
-    CovMat = IOHMM.GenerateFeatures(np.array(range(Xfull.shape[1] - 1)), Xfull)
+    CovMat = IOHMM.GenerateFeatures(np.array(list(range(Xfull.shape[1] - 1))), Xfull)
     TempProb = TransitionParameters[1].predict_log_proba(CovMat.T)
 
     plt.figure(figsize=(3 * 2, 3 * 2))
@@ -301,7 +302,7 @@ def load_files():
     This function loads the necessary files for standalaone plotting.
     '''
     args = parser.parse_args()
-    print args
+    print(args)
 
     #Check parameters
     if len(args.fg_libs) == 0:
@@ -314,24 +315,24 @@ def load_files():
 
 
     if args.out_dir == None:
-        out_path = os.getcwdu()
+        out_path = os.getcwd()
     else:
         out_path = args.out_dir
 
     # process the parameters
     if not (bg_type == 'Coverage' or  bg_type == 'Coverage_bck'):
-        print 'Bg-type: ' + bg_type + ' has not been implemented yet'
+        print('Bg-type: ' + bg_type + ' has not been implemented yet')
         return 
 
 
 
     #Load the gene annotation
-    print 'Loading gene annotation'
+    print('Loading gene annotation')
     GeneAnnotation = gffutils.FeatureDB(args.gene_anno_file, keep_order=True)
     GenomeDir = args.genome_dir
 
     #Load the reads
-    print 'Loading reads'
+    print('Loading reads')
     DataOutFile = os.path.join(out_path, 'fg_reads.dat')
     Sequences = LoadReads.load_data(args.fg_libs, GenomeDir, GeneAnnotation, DataOutFile, load_from_file = (not args.overwrite_fg), save_results = True, Collapse = args.fg_collapsed)
     
@@ -339,7 +340,7 @@ def load_files():
     Background = LoadReads.load_data(args.bg_libs, GenomeDir, GeneAnnotation, DataOutFile, load_from_file = (not args.overwrite_bg), save_results = True, Collapse = args.bg_collapsed, OnlyCoverage = True)
 
     #Initializing parameters
-    print 'Initialising the parameters'
+    print('Initialising the parameters')
     if bg_type == 'Coverage_bck':
         NrOfStates = 4
     else:
@@ -349,7 +350,7 @@ def load_files():
     TransMat = TransMat / np.sum(np.sum(TransMat))
 
     NrOfReplicates = len(args.fg_libs)
-    gene = Sequences.keys()[0]
+    gene = list(Sequences.keys())[0]
     alphashape = (Sequences[gene]['Variants'][0].shape[0] + Sequences[gene]['Coverage'][0].shape[0] + Sequences[gene]['Read-ends'][0].shape[0]) * NrOfStates
     EmissionParameters={}
     EmissionParameters['PriorMatrix'] = np.ones((NrOfStates, 1)) / float(NrOfStates)
