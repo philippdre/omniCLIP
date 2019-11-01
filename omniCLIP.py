@@ -373,7 +373,9 @@ def run_omniCLIP(args):
     fg_state, bg_state = emission.get_fg_and_bck_state(EmissionParameters, final_pred=True)
     if EmissionParameters['fg_pen'] > 0.0:
         print('Recomputing paths')
-        EmissionParameters['LastIter'] = True
+        EmissionParameters['LastIter'] = True        
+        Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
+        Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
         Paths, LogLike = tools.ParallelGetMostLikelyPath(Paths, Sequences, Background, EmissionParameters, TransitionParameters, 'nonhomo')
         Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
         Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
@@ -576,7 +578,9 @@ def pred_sites(args):
     fg_state, bg_state = emission.get_fg_and_bck_state(EmissionParameters, final_pred=True)
     if EmissionParameters['fg_pen'] > 0.0:
         print('Recomputing paths')
-        EmissionParameters['LastIter'] = True
+        EmissionParameters['LastIter'] = True        
+        Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
+        Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
         Paths, LogLike = tools.ParallelGetMostLikelyPath(Paths, Sequences, Background, EmissionParameters, TransitionParameters, 'nonhomo')
         Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
         Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
