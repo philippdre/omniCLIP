@@ -796,7 +796,7 @@ if __name__ == '__main__':
     parser.add_argument('--restart-from-iter', action='store_true', default=False, dest='restart_from_file', help='restart from existing run')
 
     # Overwrite existing FG .dat files
-    parser.add_argument('--use-precomp-CLIP-data', action='store_true', default=True, dest='overwrite_fg', help='Use existing fg_data.dat file')
+    parser.add_argument('--use-precomp-CLIP-data', action='store_false', default=True, dest='overwrite_fg', help='Use existing fg_data.dat file')
 
     # FG collapsed
     parser.add_argument('--collapsed-CLIP', action='store_true', default=False, dest='fg_collapsed', help='CLIP-reads are collapsed')
@@ -805,7 +805,7 @@ if __name__ == '__main__':
     parser.add_argument('--bg-files', action='append', dest='bg_libs', default=[], help='Bam-files for bg-libraries or files with counts per gene')
 
     # Overwrite existing BG .dat files
-    parser.add_argument('--use-precomp-bg-data', action='store_true', default=True, dest='overwrite_bg', help='Use existing bg_data.dat data')
+    parser.add_argument('--use-precomp-bg-data', action='store_false', default=True, dest='overwrite_bg', help='Use existing bg_data.dat data')
 
     # BG collapsed
     parser.add_argument('--collapsed-bg', action='store_true', default=False, dest='bg_collapsed', help='bg-reads are collapsed')
