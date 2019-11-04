@@ -127,6 +127,9 @@ def load_data(bam_files, genome_dir, gene_annotation, out_file, load_from_file =
 								GeneConversionEvents[new_gene_name].create_group('Coverage')
 								GeneConversionEvents[new_gene_name].create_group('Read-ends')
 							
+							#Ignore Variants where the genome is 'N'
+							Variants[:, GeneSeq[0,:]==4] = 0
+							
 							non_zer_var = np.where(Variants)
 							ij = np.vstack((GeneSeq[0, non_zer_var[1]] * 5 + non_zer_var[0], non_zer_var[1]))
 							Variants = csr_matrix((Variants[np.where(Variants)], ij), shape=(20,len(CurrSeq))).toarray()
