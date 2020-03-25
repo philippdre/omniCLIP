@@ -109,7 +109,7 @@ def PredictTransistionsMultinomialSeparate(Counts, TransitionParameters, NrOfSta
     '''
 
     TransitionParametersLogReg = TransitionParameters[s1]
-    TransistionProb = np.log(np.ones((NrOfStates, NrOfStates, Counts.shape[1])) * (1 / np.float64(NrOfStates)))
+    TransistionProb = np.ones((NrOfStates, NrOfStates, Counts.shape[1])) * np.log((1 / np.float64(NrOfStates)))
 
     #Genererate the features
     CovMat = GenerateFeatures(np.array(list(range(Counts.shape[1] - 1))), Counts)
@@ -139,14 +139,16 @@ def PredictTransistionsSimple(Counts, TransitionParameters, NrOfStates):
     '''
 
     TransitionParametersLogReg = TransitionParameters[1]
-    TransistionProb = np.log(np.ones((NrOfStates, NrOfStates, Counts.shape[1])) * (1 / np.float64(NrOfStates)))
+    TransistionProb = np.ones((NrOfStates, NrOfStates, Counts.shape[1])) * np.log((1 / np.float64(NrOfStates)))
 
     #Genererate the features
     CovMat = GenerateFeatures(np.array(list(range(Counts.shape[1] - 1))), Counts)
 
+    ix_nonzero = np.sum(CovMat, axis=0) > 0
     #Ceate the probailities 
     TempProb = TransitionParametersLogReg.predict_log_proba(CovMat.T).T
 
+    NormFactor = np.ones((TempProb.shape[1]))
     for CurrentState in range(NrOfStates):
         for NextState in range(NrOfStates):
             if CurrentState == NextState:
@@ -155,7 +157,18 @@ def PredictTransistionsSimple(Counts, TransitionParameters, NrOfStates):
                 TransistionProb[NextState, CurrentState, 1:] = TempProb[0, :]
 
         #Normalize the transition probabilities
-        NormFactor = logsumexp(TransistionProb[:, CurrentState, 1:], axis = 0)
+        
+        if CurrentState == 0:
+            #only compute the normalizeing factore once as compuation is expensive
+            
+            if np.sum(ix_nonzero) > 0:
+                #nonzero entries
+                NormFactor[ix_nonzero] = logsumexp(TransistionProb[:, CurrentState, 1:][:,ix_nonzero], axis = 0)
+            if np.sum(ix_nonzero == 0) > 0:
+                #zero entries
+                first_zero_pos = np.where(ix_nonzero == 0)[0][0]
+                NormFactor[ix_nonzero == 0] = logsumexp(TransistionProb[:, CurrentState, 1:][:, first_zero_pos], axis = 0)
+
         for NextState in range(NrOfStates):
             TransistionProb[NextState, CurrentState, 1:] -= NormFactor
     
@@ -170,7 +183,7 @@ def PredictTransistionsSimpleBck(Counts, TransitionParameters, NrOfStates):
     '''
 
     TransitionParametersLogReg = TransitionParameters[1]
-    TransistionProb = np.log(np.ones((NrOfStates, NrOfStates, Counts.shape[1])) * (1 / np.float64(NrOfStates)))
+    TransistionProb = np.ones((NrOfStates, NrOfStates, Counts.shape[1])) * np.log((1 / np.float64(NrOfStates)))
 
     #Genererate the features
     CovMat = GenerateFeatures(np.array(list(range(Counts.shape[1] - 1))), Counts)
@@ -199,7 +212,7 @@ def PredictTransistionsMultinomialSeparateManual(Counts, TransitionParameters, N
     '''
 
     TransitionParametersLogReg = TransitionParameters[1]
-    TransistionProb = np.log(np.ones((NrOfStates, NrOfStates, Counts.shape[1])) * (1 / np.float64(NrOfStates)))
+    TransistionProb = np.ones((NrOfStates, NrOfStates, Counts.shape[1])) * np.log((1 / np.float64(NrOfStates)))
 
     #Genererate the features
     CovMat = GenerateFeatures(np.array(list(range(Counts.shape[1] - 1))), Counts)
@@ -229,7 +242,7 @@ def PredictTransistionsMultinomial(Counts, TransitionParameters, NrOfStates):
     '''
 
     TransitionParametersLogReg = TransitionParameters[1]
-    TransistionProb = np.log(np.ones((NrOfStates, NrOfStates, Counts.shape[1])) * (1 / np.float64(NrOfStates)))
+    TransistionProb = np.ones((NrOfStates, NrOfStates, Counts.shape[1])) * np.log((1 / np.float64(NrOfStates)))
 
     #Genererate the features
     CovMat = GenerateFeatures(np.array(list(range(Counts.shape[1] - 1))), Counts)
@@ -675,7 +688,7 @@ def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, 
     print('Fitting transistion parameters: III')
     print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
     n_iter = max(5, np.ceil(10**6 / len(Y)))
-    NewTransitionParametersLogReg = SGDClassifier(loss="log", max_iter = n_iter).fit(X.T, Y.T)
+    NewTransitionParametersLogReg = SGDClassifier(loss="log", max_iter = n_iter, early_stopping=True, validation_fraction=0.2).fit(X.T, Y.T)
     
     print('Fitting transistion parameters: IV')
     print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
