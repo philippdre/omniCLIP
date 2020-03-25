@@ -166,9 +166,8 @@ def run_omniCLIP(args):
     all_genes = list(Sequences.keys())
     for i, gene in enumerate(Sequences.keys()):
         curr_cov = sum([Sequences[gene]['Coverage'][rep][()].sum() for rep in list(Sequences[gene]['Coverage'].keys())])
-        curr_neg_vars = sum([np.sum(np.sum(Sequences[gene]['Variants'][rep][()] < 0 )) for rep in list(Sequences[gene]['Variants'].keys())])
 
-        if curr_cov <= 100 or curr_neg_vars > 0:
+        if curr_cov <= 100:
             continue
 
         genes_to_keep.append(gene)
@@ -226,7 +225,7 @@ def run_omniCLIP(args):
         EmissionParameters['Diag_event_params']['mix_comp'][state] = mixtures / np.sum(mixtures)
     
     #initialise the parameter vector alpha
-    alphashape = (Sequences[gene]['Variants']['0'][()].shape[0] + Sequences[gene]['Coverage']['0'][()].shape[0] + Sequences[gene]['Read-ends']['0'][()].shape[0])
+    alphashape = (Sequences[gene]['Variants']['0']['shape'][0] + Sequences[gene]['Coverage']['0'][()].shape[0] + Sequences[gene]['Read-ends']['0'][()].shape[0])
     alpha = {}
     for state in range(NrOfStates):
             alpha[state] = np.random.uniform(0.9, 1.1, size=(alphashape, args.nr_mix_comp))
@@ -552,9 +551,8 @@ def pred_sites(args):
     all_genes = list(Sequences.keys())
     for i, gene in enumerate(Sequences.keys()):
         curr_cov = np.sum(np.array([np.sum(Sequences[gene]['Coverage'][rep].toarray()) for rep in list(Sequences[gene]['Coverage'].keys())]))
-        curr_neg_vars = np.sum(np.array([np.sum(np.sum(Sequences[gene]['Variants'][rep].toarray() < 0 )) for rep in list(Sequences[gene]['Variants'].keys())]))
 
-        if curr_cov < 100 or curr_neg_vars > 0:
+        if curr_cov < 100:
             continue
 
         genes_to_keep.append(gene)

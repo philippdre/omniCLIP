@@ -93,18 +93,20 @@ def StackData(Sequences, add = 'all', use_strand = 'True'):
     if (add == 'all') or (add == 'nocov'):
         CurrStack = np.zeros((nr_of_repl, gene_len))        
         for rep in list(Sequences['Coverage'].keys()):
-            CurrStack[int(rep), :] += Sequences['Variants'][rep].sum(axis=0)
-            CurrStack[int(rep), :] += Sequences['Read-ends'][rep].sum(axis=0)
-            CurrStack[int(rep), :] += Sequences['Coverage'][rep].sum(axis=0)
-
+            #CurrStack[int(rep), :] += Sequences['Variants'][rep].sum(axis=0)
+            #CurrStack[int(rep), :] += Sequences['Read-ends'][rep].sum(axis=0)
+            #CurrStack[int(rep), :] += Sequences['Coverage'][rep].sum(axis=0)
+            CurrStack[int(rep), :]  = Sequences['SummedCoverage'][rep]
+            
     elif add == 'only_cov':
         #Check if the cariants are substracted from the coverage:
         if 'Variants' in Sequences:  
             CurrStack = np.zeros((nr_of_repl, gene_len))        
             for rep in list(Sequences['Coverage'].keys()):
-                CurrStack[int(rep), :] += Sequences['Variants'][rep].sum(axis = 0)
-                CurrStack[int(rep), :] += Sequences['Read-ends'][rep].sum(axis=0)
-                CurrStack[int(rep), :] += Sequences['Coverage'][rep].sum(axis=0)                
+                #CurrStack[int(rep), :] += Sequences['Variants'][rep].sum(axis=0)
+                #CurrStack[int(rep), :] += Sequences['Read-ends'][rep].sum(axis=0)
+                #CurrStack[int(rep), :] += Sequences['Coverage'][rep].sum(axis=0)
+                CurrStack[int(rep), :]  = Sequences['SummedCoverage'][rep]
         else:
             CurrStack = np.zeros((nr_of_repl, gene_len))        
             for rep in list(Sequences['Coverage'].keys()):
@@ -115,17 +117,28 @@ def StackData(Sequences, add = 'all', use_strand = 'True'):
             CurrStack[int(rep), :] += Sequences['Variants'][rep].sum(axis = 0)
 
     else:
-        CurrArr = []
+        #First compute dimensions of return array:
+        nr_rows = 0
         for rep in list(Sequences['Variants'].keys()):
-            if use_strand:
-                if Sequences['strand'] == 1:
-                    CurrArr.append(np.vstack((Sequences['Variants'][rep], Sequences['Read-ends'][rep], Sequences['Coverage'][rep] )))
-                else:
-                    CurrArr.append(np.vstack((Sequences['Variants'][rep][Track_strand_map, :], Sequences['Read-ends'][rep], Sequences['Coverage'][rep] )))
+            nr_cols =  Sequences['Coverage'][rep].shape[1]
+            nr_rows += Sequences['Variants'][rep].shape[0] + Sequences['Read-ends'][rep].shape[0] +  Sequences['Coverage'][rep].shape[0]
+
+        CurrStack = np.zeros((nr_rows, nr_cols))
+        row_counter = 0
+        for rep in list(Sequences['Variants'].keys()):
+            if use_strand and (not (Sequences['strand'] == 1)):
+                CurrStack[row_counter:(row_counter + Sequences['Variants'][rep].shape[0]), :] = Sequences['Variants'][rep][Track_strand_map, :]
             else:
-                CurrArr.append(np.vstack((Sequences['Variants'][rep], Sequences['Read-ends'][rep], Sequences['Coverage'][rep] )))
-        CurrStack = np.array(np.vstack((CurrArr)))
-        del CurrArr
+                CurrStack[row_counter:(row_counter + Sequences['Variants'][rep].shape[0]), :] = Sequences['Variants'][rep]
+            row_counter += Sequences['Variants'][rep].shape[0]
+
+            CurrStack[row_counter:(row_counter + Sequences['Read-ends'][rep].shape[0]), :] = Sequences['Read-ends'][rep]
+            row_counter += Sequences['Read-ends'][rep].shape[0]
+
+            CurrStack[row_counter:(row_counter + Sequences['Coverage'][rep].shape[0]), :] = Sequences['Coverage'][rep]
+            row_counter += Sequences['Coverage'][rep].shape[0]
+
+        
 
     CurrStack[CurrStack < 0] = 0
     return CurrStack
@@ -144,7 +157,12 @@ def PreloadSequencesForGene(Sequences, gene):
         else:
             Sequences_per_gene[key] = {}
             for rep in Sequences[gene][key]:
-                Sequences_per_gene[key][rep] = Sequences[gene][key][rep][()]
+                if key == 'Variants':
+                    #Convert the Variants to array again
+                    Sequences_per_gene[key][rep] = csr_matrix((Sequences[gene]['Variants'][rep]['data'][:],Sequences[gene]['Variants'][rep]['indices'][:], 
+                        Sequences[gene]['Variants'][rep]['indptr'][:]), shape=Sequences[gene]['Variants'][rep]['shape'][:]).toarray()
+                else:
+                    Sequences_per_gene[key][rep] = Sequences[gene][key][rep][()]
 
     return Sequences_per_gene
 
