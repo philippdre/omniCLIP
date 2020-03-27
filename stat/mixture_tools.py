@@ -21,7 +21,7 @@
 from copy import deepcopy
 from scipy.special import logsumexp
 import diag_event_model
-import emission
+import emission_prob
 import itertools
 import multiprocessing
 import numpy as np
@@ -35,7 +35,7 @@ def em(counts, nr_of_counts, EmissionParameters, x_0=None, First=False, max_nr_i
 	'''
 
 	template_state = 3
-	fg_state, bg_state = emission.get_fg_and_bck_state(EmissionParameters, final_pred=True)
+	fg_state, bg_state = emission_prob.get_fg_and_bck_state(EmissionParameters, final_pred=True)
 	check = False
 
 	OldEmissionParameters = deepcopy(EmissionParameters)

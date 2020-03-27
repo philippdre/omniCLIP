@@ -27,7 +27,7 @@ from scipy.sparse import *
 from scipy.stats import nbinom
 import pickle
 import diag_event_model
-import emission
+import emission_prob
 import evaluation
 import gzip
 import h5py
@@ -264,7 +264,7 @@ def GetSuffStatBck(Sequences, Background, Paths, NrOfStates, Type, ResetNotUsedS
     t = time.time()
     SuffStatBck = {}
 
-    fg_state, bg_state = emission.get_fg_and_bck_state(EmissionParameters, final_pred=True)
+    fg_state, bg_state = emission_prob.get_fg_and_bck_state(EmissionParameters, final_pred=True)
 
     SuffStatBck[fg_state] = defaultdict(int)
 
@@ -664,11 +664,11 @@ def GetSitesForGene(data):
 
         
     for State in range(NrOfStates):
-        EmmisionProbGene[State, ix_sites] = np.log(weight1) + emission.predict_expression_log_likelihood_for_gene(CurrStackSum[:, ix_sites], State, nr_of_genes, gene_nr, EmissionParameters)
+        EmmisionProbGene[State, ix_sites] = np.log(weight1) + emission_prob.predict_expression_log_likelihood_for_gene(CurrStackSum[:, ix_sites], State, nr_of_genes, gene_nr, EmissionParameters)
         if EmissionParameters['BckType'] == 'Coverage':
-            EmmisionProbGene[State, ix_sites] += np.log(weight1) + emission.predict_expression_log_likelihood_for_gene(CurrStackSumBck[:, ix_sites], State, nr_of_genes, gene_nr, EmissionParameters, 'bg')
+            EmmisionProbGene[State, ix_sites] += np.log(weight1) + emission_prob.predict_expression_log_likelihood_for_gene(CurrStackSumBck[:, ix_sites], State, nr_of_genes, gene_nr, EmissionParameters, 'bg')
         if EmissionParameters['BckType'] == 'Coverage_bck':
-            EmmisionProbGene[State, ix_sites] += np.log(weight1) + emission.predict_expression_log_likelihood_for_gene(CurrStackSumBck[:, ix_sites], State, nr_of_genes, gene_nr, EmissionParameters, 'bg')
+            EmmisionProbGene[State, ix_sites] += np.log(weight1) + emission_prob.predict_expression_log_likelihood_for_gene(CurrStackSumBck[:, ix_sites], State, nr_of_genes, gene_nr, EmissionParameters, 'bg')
         if not EmissionParameters['ign_out_rds']:
             EmmisionProbGeneDir[State, Ix] = np.log(weight2) + diag_event_model.pred_log_lik(CurrStackVar[:, Ix], State, EmissionParameters)
         EmmisionProbGene[State, Ix] += np.log(weight2) + EmmisionProbGeneDir[State, Ix]
@@ -739,8 +739,8 @@ def ComputeStatsForSite(CountsSeq, CountsBck, Site, fg_state, nr_of_genes, gene_
     Start = Site[0]
     Stop = Site[1]
 
-    mean_mat_fg, var_mat_fg = emission.get_expected_mean_and_var(CountsSeq[:, Start : (Stop + 1)], fg_state, nr_of_genes, gene_nr, EmissionParameters, curr_type = 'fg')
-    mean_mat_bg, var_mat_bg = emission.get_expected_mean_and_var(CountsBck[:, Start : (Stop + 1)], fg_state, nr_of_genes, gene_nr, EmissionParameters, curr_type = 'bg')
+    mean_mat_fg, var_mat_fg = emission_prob.get_expected_mean_and_var(CountsSeq[:, Start : (Stop + 1)], fg_state, nr_of_genes, gene_nr, EmissionParameters, curr_type = 'fg')
+    mean_mat_bg, var_mat_bg = emission_prob.get_expected_mean_and_var(CountsBck[:, Start : (Stop + 1)], fg_state, nr_of_genes, gene_nr, EmissionParameters, curr_type = 'bg')
     
     mean_mat_fg = np.sum(np.sum(mean_mat_fg, axis=0))
     var_mat_fg = np.sum(np.sum(var_mat_fg, axis=0))
@@ -953,11 +953,11 @@ def GetMostLikelyPath(MostLikelyPaths, Sequences, Background, EmissionParameters
         for State in range(NrOfStates):
             if not EmissionParameters['ExpressionParameters'][0] == None:
                 #EmmisionProbGene[State, :] = FitBinoDirchEmmisionProbabilities.ComputeStateProbForGeneNB_unif(CurrStack, alpha, State, EmissionParameters)
-                EmmisionProbGene[State, :] = emission.predict_expression_log_likelihood_for_gene(CurrStackSum, State, nr_of_genes, gene_nr_dict[gene], EmissionParameters)
+                EmmisionProbGene[State, :] = emission_prob.predict_expression_log_likelihood_for_gene(CurrStackSum, State, nr_of_genes, gene_nr_dict[gene], EmissionParameters)
                 if EmissionParameters['BckType'] == 'Coverage':
-                    EmmisionProbGene[State, :] += emission.predict_expression_log_likelihood_for_gene(StackData(Background, gene, add = 'only_cov'), State, nr_of_genes, gene_nr_dict[gene], EmissionParameters, 'bg')
+                    EmmisionProbGene[State, :] += emission_prob.predict_expression_log_likelihood_for_gene(StackData(Background, gene, add = 'only_cov'), State, nr_of_genes, gene_nr_dict[gene], EmissionParameters, 'bg')
                 if EmissionParameters['BckType'] == 'Coverage_bck':
-                    EmmisionProbGene[State, :] += emission.predict_expression_log_likelihood_for_gene(StackData(Background, gene, add = 'only_cov'), State, nr_of_genes, gene_nr_dict[gene], EmissionParameters, 'bg')
+                    EmmisionProbGene[State, :] += emission_prob.predict_expression_log_likelihood_for_gene(StackData(Background, gene, add = 'only_cov'), State, nr_of_genes, gene_nr_dict[gene], EmissionParameters, 'bg')
 
             
             EmmisionProbGene[State, Ix] += diag_event_model.pred_log_lik(CurrStackVar[:, Ix], State, EmissionParameters)
@@ -1056,7 +1056,7 @@ def ParallelGetMostLikelyPathForGene(data):
 
     TransitionType = EmissionParameters['TransitionType']
 
-    fg_state, bg_state = emission.get_fg_and_bck_state(EmissionParameters, final_pred=True)
+    fg_state, bg_state = emission_prob.get_fg_and_bck_state(EmissionParameters, final_pred=True)
     fg_pen = EmissionParameters['fg_pen']
     #Score the state sequences
     #1) Determine the positions where an observation is possible
@@ -1099,11 +1099,11 @@ def ParallelGetMostLikelyPathForGene(data):
         if not EmissionParameters['ign_GLM']:
             if isinstance(EmissionParameters['ExpressionParameters'][0], np.ndarray):
                 #EmmisionProbGene[State, :] = FitBinoDirchEmmisionProbabilities.ComputeStateProbForGeneNB_unif(CurrStack, alpha, State, EmissionParameters)
-                EmmisionProbGene[State, :] = np.log(weight1) + emission.predict_expression_log_likelihood_for_gene(CurrStackSum, State, nr_of_genes, gene_nr, EmissionParameters)
+                EmmisionProbGene[State, :] = np.log(weight1) + emission_prob.predict_expression_log_likelihood_for_gene(CurrStackSum, State, nr_of_genes, gene_nr, EmissionParameters)
                 if EmissionParameters['BckType'] == 'Coverage':
-                    EmmisionProbGene[State, :] += np.log(weight1) + emission.predict_expression_log_likelihood_for_gene(CurrStackSumBck, State, nr_of_genes, gene_nr, EmissionParameters, 'bg')
+                    EmmisionProbGene[State, :] += np.log(weight1) + emission_prob.predict_expression_log_likelihood_for_gene(CurrStackSumBck, State, nr_of_genes, gene_nr, EmissionParameters, 'bg')
                 if EmissionParameters['BckType'] == 'Coverage_bck':
-                    EmmisionProbGene[State, :] += np.log(weight1) + emission.predict_expression_log_likelihood_for_gene(CurrStackSumBck, State, nr_of_genes, gene_nr, EmissionParameters, 'bg')
+                    EmmisionProbGene[State, :] += np.log(weight1) + emission_prob.predict_expression_log_likelihood_for_gene(CurrStackSumBck, State, nr_of_genes, gene_nr, EmissionParameters, 'bg')
         if not EmissionParameters['ign_diag']:
             EmmisionProbGene[State, Ix] += np.log(weight2) + diag_event_model.pred_log_lik(CurrStackVar[:, Ix], State, EmissionParameters)
         if State == fg_state:
@@ -1125,8 +1125,9 @@ def ParallelGetMostLikelyPathForGene(data):
         TransistionProbabilities = np.float64(np.tile(np.log(TransitionParameters[0]), (EmmisionProbGene.shape[1],1,1)).T)
     
     CurrPath, Currloglik = viterbi.viterbi(np.float64(EmmisionProbGene), TransistionProbabilities, np.float64(np.log(PriorMatrix)))
+    CurrPath = np.int8(CurrPath)
     
-    del TransistionProbabilities, EmmisionProbGene, CurrStackSum, CurrStackVar, Ix
+    del TransistionProbabilities, EmmisionProbGene, CurrStackSum, CurrStackVar, CurrStackSumBck, Ix
     Sequences.close()
     Background.close()
 

@@ -135,7 +135,7 @@ def load_data(bam_files, genome_dir, gene_annotation, out_file, load_from_file =
 								GeneConversionEvents.create_group(new_gene_name)
 
 							if not 'Coverage' in GeneConversionEvents[new_gene_name]:
-								if store_gene_seq and str(i)=='0':
+								if store_gene_seq and (str(i) == '0'):
 									GeneConversionEvents[new_gene_name].create_group('GeneSeq')
 								GeneConversionEvents[new_gene_name].create_group('Variants')
 								GeneConversionEvents[new_gene_name].create_group('Coverage')
@@ -153,7 +153,7 @@ def load_data(bam_files, genome_dir, gene_annotation, out_file, load_from_file =
 							del non_zer_var, ij
 
 							if store_gene_seq:
-								GeneConversionEvents[new_gene_name]['GeneSeq'].create_dataset(str(i), data=GeneSeq, compression="gzip", compression_opts=9)#, chunks=GeneSeq.shape)
+								GeneConversionEvents[new_gene_name]['GeneSeq'].create_dataset(str(i), data=GeneSeq, compression="gzip", compression_opts=9, )#, chunks=GeneSeq.shape)
 							#GeneConversionEvents[new_gene_name]['Variants'].create_dataset(str(i), data=Variants, compression="gzip", compression_opts=9)#, chunks=Variants.shape)
 							GeneConversionEvents[new_gene_name]['Variants'].create_group(str(i))
 							GeneConversionEvents[new_gene_name]['Variants'][str(i)].create_dataset('data', data=Variants_sparse.data)

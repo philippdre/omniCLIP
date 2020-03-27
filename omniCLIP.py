@@ -27,7 +27,7 @@ from intervaltree import Interval, IntervalTree
 from scipy.sparse import *
 import argparse
 import pickle
-import emission
+import emission_prob
 import gc
 import gffutils
 import h5py
@@ -237,7 +237,7 @@ def run_omniCLIP(args):
     EmissionParameters['ExpressionParameters'] = [None, None]
     EmissionParameters['BckType'] = bg_type
     EmissionParameters['NrOfBckReplicates'] = len(args.bg_libs)
-    EmissionParameters['TransitionType'] = args.tr_type
+    EmissionParameters['TransitionType'] = 'binary'
     EmissionParameters['Verbosity'] = args.verbosity
     EmissionParameters['NbProc'] = args.nb_proc
     EmissionParameters['Subsample'] = args.subs
@@ -283,7 +283,7 @@ def run_omniCLIP(args):
         TransitionParameters = IterParameters[1]
         TransitionType = EmissionParameters['TransitionType']
         OldLogLikelihood = -np.inf
-        fg_state, bg_state = emission.get_fg_and_bck_state(EmissionParameters, final_pred=True)
+        fg_state, bg_state = emission_prob.get_fg_and_bck_state(EmissionParameters, final_pred=True)
         
         Paths, CurrLogLikelihood = tools.ParallelGetMostLikelyPath(Paths, Sequences, Background, EmissionParameters, TransitionParameters, 'nonhomo')
         Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
@@ -369,7 +369,7 @@ def run_omniCLIP(args):
     OutFile = os.path.join(out_path, out_file_base + '.txt')
     #determine which state has higher weight in fg.
     print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-    fg_state, bg_state = emission.get_fg_and_bck_state(EmissionParameters, final_pred=True)
+    fg_state, bg_state = emission_prob.get_fg_and_bck_state(EmissionParameters, final_pred=True)
     if EmissionParameters['fg_pen'] > 0.0:
         print('Recomputing paths')
         EmissionParameters['LastIter'] = True        
@@ -573,7 +573,7 @@ def pred_sites(args):
     IterParameters = tmp_file[0]
     args = tmp_file[1]
     EmissionParameters = IterParameters[0]
-    fg_state, bg_state = emission.get_fg_and_bck_state(EmissionParameters, final_pred=True)
+    fg_state, bg_state = emission_prob.get_fg_and_bck_state(EmissionParameters, final_pred=True)
     if EmissionParameters['fg_pen'] > 0.0:
         print('Recomputing paths')
         EmissionParameters['LastIter'] = True        
@@ -694,7 +694,7 @@ def FitEmissionParameters(Sequences, Background, NewPaths, OldEmissionParameters
 
     bg_type = NewEmissionParameters['BckType']
     expr_data = (NewEmissionParameters, Sequences, Background, NewPaths, sample_size, bg_type)
-    NewEmissionParameters = emission.estimate_expression_param(expr_data)
+    NewEmissionParameters = emission_prob.estimate_expression_param(expr_data)
     
     print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
     
@@ -714,6 +714,7 @@ def FitEmissionParameters(Sequences, Background, NewPaths, OldEmissionParameters
         #Vectorize SuffStat
         Counts, NrOfCounts = tools.ConvertSuffStatToArrays(SuffStat)
 
+        del SuffStat
         print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
         if NewEmissionParameters['Subsample']:
             Counts, NrOfCounts = tools.subsample_suff_stat(Counts, NrOfCounts)
@@ -732,15 +733,17 @@ def FitEmissionParameters(Sequences, Background, NewPaths, OldEmissionParameters
                 CountsBck, NrOfCountsBck = tools.subsample_suff_stat(CountsBck, NrOfCountsBck)
             
             #Overwrite counts in other bins
-            fg_state, bg_state = emission.get_fg_and_bck_state(NewEmissionParameters, final_pred=True)
+            fg_state, bg_state = emission_prob.get_fg_and_bck_state(NewEmissionParameters, final_pred=True)
             for curr_state in list(Counts.keys()):
                 if curr_state != fg_state:
                     Counts[curr_state] = CountsBck[fg_state]
                     NrOfCounts[curr_state] = NrOfCountsBck[fg_state]
+
+            del SuffStatBck
             
         NewEmissionParameters = mixture_tools.em(Counts, NrOfCounts, NewEmissionParameters, x_0=OldAlpha, First=First)
         print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-        del Counts, NrOfCounts, SuffStat
+        del Counts, NrOfCounts
     
     if 'Pseudo' in Sequences:
         del Sequences['Pseudo']
@@ -823,7 +826,7 @@ if __name__ == '__main__':
     parser.add_argument('--bg-type', action='store', dest='bg_type', help='Background type', choices=['None', 'Coverage', 'Coverage_bck'], default='Coverage_bck')
 
     # Transistion type
-    parser.add_argument('--trans-model', action='store', dest='tr_type', help='Transition type', choices=['binary', 'binary_bck', 'multi'], default='binary')
+    #parser.add_argument('--trans-model', action='store', dest='tr_type', help='Transition type', choices=['binary', 'binary_bck', 'multi'], default='binary')
 
     # verbosity
     parser.add_argument('--verbosity', action='store', dest='verbosity', help='Verbosity', type=int, default=0)
