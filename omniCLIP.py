@@ -48,7 +48,11 @@ import trans
 def run_omniCLIP(args):
     # Get the args
     args = parser.parse_args()
-    print(args)
+
+    verbosity = args.verbosity
+
+    if verbosity > 1:
+        print(args)
 
     #Check parameters
     if len(args.fg_libs) == 0:
@@ -82,11 +86,27 @@ def run_omniCLIP(args):
 
     #Load the gene annotation
     print('Loading gene annotation')
-    GeneAnnotation = gffutils.FeatureDB(args.gene_anno_file, keep_order=True)
+    if args.gene_anno_file.split('.')[-1] == 'db':
+        GeneAnnotation = gffutils.FeatureDB(args.gene_anno_file, keep_order=True)
+    else:
+        if os.path.isfile(args.gene_anno_file + '.db'):
+            print('Using existing gene annotation database: ' + args.gene_anno_file + '.db')
+            GeneAnnotation = gffutils.FeatureDB(args.gene_anno_file + '.db', keep_order=True)
+        else:
+            print('Creating gene annotation database')
+            db = gffutils.create_db(args.gene_anno_file, dbfn=(args.gene_anno_file + '.db'), force=True, keep_order=True, merge_strategy='merge', sort_attribute_values=True, disable_infer_transcripts=True, disable_infer_genes=True)
+            GeneAnnotation = gffutils.FeatureDB(args.gene_anno_file + '.db', keep_order=True)
+            del db
+
     GenomeDir = args.genome_dir
+    
+    import warnings
+    warnings.filterwarnings('error')
+
 
     #Load the reads
-    print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    if verbosity > 0:
+        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
     print('Loading reads')
 
     EmissionParameters = {}
@@ -181,8 +201,9 @@ def run_omniCLIP(args):
         del Background[gene]
 
     del all_genes, genes_to_del, genes_to_keep 
-    print('Done: Elapsed time: ' + str(time.time() - t))
-    print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    if verbosity > 0:
+        print('Done: Elapsed time: ' + str(time.time() - t))
+        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
     #Initializing parameters
     print('Initialising the parameters')
@@ -310,18 +331,24 @@ def run_omniCLIP(args):
         iter_cond = True
 
 
+    #import warnings
+    #warnings.filterwarnings('error')
+
+
+
     if not EmissionParameters['use_precomp_diagmod'] is None:
         IterParametersPreComp, args_old = pickle.load(open(EmissionParameters['use_precomp_diagmod'],'r'))
         IterParameters[0]['Diag_event_params'] = IterParametersPreComp[0]['Diag_event_params']
 
     while iter_cond:
+        print("\n")
         print("Iteration: " + str(CurrIter))
-        if EmissionParameters['Verbosity'] > 0:
+        if EmissionParameters['Verbosity'] > 1:
             print(IterParameters[0])
 
         OldLogLikelihood  = CurrLogLikelihood
         
-        CurrLogLikelihood, IterParameters, First, Paths = PerformIteration(Sequences, Background, IterParameters, NrOfStates, First, Paths)
+        CurrLogLikelihood, IterParameters, First, Paths = PerformIteration(Sequences, Background, IterParameters, NrOfStates, First, Paths, verbosity=EmissionParameters['Verbosity'])
         gc.collect()
         
         if True:
@@ -333,10 +360,12 @@ def run_omniCLIP(args):
             pickle.dump(IterHist, open(IterSaveFileHist,'wb'))
             del IterHist
         
-        print("Log-likelihood: " + str(CurrLogLikelihood)) 
+        if verbosity > 1:
+            print("Log-likelihood: " + str(CurrLogLikelihood)) 
         LoglikelihodList.append(CurrLogLikelihood)
         
-        print(LoglikelihodList)
+        if verbosity > 1:
+            print(LoglikelihodList)
         CurrIter += 1
         
         if CurrIter >= MaxIter:
@@ -355,7 +384,7 @@ def run_omniCLIP(args):
                 iter_cond = (CurrIter < MaxIter) and ((abs(CurrLogLikelihood - OldLogLikelihood)/max(abs(CurrLogLikelihood), abs(OldLogLikelihood))) > 0.01) and (abs(CurrLogLikelihood - OldLogLikelihood) > args.tol_lg_lik)
     
     #Return the fitted parameters
-    print('Finished fitting of parameters')
+    print('Finished parameter fitting')
 
     EmissionParameters, TransitionParameters = IterParameters
     if not isinstance(EmissionParameters['ExpressionParameters'][0], np.ndarray):
@@ -368,18 +397,19 @@ def run_omniCLIP(args):
        out_file_base += '_no_diag'
     OutFile = os.path.join(out_path, out_file_base + '.txt')
     #determine which state has higher weight in fg.
-    print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    if verbosity > 0:
+        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
     fg_state, bg_state = emission_prob.get_fg_and_bck_state(EmissionParameters, final_pred=True)
     if EmissionParameters['fg_pen'] > 0.0:
         print('Recomputing paths')
         EmissionParameters['LastIter'] = True        
         Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
         Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
-        Paths, LogLike = tools.ParallelGetMostLikelyPath(Paths, Sequences, Background, EmissionParameters, TransitionParameters, 'nonhomo')
+        Paths, LogLike = tools.ParallelGetMostLikelyPath(Paths, Sequences, Background, EmissionParameters, TransitionParameters, 'nonhomo', verbosity=EmissionParameters['Verbosity'])
         Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
         Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
 
-    tools.GeneratePred(Paths, Sequences, Background, IterParameters, GeneAnnotation, OutFile, fg_state, bg_state, seq_file=EmissionParameters['DataOutFile_seq'], bck_file=EmissionParameters['DataOutFile_bck'], pv_cutoff=pv_cutoff)
+    tools.GeneratePred(Paths, Sequences, Background, IterParameters, GeneAnnotation, OutFile, fg_state, bg_state, seq_file=EmissionParameters['DataOutFile_seq'], bck_file=EmissionParameters['DataOutFile_bck'], pv_cutoff=pv_cutoff, verbosity=EmissionParameters['Verbosity'])
     print('Done')
 
     #Remove the temporary files
@@ -503,7 +533,7 @@ def mark_overlapping_positions(Sequences, GeneAnnotation):
 
 
 #@profile 
-def pred_sites(args):
+def pred_sites(args, verbosity=1):
     # Get the args
 
     args = parser.parse_args()
@@ -566,7 +596,8 @@ def pred_sites(args):
         del Background[gene]
 
     del all_genes, genes_to_del, genes_to_keep 
-    print('Done: Elapsed time: ' + str(time.time() - t))
+    if verbosity > 0:
+        print('Done: Elapsed time: ' + str(time.time() - t))
     
     #Load data
     tmp_file = pickle.load(open(os.path.join(out_path, 'IterSaveFile.dat'), 'r'))
@@ -579,11 +610,11 @@ def pred_sites(args):
         EmissionParameters['LastIter'] = True        
         Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
         Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
-        Paths, LogLike = tools.ParallelGetMostLikelyPath(Paths, Sequences, Background, EmissionParameters, TransitionParameters, 'nonhomo')
+        Paths, LogLike = tools.ParallelGetMostLikelyPath(Paths, Sequences, Background, EmissionParameters, TransitionParameters, 'nonhomo', verbosity=EmissionParameters['Verbosity'])
         Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
         Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
 
-    tools.GeneratePred(Sequences, Background, IterParameters, GeneAnnotation, OutFile, fg_state, bg_state)
+    tools.GeneratePred(Sequences, Background, IterParameters, GeneAnnotation, OutFile, fg_state, bg_state, verbosity=EmissionParameters['Verbosity'])
 
     print('Done')
 
@@ -591,7 +622,7 @@ def pred_sites(args):
 
 ##@profile
 #@profile 
-def PerformIteration(Sequences, Background, IterParameters, NrOfStates, First, NewPaths={}):
+def PerformIteration(Sequences, Background, IterParameters, NrOfStates, First, NewPaths={}, verbosity=1):
     '''
     This function performs an iteration of the HMM algorithm 
     '''
@@ -602,25 +633,29 @@ def PerformIteration(Sequences, Background, IterParameters, NrOfStates, First, N
 
     #Get new most likely path
     if (not EmissionParameters['restart_from_file']) and First:
-        NewPaths, LogLike = tools.ParallelGetMostLikelyPath(NewPaths, Sequences, Background, EmissionParameters, TransitionParameters, 'homo', RandomNoise = True)
+        NewPaths, LogLike = tools.ParallelGetMostLikelyPath(NewPaths, Sequences, Background, EmissionParameters, TransitionParameters, 'homo', RandomNoise = True, verbosity=verbosity)
         Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
         Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
 
-        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+        if verbosity > 0:
+            print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
     
     #Perform EM to compute the new emission parameters
     print('Fitting emission parameters')
-    print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    if verbosity > 0:
+        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
-    NewEmissionParameters = FitEmissionParameters(Sequences, Background, NewPaths, EmissionParameters, First)
+    NewEmissionParameters = FitEmissionParameters(Sequences, Background, NewPaths, EmissionParameters, First, verbosity=verbosity)
     if First:
         First = 0
-    print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    if verbosity > 0:
+        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
     #Fit the transition matrix parameters
     NewTransitionParameters = TransitionParameters
     C = 1
-    print('Fitting transistion parameters')
-    print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    print('Fitting transition parameters')
+    if verbosity > 0:
+        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
     
     try:
         Sequences.close()
@@ -633,28 +668,32 @@ def PerformIteration(Sequences, Background, IterParameters, NrOfStates, First, N
     Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
     Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
 
-    TransistionPredictors = trans.FitTransistionParameters(Sequences, Background, TransitionParameters, NewPaths, C, TransitionType)
+    TransistionPredictors = trans.FitTransistionParameters(Sequences, Background, TransitionParameters, NewPaths, C, TransitionType, verbosity=verbosity)
     NewTransitionParameters[1] = TransistionPredictors
-    print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    if verbosity > 0:
+        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
     NewIterParameters = [NewEmissionParameters, NewTransitionParameters]
     
     print('Computing most likely path')
-    print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    if verbosity > 0:
+        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
     
     gc.collect()
-    NewPaths, LogLike = tools.ParallelGetMostLikelyPath(NewPaths, Sequences, Background, EmissionParameters, TransitionParameters, 'nonhomo')
+    NewPaths, LogLike = tools.ParallelGetMostLikelyPath(NewPaths, Sequences, Background, EmissionParameters, TransitionParameters, 'nonhomo', verbosity=verbosity)
     Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
     Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
 
     CurrLogLikelihood = LogLike
-    print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-    print('LogLik:')
-    print(CurrLogLikelihood)
+    if verbosity > 0:
+            print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    if verbosity > 1:
+        print('LogLik:')
+        print(CurrLogLikelihood)
     return CurrLogLikelihood, NewIterParameters, First, NewPaths
 
 ##@profile
 #@profile 
-def FitEmissionParameters(Sequences, Background, NewPaths, OldEmissionParameters, First):
+def FitEmissionParameters(Sequences, Background, NewPaths, OldEmissionParameters, First, verbosity=1):
     print('Fitting emission parameters')
     t = time.time() 
     #Unpack the arguments
@@ -668,7 +707,18 @@ def FitEmissionParameters(Sequences, Background, NewPaths, OldEmissionParameters
     for State in range(NrOfStates):        
         for path in NewPaths:
             PriorMatrix[State] += np.sum(NewPaths[path] == State)
-        
+
+    #Check if one of the states is not used and add pseudo gene to prevent singularities during distribution fitting 
+    if np.sum(PriorMatrix == 0) > 0:
+        Sequences.close()
+        Background.close()
+        Sequences = h5py.File(NewEmissionParameters['DataOutFile_seq'], 'r+')
+        Background = h5py.File(NewEmissionParameters['DataOutFile_bck'], 'r+')
+        Sequences, Background, NewPaths, pseudo_gene_names = add_pseudo_gene(Sequences, Background, NewPaths, PriorMatrix)
+        Sequences.close()
+        Background.close()
+        print('Addes pseudo gene to prevent singular matrix during GLM fitting')
+
     CorrectedPriorMatrix = np.copy(PriorMatrix)
     
     CorrectedPriorMatrix[CorrectedPriorMatrix == 0] = np.min(CorrectedPriorMatrix[CorrectedPriorMatrix > 0])/10 
@@ -690,13 +740,15 @@ def FitEmissionParameters(Sequences, Background, NewPaths, OldEmissionParameters
             new_pars = np.vstack((new_pars[:(nr_of_genes), :], np.mean(new_pars[:(nr_of_genes), :]), new_pars[(nr_of_genes):, :]))
             NewEmissionParameters['ExpressionParameters'][0] = new_pars
     print('Estimating expression parameters')
-    print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    if verbosity > 0:
+        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
     bg_type = NewEmissionParameters['BckType']
     expr_data = (NewEmissionParameters, Sequences, Background, NewPaths, sample_size, bg_type)
-    NewEmissionParameters = emission_prob.estimate_expression_param(expr_data)
+    NewEmissionParameters = emission_prob.estimate_expression_param(expr_data, verbosity=verbosity)
     
-    print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    if verbosity > 0:
+        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
     
     if NewEmissionParameters['BckType'] != 'None':
         if 'Pseudo' in Sequences:        
@@ -707,25 +759,28 @@ def FitEmissionParameters(Sequences, Background, NewPaths, OldEmissionParameters
     
     if (NewEmissionParameters['skip_diag_event_mdl'] == False) or (not (EmissionParameters['use_precomp_diagmod'] is None)):
         #Compute parameters for the ratios
-        print('computing sufficient statitics for fitting md')
-        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-        SuffStat = tools.GetSuffStat(Sequences, Background, NewPaths, NrOfStates, Type='Conv', EmissionParameters=NewEmissionParameters)
+        print('Computing sufficient statistic for fitting md')
+        if verbosity > 0:
+            print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+        SuffStat = tools.GetSuffStat(Sequences, Background, NewPaths, NrOfStates, Type='Conv', EmissionParameters=NewEmissionParameters, verbosity=verbosity)
         
         #Vectorize SuffStat
         Counts, NrOfCounts = tools.ConvertSuffStatToArrays(SuffStat)
 
         del SuffStat
-        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+        if verbosity > 0:
+            print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
         if NewEmissionParameters['Subsample']:
             Counts, NrOfCounts = tools.subsample_suff_stat(Counts, NrOfCounts)
 
 
-        print('fitting md distribution')
-        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+        print('Fitting md distribution')
+        if verbosity > 0:
+            print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
         if NewEmissionParameters['diag_bg']:
             print("Adjusting background")
-            SuffStatBck = tools.GetSuffStatBck(Sequences, Background, NewPaths, NrOfStates, Type='Conv', EmissionParameters=NewEmissionParameters)
+            SuffStatBck = tools.GetSuffStatBck(Sequences, Background, NewPaths, NrOfStates, Type='Conv', EmissionParameters=NewEmissionParameters, verbosity=verbosity)
             #Vectorize SuffStat
             CountsBck, NrOfCountsBck = tools.ConvertSuffStatToArrays(SuffStatBck)
 
@@ -741,8 +796,9 @@ def FitEmissionParameters(Sequences, Background, NewPaths, OldEmissionParameters
 
             del SuffStatBck
             
-        NewEmissionParameters = mixture_tools.em(Counts, NrOfCounts, NewEmissionParameters, x_0=OldAlpha, First=First)
-        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+        NewEmissionParameters = mixture_tools.em(Counts, NrOfCounts, NewEmissionParameters, x_0=OldAlpha, First=First, verbosity=verbosity)
+        if verbosity > 0:
+            print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
         del Counts, NrOfCounts
     
     if 'Pseudo' in Sequences:
@@ -750,7 +806,8 @@ def FitEmissionParameters(Sequences, Background, NewPaths, OldEmissionParameters
         del Background['Pseudo']
         del NewPaths['Pseudo']
 
-    print('Done: Elapsed time: ' + str(time.time() - t))
+    if verbosity > 0:
+        print('Done: Elapsed time: ' + str(time.time() - t))
     return NewEmissionParameters
 
 #@profile 
@@ -767,7 +824,11 @@ def add_pseudo_gene(Sequences, Background, NewPaths, PriorMatrix):
     gen_lens = [Sequences[gene]['Coverage']['0'][()].shape[1] for gene in Sequences]
 
     random_gen  = np.random.choice(np.arange(len(gen_lens)), 1, p = np.array(gen_lens)/np.float(sum(gen_lens)))  
-    gene_name = list(Sequences.keys())[random_gen]
+    
+    if len(random_gen) == 1:
+        gene_name = list(Sequences.keys())[random_gen[0]]
+    else:
+        gene_name = list(Sequences.keys())[random_gen]
 
     Sequences['Pseudo'] = Sequences[gene_name]
     Background['Pseudo'] = Background[gene_name]
@@ -829,7 +890,7 @@ if __name__ == '__main__':
     #parser.add_argument('--trans-model', action='store', dest='tr_type', help='Transition type', choices=['binary', 'binary_bck', 'multi'], default='binary')
 
     # verbosity
-    parser.add_argument('--verbosity', action='store', dest='verbosity', help='Verbosity', type=int, default=0)
+    parser.add_argument('--verbosity', action='store', dest='verbosity', help='Verbosity: 0 (default) gives information of current state of site prediction, 1 gives aditional output on runtime and meomry consupmtiona and 2 shows selected internal variables', type=int, default=0)
 
     # save temporary results
     parser.add_argument('--save-tmp', action='store_true', default=False, dest='safe_tmp', help='Safe temporary results')

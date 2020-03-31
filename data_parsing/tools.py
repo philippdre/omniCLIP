@@ -28,7 +28,6 @@ from scipy.stats import nbinom
 import pickle
 import diag_event_model
 import emission_prob
-import evaluation
 import gzip
 import h5py
 import itertools
@@ -116,6 +115,14 @@ def StackData(Sequences, add = 'all', use_strand = 'True'):
         for rep in list(Sequences['Coverage'].keys()):
             CurrStack[int(rep), :] += Sequences['Variants'][rep].sum(axis = 0)
 
+    elif add == 'only_var_summed':
+        CurrStack = np.zeros((Sequences['Variants'][list(Sequences['Coverage'].keys())[0]].shape[0], gene_len))        
+        for rep in list(Sequences['Coverage'].keys()):
+            if use_strand and (not (Sequences['strand'] == 1)):
+                CurrStack += Sequences['Variants'][rep][Track_strand_map, :]
+            else:
+                CurrStack += Sequences['Variants'][rep]
+
     else:
         #First compute dimensions of return array:
         nr_rows = 0
@@ -169,7 +176,7 @@ def PreloadSequencesForGene(Sequences, gene):
 
 ##@profile
 #@profile 
-def GetSuffStat(Sequences, Background, Paths, NrOfStates, Type, ResetNotUsedStates = True, EmissionParameters=None):
+def GetSuffStat(Sequences, Background, Paths, NrOfStates, Type, ResetNotUsedStates = True, EmissionParameters=None, verbosity=1):
     '''
     This function computes for each CurrPath state a set of suffcient statistics:
     '''
@@ -247,14 +254,14 @@ def GetSuffStat(Sequences, Background, Paths, NrOfStates, Type, ResetNotUsedStat
                 SuffStat[CurrState][NullTuple] += NullCount
         
         del CurrStack, NonZero, CurrGenePath, Ix
-
-    print('Done: Elapsed time: ' + str(time.time() - t))
+    if verbosity > 0:
+        print('Done: Elapsed time: ' + str(time.time() - t))
 
     return SuffStat
 
 ##@profile
 #@profile 
-def GetSuffStatBck(Sequences, Background, Paths, NrOfStates, Type, ResetNotUsedStates = True, EmissionParameters=None):
+def GetSuffStatBck(Sequences, Background, Paths, NrOfStates, Type, ResetNotUsedStates = True, EmissionParameters=None, verbosity=1):
     '''
     This function computes for each CurrPath state a set of suffcient statistics:
     '''
@@ -481,7 +488,7 @@ def repl_track_nr(ex_list, offset):
 
 ##@profile
 #@profile 
-def GeneratePred(Paths, Sequences, Background, IterParameters, GeneAnnotation, OutFile, fg_state = 1, noise_state = 0, seq_file='', bck_file='', pv_cutoff=0.05):
+def GeneratePred(Paths, Sequences, Background, IterParameters, GeneAnnotation, OutFile, fg_state = 1, noise_state = 0, seq_file='', bck_file='', pv_cutoff=0.05, verbosity=1):
     '''
     This function writes the predictions
     '''
@@ -568,7 +575,7 @@ def GetSites(Paths, Sequences, Background, EmissionParameters, TransitionParamet
     alpha = EmissionParameters['Diag_event_params']
     
     #Extract the paths
-    Sites = evaluation.convert_paths_to_sites(Paths, fg_state, merge_neighbouring_sites, minimal_site_length)
+    Sites = convert_paths_to_sites(Paths, fg_state, merge_neighbouring_sites, minimal_site_length)
 
     np_proc = EmissionParameters['NbProc']
     nr_of_genes = len(list(Sequences.keys()))
@@ -599,6 +606,7 @@ def GetSites(Paths, Sequences, Background, EmissionParameters, TransitionParamet
 
     
     return ScoredSites
+
 
 ##@profile
 #@profile 
@@ -647,6 +655,8 @@ def GetSitesForGene(data):
     CurrStackSum = StackData(Sequences_per_gene)
     CurrStackVar = StackData(Sequences_per_gene, add = 'no')
     CurrStackSumBck = StackData(Background_per_gene, add = 'only_cov')
+
+    CurrStackVarSumm = StackData(Sequences_per_gene, add = 'only_var_summed')
     EmmisionProbGeneDir = np.zeros_like(EmmisionProbGene)
 
     if EmissionParameters['glm_weight'] < 0.0:
@@ -683,9 +693,8 @@ def GetSitesForGene(data):
 
     Score = EmmisionProbGene
     CurrStack = CurrStackVar
-    
-    #Compute the scores when staying in the sam state
-    RowIx = list(range(16)) + list(range(17, 38)) + list(range(39,44))
+    #Compute the scores when staying in the same state
+    #RowIx = list(range(16)) + list(range(17, 38)) + list(range(39,44))
     strand = Sequences_per_gene['strand']
 
     #Get the coverages for the froeground and background
@@ -706,8 +715,7 @@ def GetSitesForGene(data):
         site['Strand'] = strand
         site['SiteScore'] = EvaluateSite(Score, currsite, fg_state)
         site['Coverage'] = np.sum(np.sum(Counts[:, site['Start'] : site['Stop']], axis=0))
-        site['TC'] = np.sum(np.sum(CurrStack[16, site['Start'] : site['Stop']], axis=0))
-        site['NonTC'] = site['Coverage'] - site['TC']
+        site['Variants'] = np.sum(CurrStackVarSumm[:, site['Start'] : site['Stop']], axis=1)
         site['mean_mat_fg'] = mean_mat_fg
         site['var_mat_fg'] = var_mat_fg
         site['mean_mat_bg'] = mean_mat_bg
@@ -728,6 +736,28 @@ def GetSitesForGene(data):
     Background.close()
 
     return gene, sites
+
+
+def convert_paths_to_sites(Paths, fg_state, merge_neighbouring_sites, minimal_site_length):
+    '''
+    This function takes the paths and computes the site predictions (defined by the state fg_state)
+    '''
+    
+    sites = defaultdict(list)
+
+    #Iterate over the paths
+    for gene in Paths:
+        #first_pos = -1
+        #end_pos = -1
+        #curr_dist_counter = merge_neighbouring_sites
+        curr_path = Paths[gene] == fg_state
+        Starts = np.where(np.concatenate(([curr_path[0]], curr_path[:-1] != curr_path[1:], [curr_path[-1]])))[0][::2]
+        Stops = np.where(np.concatenate(([curr_path[0]], curr_path[:-1] != curr_path[1:], [curr_path[-1]])))[0][1::2]
+        nr_sites = Starts.shape[0]
+        sites[gene] = [[Starts[i], Stops[i]] for i in range(nr_sites) if (Stops[i] - Starts[i] >= minimal_site_length)]
+
+    return sites
+
 
 ##@profile
 #@profile 
@@ -820,7 +850,8 @@ def WriteResults(Sequences, Background, ScoredSites, OutFile, GeneAnnotation):
 
     #Print the results
     fid = open(OutFile, 'w')
-    Header = '\t'.join(['Gene', 'ChrName', 'Start', 'Stop', 'Strand', 'SiteScore', 'Coverage', 'TC', 'NonTC', 'mean_mat_fg', 'var_mat_fg', 'mean_mat_bg', 'var_mat_bg', 'counts_fg', 'counts_bg', 'pv', 'max_pos', 'dir_score']) + '\n'
+    VariantList = [Nucl_1 + '-' + Nucl_2 for Nucl_1 in ['A', 'C', 'G', 'T']  for Nucl_2 in  ['A', 'C', 'G', 'T', 'D']] 
+    Header = '\t'.join(['Gene', 'ChrName', 'Start', 'Stop', 'Strand', 'SiteScore', 'Coverage'] + VariantList + ['mean_mat_fg', 'var_mat_fg', 'mean_mat_bg', 'var_mat_bg', 'counts_fg', 'counts_bg', 'pv', 'max_pos', 'dir_score']) + '\n'
     fid.write(Header)
     for gene in Genes:
         gene_name = gene.id.split('.')[0]
@@ -830,8 +861,8 @@ def WriteResults(Sequences, Background, ScoredSites, OutFile, GeneAnnotation):
         for site in ScoredSites[gene_name]:
             #Process the current site 
             CurrLine = '\t'.join([gene_name, gene.chrom, str(GetGenomicCoord(gene, site['Start'])), str(GetGenomicCoord(gene, site['Stop'])), 
-                                str(site['Strand']), str(site['SiteScore']), str(site['Coverage']), str(site['TC']), str(site['NonTC']), 
-                                str(site['mean_mat_fg']), str(site['var_mat_fg']), str(site['mean_mat_bg']), str(site['var_mat_bg']), 
+                                str(site['Strand']), str(site['SiteScore']), str(site['Coverage'])] + [str(int(site['Variants'][i])) for i in range(len(site['Variants']))] + 
+                                [str(site['mean_mat_fg']), str(site['var_mat_fg']), str(site['mean_mat_bg']), str(site['var_mat_bg']), 
                                 str(site['counts_fg']), str(site['counts_bg']), str(site['pv']), str(site['max_pos']), str(site['dir_score'])]) + '\n'
 
             fid.write(CurrLine)
@@ -888,20 +919,14 @@ def estimate_library_size(Sequences):
     #Compute the (weighted) median of non zero genes 
     for key in lib_size_dict:
         exprs = np.array([g for g in lib_size_dict[key] if g > 0])
-        temp_median = np.median(exprs)
-        temp_med_floor = np.floor(temp_median)
-        temp_med_ceil = np.ceil(temp_median)
-        tot_floor = np.sum(exprs == temp_med_floor)
-        tot_ceil = np.sum(exprs == temp_med_ceil)
-        med =  ((temp_med_floor * tot_floor) + (temp_med_ceil * tot_ceil)) / (tot_floor + tot_ceil)
-        med = temp_median
-        lib_size_red[key] = med
+
+        lib_size_red[key] = np.median(exprs)
 
     return lib_size_red
 
 
 #@profile 
-def GetMostLikelyPath(MostLikelyPaths, Sequences, Background, EmissionParameters, TransitionParameters, TransitionTypeFirst, RandomNoise = False):
+def GetMostLikelyPath(MostLikelyPaths, Sequences, Background, EmissionParameters, TransitionParameters, TransitionTypeFirst, RandomNoise = False, verbosity=1):
     '''
     This function computes the most likely path. Ther are two options, 'homo' and 'nonhomo' for TransitionType.
     This specifies whether the transition probabilities should be homogenous or non-homogenous.
@@ -922,7 +947,7 @@ def GetMostLikelyPath(MostLikelyPaths, Sequences, Background, EmissionParameters
     for i, curr_gene in enumerate(Sequences.keys()):
         gene_nr_dict[curr_gene] = i
         
-    print("Computing most likely path")
+    #print("Computing most likely path")
     t = time.time()
     for i, gene in enumerate(Sequences.keys()):
         if i % 1000 == 0:
@@ -985,13 +1010,14 @@ def GetMostLikelyPath(MostLikelyPaths, Sequences, Background, EmissionParameters
         LogLikelihood += Currloglik
         del TransistionProbabilities, EmmisionProbGene, CurrStackSum, CurrStackVar
     
-    print('\nDone: Elapsed time: ' + str(time.time() - t))
+    if verbosity > 0:
+        print('\nDone: Elapsed time: ' + str(time.time() - t))
     
     return MostLikelyPaths, LogLikelihood
 
 ##@profile
 #@profile 
-def ParallelGetMostLikelyPath(MostLikelyPaths, Sequences, Background, EmissionParameters, TransitionParameters, TransitionTypeFirst, RandomNoise = False, chunksize = 1):
+def ParallelGetMostLikelyPath(MostLikelyPaths, Sequences, Background, EmissionParameters, TransitionParameters, TransitionTypeFirst, RandomNoise = False, chunksize = 1, verbosity=1):
     '''
     This function computes the most likely path. Ther are two options, 'homo' and 'nonhomo' for TransitionType.
     This specifies whether the transition probabilities should be homogenous or non-homogenous.
@@ -1032,7 +1058,8 @@ def ParallelGetMostLikelyPath(MostLikelyPaths, Sequences, Background, EmissionPa
     LogLikelihood  = sum([result[2] for result in results])
     del results
     
-    print('\nDone: Elapsed time: ' + str(time.time() - t))
+    if verbosity > 0:
+        print('\nDone: Elapsed time: ' + str(time.time() - t))
 
     return MostLikelyPaths, LogLikelihood
 
@@ -1135,7 +1162,7 @@ def ParallelGetMostLikelyPathForGene(data):
 
 ##@profile
 #@profile 
-def subsample_suff_stat(Counts, NrOfCounts, subsample_size=100000):
+def subsample_suff_stat(Counts, NrOfCounts, subsample_size=250000):
     '''
     This function  creates a subsample of the counts
     '''
@@ -1143,6 +1170,15 @@ def subsample_suff_stat(Counts, NrOfCounts, subsample_size=100000):
     #iterate over the keys
     for key in Counts:
         #Determine the new sample
+        if NrOfCounts[key].shape[0] == 0:
+            #try to rescue parameter fitting by adding some data from other regions for fitting
+            for temp_key in Counts:
+                if NrOfCounts[temp_key].shape[0] > 10:
+                    NrOfCounts[key] = np.ones((1,10))
+                    ix = np.random.randint(NrOfCounts[temp_key].shape[0], size=10)
+                    Counts[key] = Counts[temp_key][:, ix]
+                    break
+
         new_counts = np.random.multinomial(min(subsample_size, np.sum(NrOfCounts[key][0,:])), NrOfCounts[key][0,:]/np.float64(np.sum(NrOfCounts[key][0,:])), size=1)
         
         #Check that not more sample than orignialy existing were present

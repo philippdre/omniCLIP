@@ -34,9 +34,9 @@ import tools
 
 
 #@profile 
-def PredictTransistions(Counts, TransitionParameters, NrOfStates, Type = 'multi'):
+def PredictTransistions(Counts, TransitionParameters, NrOfStates, Type = 'multi', verbosity=1):
     '''
-    This function predicts the transistion probabilities for a gene given the transition parameters
+    This function predicts the transition probabilities for a gene given the transition parameters
     '''
 
     TransistionProb = PredictTransistionsSimple(Counts, TransitionParameters, NrOfStates)
@@ -46,9 +46,9 @@ def PredictTransistions(Counts, TransitionParameters, NrOfStates, Type = 'multi'
 
 ##@profile
 #@profile 
-def PredictTransistionsSimple(Counts, TransitionParameters, NrOfStates):
+def PredictTransistionsSimple(Counts, TransitionParameters, NrOfStates, verbosity=1):
     '''
-    This function predicts the transistion probabilities for a gene given the transition parameters
+    This function predicts the transition probabilities for a gene given the transition parameters
     '''
 
     TransitionParametersLogReg = TransitionParameters[1]
@@ -90,23 +90,25 @@ def PredictTransistionsSimple(Counts, TransitionParameters, NrOfStates):
 
 
 #@profile 
-def FitTransistionParameters(Sequences, Background, TransitionParameters, CurrPath, C, Type = 'multi'):
+def FitTransistionParameters(Sequences, Background, TransitionParameters, CurrPath, C, Type = 'multi', verbosity=1):
     '''
     This function determines the optimal parameters of the logistic regression for predicting the TransitionParameters
     '''
 
-    print('Fitting transistion parameters')
-    print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    print('Fitting transition parameters')
+    if verbosity > 0:
+        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
     
-    NewTransitionParametersLogReg = FitTransistionParametersSimple(Sequences, Background, TransitionParameters, CurrPath, C)
-    print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    NewTransitionParametersLogReg = FitTransistionParametersSimple(Sequences, Background, TransitionParameters, CurrPath, C, verbosity=verbosity)
+    if verbosity > 0:
+        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
     
     return NewTransitionParametersLogReg
 
 
 
 #@profile 
-def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, CurrPath, C):
+def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, CurrPath, C, verbosity=1):
     '''
     This function determines the optimal parameters of the logistic regression for predicting the TransitionParameters
     '''
@@ -115,7 +117,7 @@ def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, 
     TransitionMatrix = TransitionParameters[0]
     NewTransitionParametersLogReg = {}
     t = time.time()
-    #Iterate over the possible transistions
+    #Iterate over the possible transitions
     assert (TransitionMatrix.shape[0] > 1), 'Only two states are currently allowed'
 
     genes = list(CurrPath.keys())
@@ -126,10 +128,11 @@ def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, 
     Ys = []
     SampleSame = []
     SampleOther = []
-    print("Learning transistion model")
+    print("Learning transition model")
     print("Iterating over genes")
-    print('Fitting transistion parameters: I')
-    print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    if verbosity > 0:
+        print('Fitting transition parameters: I')
+        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
     for i, gene in enumerate(genes):
         if i % 1000 == 0:
             sys.stdout.write('.')
@@ -168,8 +171,9 @@ def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, 
                         SampleOther.append(CovMatIx)
         del Sequences_per_gene, CovMat
         
-    print('Fitting transistion parameters: II')
-    print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    if verbosity > 0:
+        print('Fitting transition parameters: II')
+        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
     len_same = np.sum([Mat.shape[1] for Mat in SampleSame])
     len_other = np.sum([Mat.shape[1] for Mat in SampleOther])
@@ -180,8 +184,9 @@ def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, 
     #Create Y
     Y = np.hstack((np.ones((1, len_same), dtype=np.int), np.zeros((1, len_other), dtype=np.int)))[0,:].T
     classes = np.unique(Y)
-    print('Fitting transistion parameters: III')
-    print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    if verbosity > 0:
+        print('Fitting transition parameters: III')
+        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
     n_iter = max(5, np.ceil(10**6 / Y.shape[0]))
     
 
@@ -192,12 +197,12 @@ def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, 
         for batch_ix in np.array_split(ix_shuffle, 50):
             NewTransitionParametersLogReg.partial_fit(X[batch_ix,:], Y[batch_ix], classes=classes)
 
-    print('Fitting transistion parameters: IV')
-    print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    if verbosity > 0:
+        print('Fitting transition parameters: IV')
+        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
     del Ix1, Ix2,  Ix, X, Y, Xs, Ys 
-    print('Done: Elapsed time: ' + str(time.time() - t))
-    print('Fitting transistion parameters: V')
-    print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    if verbosity > 0:
+        print('Done: Elapsed time: ' + str(time.time() - t))
 
     return NewTransitionParametersLogReg
 

@@ -233,7 +233,7 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
 
             #Compute x for current interation
             temp_mat = wlsexog.transpose().dot(W)
-            lu = sla.splu(temp_mat.dot(wlsexog))
+            lu = sla.splu(csc_matrix(temp_mat.dot(wlsexog)))
             wls_results = lu.solve(temp_mat.dot(wlsendog))
             wls_results[wls_results > 1e2] = 1e2
             wls_results[wls_results < -1e2] = -1e2
@@ -242,6 +242,8 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
             mu = self.family.fitted(lin_pred)
             history['mu'] = mu
             history['params'].append(wls_results)
+            temp_endog = self.endog[:]
+            temp_endog[temp_endog < 0] = 0
             history['deviance'].append(self.family.deviance(self.endog, mu))
 
             if endog.squeeze().ndim == 1 and np.allclose(mu - endog, 0):

@@ -29,7 +29,7 @@ import numpy as np
 
 ##@profile
 #@profile 
-def em(counts, nr_of_counts, EmissionParameters, x_0=None, First=False, max_nr_iter=15, tol=0.0001, rand_sample_size=10):
+def em(counts, nr_of_counts, EmissionParameters, x_0=None, First=False, max_nr_iter=15, tol=0.0001, rand_sample_size=10, verbosity=1):
 	'''
 	This function performs the EMlagorithm
 	'''
@@ -64,7 +64,7 @@ def em(counts, nr_of_counts, EmissionParameters, x_0=None, First=False, max_nr_i
 		curr_counts = counts[curr_state]
 		curr_nr_of_counts = nr_of_counts[curr_state]
 		
-		alpha, mixtures = Parallel_estimate_mixture_params(OldEmissionParameters, curr_counts, curr_nr_of_counts, curr_state, rand_sample_size, max_nr_iter, nr_of_iter=20, stop_crit=1.0, nr_of_init=10)
+		alpha, mixtures = Parallel_estimate_mixture_params(OldEmissionParameters, curr_counts, curr_nr_of_counts, curr_state, rand_sample_size, max_nr_iter, nr_of_iter=20, stop_crit=1.0, nr_of_init=10, verbosity=verbosity)
 		EmissionParameters['Diag_event_params']['alpha'][curr_state] = alpha
 		EmissionParameters['Diag_event_params']['mix_comp'][curr_state] = mixtures
 	
@@ -73,7 +73,7 @@ def em(counts, nr_of_counts, EmissionParameters, x_0=None, First=False, max_nr_i
 
 
 #@profile 
-def estimate_mixture_params(EmissionParameters, curr_counts_orig, curr_nr_of_counts_orig, curr_state, rand_sample_size, max_nr_iter, nr_of_iter=20, stop_crit=1.0, nr_of_init=10):
+def estimate_mixture_params(EmissionParameters, curr_counts_orig, curr_nr_of_counts_orig, curr_state, rand_sample_size, max_nr_iter, nr_of_iter=20, stop_crit=1.0, nr_of_init=10, verbosity=1):
 	'''
 	This function estimates thedirichlet multinomial mixture parameters
 	'''
@@ -238,7 +238,7 @@ def estimate_mixture_params(EmissionParameters, curr_counts_orig, curr_nr_of_cou
 
 ##@profile
 #@profile 
-def Parallel_estimate_mixture_params(EmissionParameters, curr_counts_orig, curr_nr_of_counts_orig, curr_state, rand_sample_size, max_nr_iter, nr_of_iter=20, stop_crit=1.0, nr_of_init=10):
+def Parallel_estimate_mixture_params(EmissionParameters, curr_counts_orig, curr_nr_of_counts_orig, curr_state, rand_sample_size, max_nr_iter, nr_of_iter=20, stop_crit=1.0, nr_of_init=10, verbosity=1):
 	'''
 	This function estimates thedirichlet multinomial mixture parameters
 	'''
