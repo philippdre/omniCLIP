@@ -94,7 +94,7 @@ Argument  | Description
 --restart-from-iter | restart from existing run
 --use-precomp-CLIP-data | Use existing fg_reads.dat file. This skips parsing the CLIP reads.
 --collapsed-CLIP | CLIP-reads are collapsed
---overwrite-bg-data | Use existing bg_reads.dat data. This skips parsing the CLIP reads.
+--use-precomp-bg-data | Use existing bg_reads.dat data. This skips parsing the CLIP reads.
 --collapsed-bg | bg-reads are collapsed
 --bck-var | Parse variants for background reads
 --verbosity | Verbosity
