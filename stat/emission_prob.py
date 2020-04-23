@@ -409,9 +409,10 @@ def construct_glm_matrix(EmissionParameters, Sequences, Background, Paths, bg_ty
     else:
         #Create a function that groups together the values such that an iterator can be defined
         verb = EmissionParameters['Verbosity']
-        f = lambda gene_nr, gene, rep,  Paths=Paths, Sequences=Sequences, NrOfStates=NrOfStates, nr_of_genes=nr_of_genes, bg_type=bg_type, fg_state=fg_state, bg_state=bg_state, verb=verb: (Paths[gene], Sequences[gene]['Coverage'][rep][()], gene, gene_nr, rep, NrOfStates, nr_of_genes, bg_type, fg_state, bg_state, verb)
+        f = lambda gene_nr, gene, rep,  Paths=Paths, Sequences=Sequences, NrOfStates=NrOfStates, nr_of_genes=nr_of_genes, bg_type=bg_type, fg_state=fg_state, bg_state=bg_state, verb=verb: (Paths[gene], Sequences[gene]['Coverage'][str(rep)][()], gene, gene_nr, rep, NrOfStates, nr_of_genes, bg_type, fg_state, bg_state, verb)
         #Create an iterator for the data
-        data = itertools.starmap(f, itertools.product(zip(itertools.count(),list(Sequences.keys())), list(range(nr_of_rep))))
+        list_gen = [(a, b, c) for (a, b) ,c  in itertools.product(zip(itertools.count(),list(Sequences.keys())), list(range(nr_of_rep)))]
+        data = itertools.starmap(f, list_gen)
     
         pool = multiprocessing.Pool(number_of_processes, maxtasksperchild=100)
 
@@ -452,7 +453,8 @@ def construct_glm_matrix(EmissionParameters, Sequences, Background, Paths, bg_ty
                 f = lambda gene_nr, gene, rep,  Paths=Paths, Background=Background, NrOfStates=NrOfStates, nr_of_genes=nr_of_genes, bg_type=bg_type, fg_state=fg_state, bg_state=bg_state: (Paths[gene], Background[gene]['Coverage'][str(rep)][()], gene, gene_nr, rep, NrOfStates, nr_of_genes, bg_type, fg_state, bg_state)
             
             #Create an iterator for the data            
-            data = itertools.starmap(f, itertools.product(zip(itertools.count(),list(Background.keys())), list(range(nr_of_bck_rep))))
+            list_gen = [(a, b, c) for (a, b) ,c  in itertools.product(zip(itertools.count(),list(Background.keys())), list(range(nr_of_bck_rep)))]
+            data = itertools.starmap(f, list_gen)
         
             pool = multiprocessing.Pool(number_of_processes, maxtasksperchild=100)
 
