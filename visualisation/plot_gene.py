@@ -33,7 +33,7 @@ import emission
 import trans
 import tools
 import pylab as plt
-from scipy.misc import logsumexp
+from scipy.special import logsumexp
 import matplotlib
 
 

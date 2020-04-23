@@ -20,7 +20,8 @@
 
 import FitBinoDirchEmmisionProbabilities
 import numpy as np
-import scipy as sp
+from scipy.optimize import fmin_tnc
+from scipy.special import logsumexp
 
 ##@profile
 #@profile 
@@ -46,7 +47,7 @@ def pred_log_lik(counts, state, EmissionParameters, single_mix=None):
 					Prob[curr_mix_comp, :] += np.log(EmissionParameters['Diag_event_params']['mix_comp'][state][curr_mix_comp])
 
 				#Sum the probabilities				
-				Prob = sp.misc.logsumexp(Prob, axis=0)
+				Prob = logsumexp(Prob, axis=0)
 			elif EmissionParameters['Diag_event_type'] == 'DirchMultK':
 				#Iterate over the mixtures and sum up the probabilities
 
@@ -59,7 +60,7 @@ def pred_log_lik(counts, state, EmissionParameters, single_mix=None):
 					Prob[curr_mix_comp, :] += np.log(EmissionParameters['Diag_event_params']['mix_comp'][state][curr_mix_comp])
 
 				#Sum the probabilities	
-				Prob = sp.misc.logsumexp(Prob, axis=0)
+				Prob = logsumexp(Prob, axis=0)
 				
 			else:
 				Prob = None
@@ -98,10 +99,10 @@ def estimate_multinomial_parameters(Counts, NrOfCounts, EmissionParameters, OldA
 		disp = 0
 	if EmissionParameters['Diag_event_type'] == 'DirchMult':
 		alpha = np.zeros_like(x_0)
-		alpha = sp.optimize.fmin_tnc(FitBinoDirchEmmisionProbabilities.MD_f_joint_vect_unif, x_0, fprime=FitBinoDirchEmmisionProbabilities.MD_f_prime_joint_vect_unif, args=args_TC, bounds=Bounds, disp=disp, maxfun=50)[0]
+		alpha = fmin_tnc(FitBinoDirchEmmisionProbabilities.MD_f_joint_vect_unif, x_0, fprime=FitBinoDirchEmmisionProbabilities.MD_f_prime_joint_vect_unif, args=args_TC, bounds=Bounds, disp=disp, maxfun=50)[0]
 	elif EmissionParameters['Diag_event_type'] == 'DirchMultK':
 		alpha = np.zeros_like(x_0)
-		alpha = sp.optimize.fmin_tnc(FitBinoDirchEmmisionProbabilities.MDK_f_joint_vect_unif, x_0, fprime=FitBinoDirchEmmisionProbabilities.MD_f_prime_joint_vect_unif, args=args_TC, bounds=Bounds, disp=disp, maxfun=50)[0]
+		alpha = fmin_tnc(FitBinoDirchEmmisionProbabilities.MDK_f_joint_vect_unif, x_0, fprime=FitBinoDirchEmmisionProbabilities.MD_f_prime_joint_vect_unif, args=args_TC, bounds=Bounds, disp=disp, maxfun=50)[0]
 	else:
 		alpha = None
 
