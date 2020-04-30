@@ -527,7 +527,7 @@ def GeneratePred(Paths, Sequences, Background, IterParameters, GeneAnnotation, O
 
 #@profile 
 def generate_bed(file, pv_cutoff=0.05):
-    df = pd.read_table(file)
+    df = pd.read_table(file, low_memory = False)
 
     #Determine the cutoff for the p-vales aften Bonferroni
     cutoff = np.log( 0.05 /  df.shape[0])
