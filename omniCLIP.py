@@ -292,7 +292,7 @@ def run_omniCLIP(args):
     iter_cond = True
     #Check whether to preload the iteration file
     if EmissionParameters['only_pred']:
-        IterParameters, args_old = pickle.load(open(IterSaveFile,'r'))
+        IterParameters, args_old = pickle.load(open(IterSaveFile,'rb'))
         EmissionParameters['mask_miRNA'] = args.mask_miRNA
         EmissionParameters['glm_weight'] = args.glm_weight
         EmissionParameters['restart_from_file'] = restart_from_file
@@ -314,7 +314,7 @@ def run_omniCLIP(args):
         iter_cond = False
 
     if restart_from_file:
-        IterParameters, args_old = pickle.load(open(IterSaveFile,'r'))
+        IterParameters, args_old = pickle.load(open(IterSaveFile,'rb'))
         EmissionParameters =  IterParameters[0]
         EmissionParameters['mask_miRNA'] = args.mask_miRNA
         EmissionParameters['glm_weight'] = args.glm_weight
@@ -600,7 +600,7 @@ def pred_sites(args, verbosity=1):
         print('Done: Elapsed time: ' + str(time.time() - t))
     
     #Load data
-    tmp_file = pickle.load(open(os.path.join(out_path, 'IterSaveFile.dat'), 'r'))
+    tmp_file = pickle.load(open(os.path.join(out_path, 'IterSaveFile.dat'), 'rb'))
     IterParameters = tmp_file[0]
     args = tmp_file[1]
     EmissionParameters = IterParameters[0]
