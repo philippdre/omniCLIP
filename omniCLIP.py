@@ -465,19 +465,20 @@ def mask_miRNA_positions(Sequences, GeneAnnotation):
             
             #Set for each field the sequences to zeros
             for curr_key in keys:
-                if curr_key in Sequences[curr_gene]:
-                    for rep in list(Sequences[curr_gene][curr_key].keys()):
-                        if curr_key == 'Variants':
-                           #Convert the Variants to array 
-                            curr_seq = csr_matrix((Sequences[curr_gene]['Variants'][rep]['data'][:],Sequences[curr_gene]['Variants'][rep]['indices'][:], 
-                                Sequences[curr_gene]['Variants'][rep]['indptr'][:]), shape=Sequences[curr_gene]['Variants'][rep]['shape'][:])
-                            
-                            ix_slice =  np.logical_and(curr_start <= curr_seq.indices, curr_seq.indices < curr_stop)
-                            Sequences[curr_gene]['Variants'][rep]['data'][ix_slice] = 0
-                        else:
-                            curr_seq = Sequences[curr_gene][curr_key][rep][:, :]
-                            curr_seq[:, curr_start: curr_stop] = 0
-                            Sequences[curr_gene][curr_key][rep][:, :] = curr_seq
+                if curr_key in Sequences:
+                    if curr_key in Sequences[curr_gene]:
+                        for rep in list(Sequences[curr_gene][curr_key].keys()):
+                            if curr_key == 'Variants':
+                               #Convert the Variants to array 
+                                curr_seq = csr_matrix((Sequences[curr_gene]['Variants'][rep]['data'][:],Sequences[curr_gene]['Variants'][rep]['indices'][:], 
+                                    Sequences[curr_gene]['Variants'][rep]['indptr'][:]), shape=Sequences[curr_gene]['Variants'][rep]['shape'][:])
+                                
+                                ix_slice =  np.logical_and(curr_start <= curr_seq.indices, curr_seq.indices < curr_stop)
+                                Sequences[curr_gene]['Variants'][rep]['data'][ix_slice] = 0
+                            else:
+                                curr_seq = Sequences[curr_gene][curr_key][rep][:, :]
+                                curr_seq[:, curr_start: curr_stop] = 0
+                                Sequences[curr_gene][curr_key][rep][:, :] = curr_seq
 
     return Sequences
 
