@@ -867,20 +867,39 @@ def generateDB(args):
 
 
 def parsingBG(args):
-    """ """
-
-    Background = LoadReads.load_data(
-        args.bg_libs,
-        GenomeDir,
-        GeneAnnotation,
-        EmissionParameters['DataOutFile_bck'],
-        load_from_file = ((not args.overwrite_bg) or restart_from_file),
-        save_results = True, Collapse = args.bg_collapsed,
+    """ Initial parsing of the BG files """
+    
+    GeneAnnotation = gffutils.FeatureDB(args.db_file, keep_order=True)
+    Sequence = LoadReads.load_data(
+        bam_files=args.clip_libs,
+        genome_dir=args.genome_dir,
+        genome_annotation=GeneAnnotation,
+        out_file=args.out_path,
+        save_results=True, 
+        Collapse=args.collapsed,
         OnlyCoverage = args.only_coverage,
-        mask_flank_variants=EmissionParameters['mask_flank_variants'],
-        max_mm=EmissionParameters['max_mm'],
-        ign_out_rds=EmissionParameters['ign_out_rds'],
-        rev_strand=EmissionParameters['rev_strand']
+        mask_flank_variants=args.mask_flank_variants,
+        max_mm=args.max_mm,
+        ign_out_rds=args.ign_out_rds,
+        rev_strand=args.rev_strand
+    )
+
+    
+def parsingCLIP(args):
+    """ Initial parsing of the CLIP files """
+    
+    GeneAnnotation = gffutils.FeatureDB(args.db_file, keep_order=True)
+    Sequence = LoadReads.load_data(
+        bam_files=args.clip_libs,
+        genome_dir=args.genome_dir,
+        genome_annotation=GeneAnnotation,
+        out_file=args.out_path,
+        save_results=True, 
+        OnlyCoverage = args.only_coverage,
+        mask_flank_variants=args.mask_flank_variants,
+        max_mm=args.max_mm,
+        ign_out_rds=args.ign_out_rds,
+        rev_strand=args.rev_strand
     )
 
 
@@ -891,18 +910,34 @@ if __name__ == '__main__':
 
     # Create the parser for the generateDB command
     parser_generateDB = subparsers.add_parser('generateDB', help='generateDB help', description="Preprocessing of a GFF annotation file into an SQL database.")
-    parser_generateDB_requiredNamed = parser_generateDB.add_argument_group('required arguments')
-    parser_generateDB_requiredNamed.add_argument('--gff-file', dest='gff_file', help='Path to the .GFF annotation file', required=True)
-    parser_generateDB_requiredNamed.add_argument('--db-file', dest='db_file', help='Path to the .GFF.DB file', required=True)
+    parser_generateDB_reqNamed = parser_generateDB.add_argument_group('required arguments')
+    parser_generateDB_reqNamed.add_argument('--gff-file', dest='gff_file', help='Path to the .GFF annotation file', required=True)
+    parser_generateDB_reqNamed.add_argument('--db-file', dest='db_file', help='Path to the output .GFF.DB file', required=True)
+
+    # Shared arguments from parsingBG and parsingCLIP command
+    parent_parsing = argparse.ArgumentParser(add_help=False)
+    parent_parsing.add_argument('--rev_strand', action='store', dest='rev_strand', choices=[0, 1], help='Only consider reads on the forward (0) or reverse strand (1) relative to the gene orientation', type=int, default=None)
+    parent_parsing.add_argument('--collapsed', action='store_true', default=False, dest='collapsed', help='Reads are collapsed')
+    parent_parsing.add_argument('--ign_out_rds', action='store_true', dest='ign_out_rds', help='ignore reads where the ends map ouside of the genes', default=False)
+    parent_parsing.add_argument('--max-mismatch', action='store', dest='max_mm', help='Maximal number of mismatches that is allowed per read (default: 2)', type=int, default=2)
+    parent_parsing.add_argument('--mask_flank_mm', action='store', dest='mask_flank_variants', help='Do not consider mismatches in the N bp at the ends of reads for diagnostic event modelling (default: 3)', type=int, default=3)
 
     # Create the parser for the parsingBG command
-    parser_parsingBG = subparsers.add_parser('parsingBG', help='parsingBG help', description="Parsing the background files.")
-    parser_parsingBG_requiredNamed = parser_parsingBG.add_argument_group('required arguments')
-    parser_parsingBG_requiredNamed.add_argument('--bg-files', action='append', dest='bg_libs', help='BAM files for bg libraries', required=True)
-    parser_parsingBG_requiredNamed.add_argument('--out-bg-data', action='store', dest='bg_path', help='Output path for bg file', required=True)
-    parser_parsingBG.add_argument('--collapsed-bg', action='store_true', default=False, dest='bg_collapsed', help='bg-reads are collapsed')
+    parser_parsingBG = subparsers.add_parser('parsingBG', help='parsingBG help', description="Parsing the background files.", parents=[parent_parsing])
+    parser_parsingBG_reqNamed = parser_parsingBG.add_argument_group('required arguments')
+    parser_parsingBG_reqNamed.add_argument('--bg-files', action='append', dest='bg_libs', help='BAM files for background libraries', required=True)
+    parser_parsingBG_reqNamed.add_argument('--db-file', action='append', dest='db_file', help='Path to the .GFF.DB file', required=True)
+    parser_parsingBG_reqNamed.add_argument('--out-file', action='store', dest='out_path', help='Output path for .dat file', required=True)
+    # Optional args for the parsingBG command
     parser_parsingBG.add_argument('--bck-var', action='store_false', default=True, dest='only_coverage', help='Parse variants for background reads')
-    parser_parsingBG.add_argument('--bg-type', action='store', dest='bg_type', help='Background type', choices=['None', 'Coverage', 'Coverage_bck'], default='Coverage_bck')
+    
+    # Create the parser for the parsingCLIP command
+    parser_parsingCLIP = subparsers.add_parser('parsingCLIP', help='parsingCLIP help', description="Parsing the CLIP files.", parents=[parent_parsing])
+    parser_parsingCLIP_reqNamed = parser_parsingCLIP.add_argument_group('required arguments')
+    parser_parsingCLIP_reqNamed.add_argument('--clip-files', action='append', dest='clip_libs', help='BAM files for CLIP libraries', required=True)
+    parser_parsingCLIP_reqNamed.add_argument('--db-file', action='append', dest='db_file', help='Path to the .GFF.DB file', required=True)
+    parser_parsingCLIP_reqNamed.add_argument('--out-file', action='store', dest='out_path', help='Output path for .dat file', required=True)
+    
 
     # Gene annotation
     parser.add_argument('--annot', action='store', dest='gene_anno_file', help='File where gene annotation is stored')
@@ -1045,7 +1080,6 @@ if __name__ == '__main__':
 
     #Check if only sites should be predicted
     args = parser.parse_args()
-    print(args.command)
 
     if args.pred_sites:
         pred_sites()
@@ -1053,6 +1087,8 @@ if __name__ == '__main__':
         generateDB(args)
     elif args.command == 'parsingBG':
         parsingBG(args)
+    elif args.command == 'parsingCLIP':
+        parsingCLIP(args)
     else:
         #if not run omniCLIP
         run_omniCLIP(args)

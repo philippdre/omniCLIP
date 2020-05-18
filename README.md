@@ -119,6 +119,20 @@ Argument  | Description
 --pv | Bonferroni corrected p-value cutoffs for peaks in bed-file
 
 
+## Alternative usage
+This is a proposition for a new argument parser, where the omniCLIP process is decomposed into several steps
+
+#### 1. Generate the SQL database from the annotation file
+```
+$ python omniCLIP.py generateDB --gff-file INPUT.gff --db-file OUTPUT.gff.db
+```
+
+##### 2. Initial parsing of the CLIP files into the processed .dat file
+```
+$ python omniCLIP.py parsingCLIP
+```
+
+
 ## Examples
 An example dataset can be  downloaded [here](https://ohlerlab.mdc-berlin.de/files/omniCLIP/example_data.tar.gz). Extract it into the omniCLIP folder for the example below.
 
