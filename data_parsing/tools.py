@@ -595,7 +595,7 @@ def GetSites(Paths, Sequences, Background, EmissionParameters, TransitionParamet
     if np_proc == 1:
         ScoredSites = dict([GetSitesForGene(curr_slice) for curr_slice in data])
     else:    
-        pool = multiprocessing.Pool(number_of_processes, maxtasksperchild=10)
+        pool = multiprocessing.get_context("spawn").Pool(number_of_processes, maxtasksperchild=10)
         results = pool.imap(GetSitesForGene, data, chunksize=1)
         pool.close()
         pool.join()        
@@ -1046,7 +1046,7 @@ def ParallelGetMostLikelyPath(MostLikelyPaths, Sequences, Background, EmissionPa
         results = [ParallelGetMostLikelyPathForGene(curr_slice) for curr_slice in data]
     else:
         print("Spawning processes")
-        pool = multiprocessing.Pool(number_of_processes, maxtasksperchild=5)
+        pool = multiprocessing.get_context("spawn").Pool(number_of_processes, maxtasksperchild=5)
         results = pool.imap(ParallelGetMostLikelyPathForGene, data, chunksize)
         pool.close()
         pool.join()

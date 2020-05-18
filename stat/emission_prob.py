@@ -413,9 +413,7 @@ def construct_glm_matrix(EmissionParameters, Sequences, Background, Paths, bg_ty
         #Create an iterator for the data
         list_gen = [(a, b, c) for (a, b) ,c  in itertools.product(zip(itertools.count(),list(Sequences.keys())), list(range(nr_of_rep)))]
         data = itertools.starmap(f, list_gen)
-    
-        pool = multiprocessing.Pool(number_of_processes, maxtasksperchild=100)
-
+        pool = multiprocessing.get_context("spawn").Pool(number_of_processes, maxtasksperchild=100)
         results = pool.imap(process_gene_for_glm_mat, data, chunksize=1)
         pool.close()
         pool.join()
@@ -455,9 +453,7 @@ def construct_glm_matrix(EmissionParameters, Sequences, Background, Paths, bg_ty
             #Create an iterator for the data            
             list_gen = [(a, b, c) for (a, b) ,c  in itertools.product(zip(itertools.count(),list(Background.keys())), list(range(nr_of_bck_rep)))]
             data = itertools.starmap(f, list_gen)
-        
-            pool = multiprocessing.Pool(number_of_processes, maxtasksperchild=100)
-
+            pool = multiprocessing.get_context("spawn").Pool(number_of_processes, maxtasksperchild=100)
             results = pool.imap(process_bck_gene_for_glm_mat, data, chunksize=1)
             pool.close()
             pool.join()
@@ -492,7 +488,7 @@ def process_bck_gene_for_glm_mat(data):
     '''
 
     CurrGenePath, gene_rep_back, gene, gene_nr, rep, NrOfStates, nr_of_genes, bg_type, fg_state, bg_state = data
-    
+
     #1) get the counts
     counts = {}
     if bg_type == 'Const':
