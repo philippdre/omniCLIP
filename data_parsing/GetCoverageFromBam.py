@@ -23,24 +23,24 @@ import pysam
 import re
 
 ##@profile
-#@profile 
+#@profile
 def GetRawCoverageFromBam(InFile, HDF5OutFile, Collapse = False, CovType = 'coverage', Genome = ''):
     '''
     This function gets from a BAM-file the coverage and returns it as a sparse vector for each chromosome and strand
     '''
-    
+
     #Initialize the HDF5 outfile
     OutFile = h5py.File(HDF5OutFile, 'w')
-    
-    #Open the Bam-file 
+
+    #Open the Bam-file
     SamReader = pysam.Samfile(InFile,'rb')
     print('Parsing: ' + InFile)
-    
+
     #Get chromsome lengths from Header
     ChromosomeLengths = {}
     for Entry in SamReader.header['SQ']:
         ChromosomeLengths[Entry['SN']] = Entry['LN']
-        
+
     #Iterate over chromosomes
     for Chr in list(ChromosomeLengths.keys()):
         print('Processing chromsome: ' + Chr)
@@ -51,9 +51,9 @@ def GetRawCoverageFromBam(InFile, HDF5OutFile, Collapse = False, CovType = 'cove
             CurrChrCoverage = np.zeros((1, ChromosomeLengths[Chr]), dtype = np.int32)
         #iterate over Reads
         GetRawCoverageFromRegion(SamReader, Chr, 0, ChromosomeLengths[Chr], Collapse = False, CovType = 'coverage', Genome = '')
-        
+
         OutFile.create_dataset(Chr, data = CurrChrCoverage, chunks=True, compression="gzip")
-        
+
     OutFile.close()
     SamReader.close()
 
@@ -61,7 +61,7 @@ def GetRawCoverageFromBam(InFile, HDF5OutFile, Collapse = False, CovType = 'cove
 
 
 ##@profile
-#@profile 
+#@profile
 def GetRawCoverageFromRegion(SamReader, Chr, Start, Stop, Collapse = False, CovType = 'coverage', Genome = '', legacy = True, mask_flank_variants=3, max_mm=2, ign_out_rds=False, rev_strand=None, gene_strand=0):
     '''
     This function gets from a BAM-file the coverage and returns it as a sparse vector for each chromosome and strand
@@ -72,9 +72,9 @@ def GetRawCoverageFromRegion(SamReader, Chr, Start, Stop, Collapse = False, CovT
 
     #Prepare regular expression
     r = re.compile('([\\^]*[ACGTN]+)[0]*')
-    
+
     #Compute Length of the region
-    RegionLength = Stop - Start 
+    RegionLength = Stop - Start
 
     #Initialise the length vectors
 
@@ -92,18 +92,18 @@ def GetRawCoverageFromRegion(SamReader, Chr, Start, Stop, Collapse = False, CovT
         if rev_strand == 0:
             gene_strand *= -1 #Swap the strand
 
-    
+
     #iterate over Reads
     iter = SamReader.fetch(Chr, Start, Stop)
     for CurrRead in iter:
-        CurrReadstart = CurrRead.pos - Start 
+        CurrReadstart = CurrRead.pos - Start
 
         if ign_out_rds:
             LastPos = CurrReadstart + sum([e[1] for e in CurrRead.cigar if e[0] != 4]) - 1
-            
+
             if (CurrReadstart < 0) or (LastPos > Stop - Start):
                 continue
-    
+
         #Check wether the read strand matches else skip this read
         if rev_strand is not None:
             #Check if read is paired
@@ -113,7 +113,7 @@ def GetRawCoverageFromRegion(SamReader, Chr, Start, Stop, Collapse = False, CovT
                     # CurrRead.flag & 32 means mate read is on reverse strand
                     # CurrRead.flag & 64 means read is first in pair
                     # CurrRead.flag & 128 means read is second in pair
-                    if ((CurrRead.flag & 16) > 0) & ((CurrRead.flag & 64) > 0): 
+                    if ((CurrRead.flag & 16) > 0) & ((CurrRead.flag & 64) > 0):
                         continue
                     if ((CurrRead.flag & 16) == 0) & ((CurrRead.flag & 128) > 0):
                         continue
@@ -133,7 +133,7 @@ def GetRawCoverageFromRegion(SamReader, Chr, Start, Stop, Collapse = False, CovT
         if CurrRead.get_tag('NM') > max_mm:
             continue
         #Compute relative positions of read
-        CurrReadstart = CurrRead.pos - Start 
+        CurrReadstart = CurrRead.pos - Start
         FirstPos = CurrReadstart
         cigar_str = CurrRead.cigar
         LastPos = FirstPos + sum([e[1] for e in cigar_str if e[0] != 4])
@@ -197,35 +197,35 @@ def GetRawCoverageFromRegion(SamReader, Chr, Start, Stop, Collapse = False, CovT
     return ret_arrays
 
 
-#@profile 
+#@profile
 def GetCoverageFromBam(InFile, HDF5OutFile, Collapse = False):
     '''
-    This function gets from a BAM-file the coverage and returns it as a sparse vector for each chromosome and strand 
+    This function gets from a BAM-file the coverage and returns it as a sparse vector for each chromosome and strand
     '''
 
     GetRawCoverageFromBam(InFile, HDF5OutFile, Collapse, 'coverage')
 
 
-#@profile 
+#@profile
 def GetDeletionsFromBAM(InFile, HDF5OutFile, Collapse = False):
     '''
     This function  gets from a BAM-file the deletions and returns them as a sparse vector for each chromosome  and strand
     '''
 
     GetRawCoverageFromBam(InFile, HDF5OutFile, Collapse, 'deletions')
-    
-   
-#@profile 
+
+
+#@profile
 def GetReadEndsFromBAM(InFile, HDF5OutFile, Collapse = False):
     '''
     This function  gets from a BAM-file the deletions and returns them as a sparse vector for each chromosome  and strand
     '''
 
     GetRawCoverageFromBam(InFile, HDF5OutFile, Collapse, 'read_ends')
-     
-    
 
-#@profile 
+
+
+#@profile
 def GetVariantsFromBAM(InFile, HDF5OutFile, Collapse = False):
     '''
     This function  gets from a BAM-file the Variants and returns them as a sparse vector for each chromosome
@@ -233,9 +233,9 @@ def GetVariantsFromBAM(InFile, HDF5OutFile, Collapse = False):
     '''
 
     GetRawCoverageFromBam(InFile, HDF5OutFile, Collapse, 'variants')
-    
+
 ##@profile
-#@profile 
+#@profile
 def GetVariantsFromRead(CurrRead, r):
     '''
     This function takes a pysam read and returns based on the MD Tag the Variants and their absolute positions
@@ -244,15 +244,15 @@ def GetVariantsFromRead(CurrRead, r):
     # Get the sequence
     Seq = CurrRead.seq
     Tag = ''
-     
+
     # Get the MD tag
     Tag = CurrRead.get_tag('MD')
-        
+
     # Split the string
     SplitTag = [e for e in r.split(Tag) if len(e)>0]
     if len(SplitTag) == 1:
-        return [] 
-    
+        return []
+
     # Convvert the groups to a list of local positions and nuceotides
     TempPos = 0
     PosList = []
@@ -266,12 +266,12 @@ def GetVariantsFromRead(CurrRead, r):
                 for l in range(len(SplitTag[i])):
                     PosList.append([TempPos, Seq[TempPos]])
                     TempPos += 1
-        
+
     # Convert the local positions from PosList to global positions.
     ReadPos = 0
     CurrGlobalPos = CurrRead.pos
     GlobalPos = []
- 
+
     # iterate over the segements of the cigar string
     for Entry in CurrRead.cigar:
         # Split the positions in PosList into the ones faling into the current CIGAR segement and the rest
@@ -312,6 +312,5 @@ def GetVariantsFromRead(CurrRead, r):
         else:
             warnings.warn("Encountered unhandled CIGAR character in read " + CurrRead.qname)
             CurrGlobalPos += Entry[1]
-    
+
     return GlobalPos
-    

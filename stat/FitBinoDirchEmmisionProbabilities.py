@@ -25,7 +25,7 @@ import multdirichletVect
 import numpy as np
 
 
-#@profile 
+#@profile
 def ComputePrior(*args):
     '''
     This function computes the prior for the dirichlet model
@@ -42,7 +42,7 @@ def ComputePrior(*args):
     for State in list(Counts.keys()):
         #Computet the likelihood for the current observation for both models
 
-        #State 0 
+        #State 0
         p_0 = EmissionParameters['ExpNonTC'][0][0]
         p_1 = EmissionParameters['ExpNonTC'][1][0]
         n_0 = EmissionParameters['ExpNonTC'][0][1]
@@ -69,7 +69,7 @@ def ComputePrior(*args):
         RatioLikelihood = (multdirichletVect.log_pdf_vect(Counts[State][list(range(0,6,2)), :], alpha[6:9]) + multdirichletVect.log_pdf_vect(Counts[State][list(range(1,6,2)), :], alpha[6:9]))
         CurrLogLikelihoodBack = (ExprLikelihood + RatioLikelihood)
 
-        #Determine the likelihodd that are not inf 
+        #Determine the likelihodd that are not inf
         IxNonInf = np.isinf(CurrLogLikelihoodNeg * CurrLogLikelihoodPos * CurrLogLikelihoodBack) == 0
         CurrLogLikelihoodNeg = CurrLogLikelihoodNeg[IxNonInf]
         CurrLogLikelihoodPos = CurrLogLikelihoodPos[IxNonInf]
@@ -82,7 +82,7 @@ def ComputePrior(*args):
         CurrCounts = CurrCounts[np.isnan(TempSumPos + TempSumNeg) == 0]
         Ix = np.isnan(TempSumPos + TempSumNeg) == 0
         TempSumPos = TempSumPos[Ix]
-        TempSumNeg = TempSumNeg[Ix] 
+        TempSumNeg = TempSumNeg[Ix]
         NrOfPosObs += np.sum(TempSumPos * CurrCounts)
         NrOfNegObs += np.sum(TempSumNeg * CurrCounts)
         NrOfBackObs += np.sum((1 - (TempSumPos + TempSumNeg)) * CurrCounts)
@@ -94,7 +94,7 @@ def ComputePrior(*args):
 
     return PriorMatrix
 
-#@profile 
+#@profile
 def ComputeStateProbForGeneMD_unif(*args):
     '''
     This function computes the prior for the dirichlet model
@@ -132,14 +132,14 @@ def ComputeStateProbForGeneMD_unif(*args):
     return Prob
 
 ##@profile
-#@profile 
+#@profile
 def ComputeStateProbForGeneMD_unif_rep(*args):
     '''
     This function computes the prior for the dirichlet model
     '''
 
     Counts, alpha, State, EmissionParameters = args
-    
+
     tracks_per_rep = alpha.shape[0]
     NrOfReplicates = Counts.shape[0] / tracks_per_rep
 
@@ -173,7 +173,7 @@ def ComputeStateProbForGeneMD_unif_rep(*args):
     return Prob
 
 ##@profile
-#@profile 
+#@profile
 def MDK_f_joint_vect_unif(x, *args):
     '''
     This function computes the lieklihood of the parameters
@@ -182,7 +182,7 @@ def MDK_f_joint_vect_unif(x, *args):
     alpha = x
     Counts, NrOfCounts, EmissionParameters = args
     #Prepare the return variable
-    LogLikelihood = 0.0    
+    LogLikelihood = 0.0
     #NrOfReplicates = EmissionParameters['NrOfReplicates']
     NrOfReplicates = Counts.shape[0] / alpha.shape[0]
     tracks_per_rep =  x.shape[0]
@@ -195,10 +195,10 @@ def MDK_f_joint_vect_unif(x, *args):
 
 
 ##@profile
-#@profile 
+#@profile
 def MDK_f_prime_joint_vect_unif(x, *args):
     Counts, NrOfCounts, EmissionParameters = args
-    
+
     tracks_per_rep = x.shape[0]
     NrOfReplicates = Counts.shape[0] / tracks_per_rep
     #Prepare the return variable
@@ -213,7 +213,7 @@ def MDK_f_prime_joint_vect_unif(x, *args):
         new_k, Ks = multdirichletVect.expand_k(Counts[rep * tracks_per_rep:(rep + 1) * tracks_per_rep, :])
         k += new_k
 
-    DBase = psi(np.sum(curr_alpha)) - psi(np.sum(k, axis=0) + np.sum(curr_alpha)) 
+    DBase = psi(np.sum(curr_alpha)) - psi(np.sum(k, axis=0) + np.sum(curr_alpha))
 
     for J in range(0, curr_alpha.shape[0]):
         D = psi(curr_alpha[J] + k) -  psi(curr_alpha[J])
@@ -226,7 +226,7 @@ def MDK_f_prime_joint_vect_unif(x, *args):
 
 
 ##@profile
-#@profile 
+#@profile
 def MD_f_joint_vect_unif(x, *args):
     '''
     This function computes the lieklihood of the parameters
@@ -236,8 +236,8 @@ def MD_f_joint_vect_unif(x, *args):
     Counts, NrOfCounts, EmissionParameters = args
 
     #Prepare the return variable
-    LogLikelihood = 0.0    
-    
+    LogLikelihood = 0.0
+
     tracks_per_rep =  x.shape[0]
     NrOfReplicates = Counts.shape[0] / tracks_per_rep
 
@@ -251,10 +251,10 @@ def MD_f_joint_vect_unif(x, *args):
 
 
 ##@profile
-#@profile 
+#@profile
 def MD_f_prime_joint_vect_unif(x, *args):
     Counts, NrOfCounts, EmissionParameters = args
-    
+
     tracks_per_rep = x.shape[0]
     NrOfReplicates = Counts.shape[0] / tracks_per_rep
 
@@ -265,10 +265,10 @@ def MD_f_prime_joint_vect_unif(x, *args):
     curr_k = Counts[0 : tracks_per_rep, :]
     curr_alpha = x
 
-    DBase = NrOfReplicates * psi(np.sum(curr_alpha)) - psi(np.sum(curr_k, axis=0) + np.sum(curr_alpha)) 
+    DBase = NrOfReplicates * psi(np.sum(curr_alpha)) - psi(np.sum(curr_k, axis=0) + np.sum(curr_alpha))
     for rep in range(1, int(NrOfReplicates)):
         curr_k = Counts[rep * tracks_per_rep:(rep + 1) * tracks_per_rep, :]
-        DBase -=  psi(np.sum(curr_k, axis=0) + np.sum(curr_alpha))  
+        DBase -=  psi(np.sum(curr_k, axis=0) + np.sum(curr_alpha))
 
     for J in range(0, curr_alpha.shape[0]):
         curr_k = Counts[J, :]
@@ -287,7 +287,7 @@ def MD_f_prime_joint_vect_unif(x, *args):
                 D += psi(curr_alpha[J] + curr_k)  - psi(curr_alpha[J])
             else:
                 D[ix_zero] += psi(curr_alpha[J] + curr_k[ix_zero])  - psi(curr_alpha[J])
-            
+
         CurrLogLikeliehood = np.float64((D + DBase) * np.float64(NrOfCounts))
         LogLikelihood[J] += np.sum(CurrLogLikeliehood[np.isinf(CurrLogLikeliehood) == 0])
     return -LogLikelihood

@@ -24,17 +24,17 @@ from scipy.optimize import fmin_tnc
 from scipy.special import logsumexp
 
 ##@profile
-#@profile 
+#@profile
 def pred_log_lik(counts, state, EmissionParameters, single_mix=None):
 	'''
 	This function computes the log_likelihood for counts
 	'''
-	
+
 	alpha = EmissionParameters['Diag_event_params']['alpha'][state]
 
 	#Check which function to use for prediction the log-likelihood
 	if single_mix == None:
-		if EmissionParameters['Diag_event_params']['nr_mix_comp'] > 1: #Check whether multiple mixuter components are used 
+		if EmissionParameters['Diag_event_params']['nr_mix_comp'] > 1: #Check whether multiple mixuter components are used
 			if EmissionParameters['Diag_event_type'] == 'DirchMult':
 				#Iterate over the mixtures and sum up the probabilities
 
@@ -46,7 +46,7 @@ def pred_log_lik(counts, state, EmissionParameters, single_mix=None):
 					#compute the mixture component
 					Prob[curr_mix_comp, :] += np.log(EmissionParameters['Diag_event_params']['mix_comp'][state][curr_mix_comp])
 
-				#Sum the probabilities				
+				#Sum the probabilities
 				Prob = logsumexp(Prob, axis=0)
 			elif EmissionParameters['Diag_event_type'] == 'DirchMultK':
 				#Iterate over the mixtures and sum up the probabilities
@@ -59,9 +59,9 @@ def pred_log_lik(counts, state, EmissionParameters, single_mix=None):
 					#compute the mixture component
 					Prob[curr_mix_comp, :] += np.log(EmissionParameters['Diag_event_params']['mix_comp'][state][curr_mix_comp])
 
-				#Sum the probabilities	
+				#Sum the probabilities
 				Prob = logsumexp(Prob, axis=0)
-				
+
 			else:
 				Prob = None
 		else:
@@ -82,7 +82,7 @@ def pred_log_lik(counts, state, EmissionParameters, single_mix=None):
 	return Prob
 
 ##@profile
-#@profile 
+#@profile
 def estimate_multinomial_parameters(Counts, NrOfCounts, EmissionParameters, OldAlpha):
 	'''
 	This function estimates for a mixture component the DirchMult parameters

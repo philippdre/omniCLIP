@@ -16,7 +16,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-    
+
     The code in this file has been adapted from the statsmodels package:
     https://github.com/statsmodels/statsmodels/blob/master/statsmodels/genmod/generalized_linear_model.py
     Thus, for this file the licence of the original file applies additionally.
@@ -42,7 +42,7 @@ import time
 __all__ = ['GLM']
 
 
-#@profile 
+#@profile
 def _check_convergence(criterion, iteration, tol):
     return not (np.fabs(criterion[iteration] - criterion[iteration-1]) > tol)
 
@@ -65,14 +65,14 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
             exposure = np.log(exposure)
         if offset is not None:  # this should probably be done upstream
             offset = np.asarray(offset)
-        
+
         self._check_inputs(family, self.offset, self.exposure, self.endog)
         if offset is None:
             delattr(self, 'offset')
         if exposure is None:
             delattr(self, 'exposure')
         #things to remove_data
-        
+
 
     def fit(self, start_params=None, maxiter=100, method='IRLS', tol=1e-8,
             scale=None, cov_type='nonrobust', cov_kwds=None, use_t=None,
@@ -125,10 +125,10 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
         -----
         This method does not take any extra undocumented ``kwargs``.
         """
-      
+
         endog = self.endog
         self.df_resid = self.endog.shape[0] - self.exog.shape[1]
-        
+
         if not isinstance(data_weights, np.ndarray):
             if endog.ndim > 1 and endog.shape[1] == 2:
                 data_weights = endog.sum(1)  # weights are total trials
@@ -169,14 +169,14 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
                                       max_start_irls=max_start_irls,
                                       **kwargs)
 
-    
+
     def _fit_irls_sparse(self, start_params=None, maxiter=50, tol=1e-3,
                   scale=None, cov_type='nonrobust', cov_kwds=None,
                   use_t=None, **kwargs):
         """
         Fits a generalized linear model for a given family using
         iteratively reweighted least squares (IRLS).
-        """ 
+        """
 
         if not scipy.sparse.issparse(self.exog):
         	raise ValueError("Matrix not sparse")
@@ -188,7 +188,7 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
             mu = self.family.starting_mu(self.endog)
             lin_pred = self.family.predict(mu)
         else:
-            #This is a hack for a faster warm start       
+            #This is a hack for a faster warm start
             start_params[start_params > 1e2] = 1e2
             start_params[start_params < -1e2] = -1e2
             lin_pred = wlsexog.dot(start_params) + self._offset_exposure
@@ -275,5 +275,3 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
         if offset is not None:
             if offset.shape[0] != endog.shape[0]:
                 raise ValueError("offset is not the same length as endog")
-
-

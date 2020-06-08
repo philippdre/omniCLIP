@@ -54,7 +54,7 @@ def PlotGene(Sequences, Background, gene, IterParameters, TransitionTypeFirst = 
     TransitionType = EmissionParameters['TransitionType']
     PriorMatrix = EmissionParameters['PriorMatrix']
     NrOfStates = EmissionParameters['NrOfStates']
-    
+
     Sequences_per_gene = PreloadSequencesForGene(Sequences, gene)
     Background_per_gene = PreloadSequencesForGene(Background, gene)
 
@@ -70,7 +70,7 @@ def PlotGene(Sequences, Background, gene, IterParameters, TransitionTypeFirst = 
     EmmisionProbGeneNB_bg = np.log(np.ones((NrOfStates, Ix.shape[0])) * (1 / np.float64(NrOfStates)))
 
 
-    CurrStackSum = tools.StackData(Sequences_per_gene) 
+    CurrStackSum = tools.StackData(Sequences_per_gene)
     CurrStackVar = tools.StackData(Sequences_per_gene, add = 'no')
     nr_of_genes = len(list(Sequences.keys()))
     gene_nr_dict = {}
@@ -81,7 +81,7 @@ def PlotGene(Sequences, Background, gene, IterParameters, TransitionTypeFirst = 
     for State in range(NrOfStates):
         if not EmissionParameters['ExpressionParameters'][0] == None:
             EmmisionProbGene[State, :] = emission.predict_expression_log_likelihood_for_gene(CurrStackSum, State, nr_of_genes, gene_nr_dict[gene], EmissionParameters)
-            EmmisionProbGeneNB_fg[State, :] = emission.predict_expression_log_likelihood_for_gene(CurrStackSum, State, nr_of_genes, gene_nr_dict[gene], EmissionParameters)            
+            EmmisionProbGeneNB_fg[State, :] = emission.predict_expression_log_likelihood_for_gene(CurrStackSum, State, nr_of_genes, gene_nr_dict[gene], EmissionParameters)
             if EmissionParameters['BckType'] == 'Coverage':
                 EmmisionProbGene[State, :] += emission.predict_expression_log_likelihood_for_gene(tools.StackData(Background, gene, add = 'only_cov')+0, State, nr_of_genes, gene_nr_dict[gene], EmissionParameters, curr_type='bg')
                 EmmisionProbGeneNB_bg[State, :] = emission.predict_expression_log_likelihood_for_gene(tools.StackData(Background, gene, add = 'only_cov')+0, State, nr_of_genes, gene_nr_dict[gene], EmissionParameters, curr_type='bg')
@@ -91,7 +91,7 @@ def PlotGene(Sequences, Background, gene, IterParameters, TransitionTypeFirst = 
         if not EmissionParameters['ign_diag']:
             EmmisionProbGene[State, Ix] += diag_event_model.pred_log_lik(CurrStackVar[:, Ix], State, EmissionParameters)
             EmmisionProbGene_Dir[State, Ix] = diag_event_model.pred_log_lik(CurrStackVar[:, Ix], State, EmissionParameters)
-        
+
     #Get the transition probabilities
     if TransitionTypeFirst == 'nonhomo':
         if TransitionType == 'unif_bck' or TransitionType == 'binary_bck':
@@ -101,8 +101,8 @@ def PlotGene(Sequences, Background, gene, IterParameters, TransitionTypeFirst = 
         else:
             Counts = tools.StackData(Sequences_per_gene, add = 'all')
         TransistionProbabilities = np.float64(trans.PredictTransistions(Counts, TransitionParameters, NrOfStates, TransitionType))
-    else: 
-        TransistionProbabilities = np.float64(np.tile(np.log(TransitionParameters[0]), (EmmisionProbGene.shape[1],1,1)).T)       
+    else:
+        TransistionProbabilities = np.float64(np.tile(np.log(TransitionParameters[0]), (EmmisionProbGene.shape[1],1,1)).T)
 
     MostLikelyPath, LogLik = viterbi.viterbi(np.float64(EmmisionProbGene), TransistionProbabilities, np.float64(np.log(PriorMatrix)))
     for j in range(NrOfStates):
@@ -126,23 +126,23 @@ def PlotGene(Sequences, Background, gene, IterParameters, TransitionTypeFirst = 
     color = set2[i]
     nr_of_rep_fg = len(list(Sequences[gene]['Coverage'].keys()))
     i+=1
-    Ix = repl_track_nr([2, 16], 22, nr_of_rep_fg) 
+    Ix = repl_track_nr([2, 16], 22, nr_of_rep_fg)
     ppl.plot(axes[0], plt_rng, (np.sum(Counts[Ix,:], axis=0))[Start:Stop], label='TC', linewidth=2, color = color)
     color = set2[i]
     i += 1
-    Ix = repl_track_nr([0,1,3,5,6,7,8,10,11,12,13,15,17,18], 22, nr_of_rep_fg) 
+    Ix = repl_track_nr([0,1,3,5,6,7,8,10,11,12,13,15,17,18], 22, nr_of_rep_fg)
     ppl.plot(axes[0], plt_rng, (np.sum(Counts[Ix,:], axis=0))[Start:Stop], label='NonTC', linewidth=2, color = color)
     color = set2[i]
     i += 1
-    Ix = repl_track_nr([20], 22, nr_of_rep_fg) 
+    Ix = repl_track_nr([20], 22, nr_of_rep_fg)
     ppl.plot(axes[0], plt_rng, (np.sum(Counts[Ix,:], axis=0))[Start:Stop], label='Read-ends', linewidth=2, color = color)
     color = set2[i]
     i += 1
-    Ix = repl_track_nr([4,9,14,19], 22, nr_of_rep_fg) 
+    Ix = repl_track_nr([4,9,14,19], 22, nr_of_rep_fg)
     ppl.plot(axes[0], plt_rng, (np.sum(Counts[Ix,:], axis=0))[Start:Stop], label='Deletions', linewidth=2, color = color)
     color = set2[i]
     i += 1
-    Ix = repl_track_nr([21], 22, nr_of_rep_fg) 
+    Ix = repl_track_nr([21], 22, nr_of_rep_fg)
     ppl.plot(axes[0], plt_rng, (np.sum(Counts[Ix,:], axis=0))[Start:Stop], label='Coverage', linewidth=2, color = color)
     color = set2[i]
     i += 1
@@ -154,14 +154,14 @@ def PlotGene(Sequences, Background, gene, IterParameters, TransitionTypeFirst = 
     BckCov = Background_per_gene['Coverage'][0]
     for i in range(1,len(list(Background_per_gene['Coverage'].keys()))):
         BckCov += Background_per_gene['Coverage'][str(i)]
-    
+
     ppl.plot(axes[0], plt_rng, (BckCov.T)[Start:Stop], ls = '-', label='Bck', linewidth=2, color = color)
     ppl.legend(axes[0])
 
     for j in range(NrOfStates):
         color = set2[j]
         ppl.plot(axes[1], plt_rng, (TransistionProbabilities[j,j,:])[Start:Stop], label='Transition ' + str(j) + ' ' + str(j), linewidth=2, color = color)
-    
+
     ppl.legend(axes[1])
     axes[1].set_ylabel('log-transition probability')
     axes[1].set_xlabel('Position')
@@ -190,7 +190,7 @@ def PlotGene(Sequences, Background, gene, IterParameters, TransitionTypeFirst = 
         color = set2[j]
         ppl.plot(axes[4], plt_rng, EmmisionProbGene_Dir[j, :][Start:Stop], label='Dir State ' + str(j) , linewidth=2, color = color)
     if len(dir_ylim) > 0:
-        axes[4].set_ylim(dir_ylim)    
+        axes[4].set_ylim(dir_ylim)
     ppl.legend(axes[4])
     axes[4].set_ylabel('log-DMM probability')
     axes[4].set_xlabel('Position')
@@ -226,8 +226,8 @@ def PlotGene(Sequences, Background, gene, IterParameters, TransitionTypeFirst = 
     FGScore = EmmisionProbGene[fg_state, :]
     AltScore = EmmisionProbGene[ix_bg,:]
     norm = logsumexp(AltScore, axis = 0)
-    
-    ix_ok = np.isinf(norm) + np.isnan(norm) 
+
+    ix_ok = np.isinf(norm) + np.isnan(norm)
     if np.sum(ix_ok) < norm.shape[0]:
         SiteScore = FGScore[ix_ok == 0] - norm[ix_ok == 0]
     else:
@@ -244,7 +244,7 @@ def PlotGene(Sequences, Background, gene, IterParameters, TransitionTypeFirst = 
     FGScore = EmmisionProbGene_Dir[fg_state, :]
     AltScore = EmmisionProbGene_Dir[ix_bg,:]
     norm = logsumexp(AltScore, axis = 0)
-    ix_ok = np.isinf(norm) + np.isnan(norm) 
+    ix_ok = np.isinf(norm) + np.isnan(norm)
     if np.sum(ix_ok) < norm.shape[0]:
         SiteScore = FGScore[ix_ok == 0] - norm[ix_ok == 0]
     else:
@@ -258,7 +258,7 @@ def PlotGene(Sequences, Background, gene, IterParameters, TransitionTypeFirst = 
     if not (out_name is None):
         print('Saving result')
         fig.savefig(out_name)
-    
+
     plt.show()
 
     return MostLikelyPath, TransistionProbabilities, EmmisionProbGeneNB_fg
@@ -285,11 +285,11 @@ def PlotTransistions():
     plt.show()
 
 def repl_track_nr(ex_list, offset, nr_of_rep):
-    '''                                                                                                                                                                                                                                                                                   
-    This function computes for a list of tracks in one replicate additionaly the list for the second replicate                                                                                                                                                                            
+    '''
+    This function computes for a list of tracks in one replicate additionaly the list for the second replicate
     '''
     new_list = ex_list + list(np.array(ex_list) + offset)
-    
+
     for i in range(2, nr_of_rep):
         new_list += list(np.array(ex_list) + offset * i)
     return new_list
@@ -322,7 +322,7 @@ def load_files():
     # process the parameters
     if not (bg_type == 'Coverage' or  bg_type == 'Coverage_bck'):
         print('Bg-type: ' + bg_type + ' has not been implemented yet')
-        return 
+        return
 
 
 
@@ -335,7 +335,7 @@ def load_files():
     print('Loading reads')
     DataOutFile = os.path.join(out_path, 'fg_reads.dat')
     Sequences = LoadReads.load_data(args.fg_libs, GenomeDir, GeneAnnotation, DataOutFile, load_from_file = (not args.overwrite_fg), save_results = True, Collapse = args.fg_collapsed)
-    
+
     DataOutFile = os.path.join(out_path, 'bg_reads.dat')
     Background = LoadReads.load_data(args.bg_libs, GenomeDir, GeneAnnotation, DataOutFile, load_from_file = (not args.overwrite_bg), save_results = True, Collapse = args.bg_collapsed, OnlyCoverage = True)
 

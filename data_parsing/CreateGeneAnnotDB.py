@@ -1,7 +1,7 @@
 import gffutils
 import sys
 
-#@profile 
+#@profile
 def CreateDB(FileNameGFF, FileNameDB):
     '''
     This function creates a GFF database
@@ -12,9 +12,7 @@ def CreateDB(FileNameGFF, FileNameDB):
 
 if __name__ == "__main__":
     FileNameGFF = sys.argv[1]
-    
+
     FileNameDB = sys.argv[2]
     print('Creating annotation database')
     CreateDB(FileNameGFF, FileNameDB)
-
-

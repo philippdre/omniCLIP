@@ -33,19 +33,19 @@ import time
 import tools
 
 
-#@profile 
+#@profile
 def PredictTransistions(Counts, TransitionParameters, NrOfStates, Type = 'multi', verbosity=1):
     '''
     This function predicts the transition probabilities for a gene given the transition parameters
     '''
 
     TransistionProb = PredictTransistionsSimple(Counts, TransitionParameters, NrOfStates)
-    
+
     return TransistionProb
 
 
 ##@profile
-#@profile 
+#@profile
 def PredictTransistionsSimple(Counts, TransitionParameters, NrOfStates, verbosity=1):
     '''
     This function predicts the transition probabilities for a gene given the transition parameters
@@ -58,7 +58,7 @@ def PredictTransistionsSimple(Counts, TransitionParameters, NrOfStates, verbosit
     CovMat = GenerateFeatures(np.array(list(range(Counts.shape[1] - 1))), Counts)
 
     ix_nonzero = np.sum(CovMat, axis=0) > 0
-    #Ceate the probailities 
+    #Ceate the probailities
     TempProb = TransitionParametersLogReg.predict_log_proba(CovMat.T).T
 
     NormFactor = np.ones((TempProb.shape[1]))
@@ -70,10 +70,10 @@ def PredictTransistionsSimple(Counts, TransitionParameters, NrOfStates, verbosit
                 TransistionProb[NextState, CurrentState, 1:] = TempProb[0, :]
 
         #Normalize the transition probabilities
-        
+
         if CurrentState == 0:
             #only compute the normalizeing factore once as compuation is expensive
-            
+
             if np.sum(ix_nonzero) > 0:
                 #nonzero entries
                 NormFactor[ix_nonzero] = logsumexp(TransistionProb[:, CurrentState, 1:][:,ix_nonzero], axis = 0)
@@ -84,12 +84,12 @@ def PredictTransistionsSimple(Counts, TransitionParameters, NrOfStates, verbosit
 
         for NextState in range(NrOfStates):
             TransistionProb[NextState, CurrentState, 1:] -= NormFactor
-    
+
     del TempProb
     return TransistionProb
 
 
-#@profile 
+#@profile
 def FitTransistionParameters(Sequences, Background, TransitionParameters, CurrPath, C, Type = 'multi', verbosity=1):
     '''
     This function determines the optimal parameters of the logistic regression for predicting the TransitionParameters
@@ -98,16 +98,16 @@ def FitTransistionParameters(Sequences, Background, TransitionParameters, CurrPa
     print('Fitting transition parameters')
     if verbosity > 0:
         print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-    
+
     NewTransitionParametersLogReg = FitTransistionParametersSimple(Sequences, Background, TransitionParameters, CurrPath, C, verbosity=verbosity)
     if verbosity > 0:
         print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-    
+
     return NewTransitionParametersLogReg
 
 
 
-#@profile 
+#@profile
 def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, CurrPath, C, verbosity=1):
     '''
     This function determines the optimal parameters of the logistic regression for predicting the TransitionParameters
@@ -145,12 +145,12 @@ def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, 
         for CurrState in range(NrOfStates):
             for NextState in range(NrOfStates):
                 #Positions where the path is in the current state
-                Ix1 = CurrPath[gene][:-1] == CurrState 
+                Ix1 = CurrPath[gene][:-1] == CurrState
                 #Positions where the subsequent position path is in the "next" state
                 Ix2 = CurrPath[gene][1:] == NextState
                 #Positions where the path changes from the current state to the other state
                 Ix = np.where(Ix1 * Ix2)[0]
-                
+
                 if np.sum(np.sum(np.isnan(CovMat)))> 0:
                     pdb.set_trace()
                 CovMatIx = GenerateFeatures(Ix, CovMat)
@@ -163,14 +163,14 @@ def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, 
                         SampleSame.append(CovMatIx)
                     else:
                         SampleSame.append(CovMatIx)
-                else:                
+                else:
                     if CovMatIx.shape[1] == 0:
                         CovMatIx = np.zeros((nr_of_samples, 1))
                         SampleOther.append(CovMatIx)
                     else:
                         SampleOther.append(CovMatIx)
         del Sequences_per_gene, CovMat
-        
+
     if verbosity > 0:
         print('Fitting transition parameters: II')
         print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
@@ -188,7 +188,7 @@ def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, 
         print('Fitting transition parameters: III')
         print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
     n_iter = max(5, np.ceil(10**6 / Y.shape[0]))
-    
+
 
     NewTransitionParametersLogReg = SGDClassifier(loss="log", max_iter = n_iter)
     ix_shuffle = np.arange(X.shape[0])
@@ -200,7 +200,7 @@ def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, 
     if verbosity > 0:
         print('Fitting transition parameters: IV')
         print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-    del Ix1, Ix2,  Ix, X, Y, Xs, Ys 
+    del Ix1, Ix2,  Ix, X, Y, Xs, Ys
     if verbosity > 0:
         print('Done: Elapsed time: ' + str(time.time() - t))
 
@@ -209,7 +209,7 @@ def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, 
 
 
 
-#@profile 
+#@profile
 def GenerateFeatures(Ix, CovMat):
     '''
     This funnction generates, for a set of positions, the features for the logistic regression from the Coverage matrix

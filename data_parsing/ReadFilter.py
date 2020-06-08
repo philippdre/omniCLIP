@@ -17,7 +17,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
-#@profile 
+#@profile
 def FilterRead(Read, Filter):
     '''
     This function determines whether a read should be filtered or not
@@ -25,7 +25,7 @@ def FilterRead(Read, Filter):
 
     if True:
         return True
-    
+
     #Filter for length
     if Read.alen < Filter['Length']:
         return False
