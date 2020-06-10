@@ -1,4 +1,4 @@
-'''
+"""
     omniCLIP is a CLIP-Seq peak caller
 
     Copyright (C) 2017 Philipp Boss
@@ -15,7 +15,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-'''
+"""
 
 
 from copy import deepcopy
@@ -28,9 +28,9 @@ import numpy as np
 
 
 def em(counts, nr_of_counts, EmissionParameters, x_0=None, First=False, max_nr_iter=15, tol=0.0001, rand_sample_size=10, verbosity=1):
-	'''
+	"""
 	This function performs the EMlagorithm
-	'''
+	"""
 
 	template_state = 3
 	fg_state, bg_state = emission_prob.get_fg_and_bck_state(EmissionParameters, final_pred=True)
@@ -70,9 +70,9 @@ def em(counts, nr_of_counts, EmissionParameters, x_0=None, First=False, max_nr_i
 
 
 def Parallel_estimate_mixture_params(EmissionParameters, curr_counts_orig, curr_nr_of_counts_orig, curr_state, rand_sample_size, max_nr_iter, nr_of_iter=20, stop_crit=1.0, nr_of_init=10, verbosity=1):
-	'''
+	"""
 	This function estimates thedirichlet multinomial mixture parameters
-	'''
+	"""
 
 	#1) Copy old parameters and use it as initialisation for the first iteration
 
@@ -140,9 +140,9 @@ def Parallel_estimate_mixture_params(EmissionParameters, curr_counts_orig, curr_
 
 
 def Parallel_estimate_single_mixture_params(args):
-	'''
+	"""
 	This function estimates thedirichlet multinomial mixture parameters
-	'''
+	"""
 
 	stop_crit, rand_sample_size, max_nr_iter, curr_init, EmissionParameters, curr_state, curr_counts, curr_nr_of_counts = args
 	#compute the curr mixture, ll and alpha
@@ -249,9 +249,9 @@ def Parallel_estimate_single_mixture_params(args):
 
 
 def score_counts(counts, state, EmissionParameters):
-	'''
+	"""
 	This function scores the the coutns for each mixture component
-	'''
+	"""
 
 	nr_mixture_components = EmissionParameters['Diag_event_params']['nr_mix_comp']
 	#Initialize the return array

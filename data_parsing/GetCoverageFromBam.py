@@ -1,4 +1,4 @@
-'''
+"""
     omniCLIP is a CLIP-Seq peak caller
 
     Copyright (C) 2017 Philipp Boss
@@ -15,7 +15,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-'''
+"""
 
 import h5py
 import numpy as np
@@ -24,9 +24,9 @@ import re
 
 
 def GetRawCoverageFromBam(InFile, HDF5OutFile, Collapse = False, CovType = 'coverage', Genome = ''):
-    '''
+    """
     This function gets from a BAM-file the coverage and returns it as a sparse vector for each chromosome and strand
-    '''
+    """
 
     #Initialize the HDF5 outfile
     OutFile = h5py.File(HDF5OutFile, 'w')
@@ -60,9 +60,9 @@ def GetRawCoverageFromBam(InFile, HDF5OutFile, Collapse = False, CovType = 'cove
 
 
 def GetRawCoverageFromRegion(SamReader, Chr, Start, Stop, Collapse = False, CovType = 'coverage', Genome = '', legacy = True, mask_flank_variants=3, max_mm=2, ign_out_rds=False, rev_strand=None, gene_strand=0):
-    '''
+    """
     This function gets from a BAM-file the coverage and returns it as a sparse vector for each chromosome and strand
-    '''
+    """
 
     #Initate nucleotide lookup
     NuclDict = {'A':0, 'C':1, 'G':2, 'T':3, 'D':4}
@@ -195,9 +195,9 @@ def GetRawCoverageFromRegion(SamReader, Chr, Start, Stop, Collapse = False, CovT
 
 
 def GetVariantsFromRead(CurrRead, r):
-    '''
+    """
     This function takes a pysam read and returns based on the MD Tag the Variants and their absolute positions
-    '''
+    """
 
     # Get the sequence
     Seq = CurrRead.seq

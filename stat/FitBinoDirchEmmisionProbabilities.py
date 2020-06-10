@@ -1,4 +1,4 @@
-'''
+"""
     omniCLIP is a CLIP-Seq peak caller
 
     Copyright (C) 2017 Philipp Boss
@@ -15,7 +15,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-'''
+"""
 
 import sys
 sys.path.append('./Utils/')
@@ -26,9 +26,9 @@ import numpy as np
 
 
 def ComputeStateProbForGeneMD_unif(*args):
-    '''
+    """
     This function computes the prior for the dirichlet model
-    '''
+    """
     Counts, alpha, State, EmissionParameters = args
 
     tracks_per_rep = alpha.shape[0]
@@ -63,9 +63,9 @@ def ComputeStateProbForGeneMD_unif(*args):
 
 
 def ComputeStateProbForGeneMD_unif_rep(*args):
-    '''
+    """
     This function computes the prior for the dirichlet model
-    '''
+    """
 
     Counts, alpha, State, EmissionParameters = args
 
@@ -103,9 +103,9 @@ def ComputeStateProbForGeneMD_unif_rep(*args):
 
 
 def MDK_f_joint_vect_unif(x, *args):
-    '''
+    """
     This function computes the lieklihood of the parameters
-    '''
+    """
 
     alpha = x
     Counts, NrOfCounts, EmissionParameters = args
@@ -123,9 +123,9 @@ def MDK_f_joint_vect_unif(x, *args):
 
 
 def MD_f_joint_vect_unif(x, *args):
-    '''
+    """
     This function computes the lieklihood of the parameters
-    '''
+    """
 
     alpha = x
     Counts, NrOfCounts, EmissionParameters = args

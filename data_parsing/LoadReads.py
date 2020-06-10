@@ -1,4 +1,4 @@
-'''
+"""
     omniCLIP is a CLIP-Seq peak caller
 
     Copyright (C) 2017 Philipp Boss
@@ -15,7 +15,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-'''
+"""
 
 import sys
 sys.path.append('./Analysis/')
@@ -35,9 +35,9 @@ import pysam
 
 
 def load_data(bam_files, genome_dir, gene_annotation, out_file, load_from_file = False, save_results = True, Collapse = False, OnlyCoverage = False, select_chrom = None, store_gene_seq=False, mask_flank_variants=3, max_mm=2, ign_out_rds=False, rev_strand=None):
-	'''
+	"""
 	This function reads the data from the bam-files
-	'''
+	"""
 
 	if load_from_file:
 		GeneConversionEvents = h5py.File(out_file, 'r+')

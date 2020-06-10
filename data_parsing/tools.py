@@ -1,4 +1,4 @@
-'''
+"""
     omniCLIP is a CLIP-Seq peak caller
 
     Copyright (C) 2017 Philipp Boss
@@ -15,7 +15,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-'''
+"""
 
 import sys
 sys.path.append('../stat/')
@@ -42,9 +42,9 @@ import viterbi
 
 
 def GetModelIx(Sequences, Type = 'all', snps_thresh = 0.4, snps_min_cov = 10, Background = None):
-    '''
+    """
     This function returns the positions for at which the emission should be Computed
-    '''
+    """
 
     if Type == 'all':
         Ix = np.sum(StackData(Sequences, add = 'all'), axis = 0) > 0
@@ -79,9 +79,9 @@ def GetModelIx(Sequences, Type = 'all', snps_thresh = 0.4, snps_min_cov = 10, Ba
 
 
 def StackData(Sequences, add = 'all', use_strand = 'True'):
-    '''
+    """
     This function stacks the data for a gene
-    '''
+    """
 
     Track_strand_map = [18, 17, 16, 15, 19, 13, 12, 11, 10, 14, 8, 7, 6, 5, 9, 3, 2, 1, 0, 4]
 
@@ -150,9 +150,9 @@ def StackData(Sequences, add = 'all', use_strand = 'True'):
 
 
 def PreloadSequencesForGene(Sequences, gene):
-    '''
+    """
     This function stacks the data for a gene
-    '''
+    """
 
     Sequences_per_gene = {}
     for key in Sequences[gene]:
@@ -172,9 +172,9 @@ def PreloadSequencesForGene(Sequences, gene):
 
 
 def GetSuffStat(Sequences, Background, Paths, NrOfStates, Type, ResetNotUsedStates = True, EmissionParameters=None, verbosity=1):
-    '''
+    """
     This function computes for each CurrPath state a set of suffcient statistics:
-    '''
+    """
 
     #Initialize the sufficent statistcs variable
     print("Getting suffcient statistic")
@@ -256,9 +256,9 @@ def GetSuffStat(Sequences, Background, Paths, NrOfStates, Type, ResetNotUsedStat
 
 
 def GetSuffStatBck(Sequences, Background, Paths, NrOfStates, Type, ResetNotUsedStates = True, EmissionParameters=None, verbosity=1):
-    '''
+    """
     This function computes for each CurrPath state a set of suffcient statistics:
-    '''
+    """
 
     #Initialize the sufficent statistcs variable
     print("Getting suffcient statistic")
@@ -343,9 +343,9 @@ def GetSuffStatBck(Sequences, Background, Paths, NrOfStates, Type, ResetNotUsedS
 
 
 def ConvertSuffStatToArrays(SuffStat):
-    '''
+    """
     This function converts the Suffcient statistics into a list of arrays
-    '''
+    """
 
     #Initializse the return values
     Counts = {}
@@ -363,9 +363,9 @@ def ConvertSuffStatToArrays(SuffStat):
 
 
 def repl_track_nr(ex_list, offset):
-    '''
+    """
     This function computes for a list of tracks in one replicate additionaly the list for the second replicate
-    '''
+    """
 
     new_list = ex_list + list(np.array(ex_list) + offset)
 
@@ -373,9 +373,9 @@ def repl_track_nr(ex_list, offset):
 
 
 def GeneratePred(Paths, Sequences, Background, IterParameters, GeneAnnotation, OutFile, fg_state = 1, noise_state = 0, seq_file='', bck_file='', pv_cutoff=0.05, verbosity=1):
-    '''
+    """
     This function writes the predictions
-    '''
+    """
 
     TransitionParameters = IterParameters[1]
     EmissionParameters = IterParameters[0]
@@ -449,9 +449,9 @@ def generate_bed(file, pv_cutoff=0.05):
 
 
 def GetSites(Paths, Sequences, Background, EmissionParameters, TransitionParameters, TransitionTypeFirst, fg_state, merge_neighbouring_sites, minimal_site_length, seq_file='', bck_file=''):
-    '''
+    """
     This function get the predicted sites
-    '''
+    """
     NrOfStates = EmissionParameters['NrOfStates']
     TransitionType = EmissionParameters['TransitionType']
     alpha = EmissionParameters['Diag_event_params']
@@ -491,9 +491,9 @@ def GetSites(Paths, Sequences, Background, EmissionParameters, TransitionParamet
 
 
 def GetSitesForGene(data):
-    '''
+    """
     This function determines for each gene the score of the sites
-    '''
+    """
 
     #Computing the probabilities for the current gene
 
@@ -619,9 +619,9 @@ def GetSitesForGene(data):
 
 
 def convert_paths_to_sites(Paths, fg_state, merge_neighbouring_sites, minimal_site_length):
-    '''
+    """
     This function takes the paths and computes the site predictions (defined by the state fg_state)
-    '''
+    """
 
     sites = defaultdict(list)
 
@@ -640,9 +640,9 @@ def convert_paths_to_sites(Paths, fg_state, merge_neighbouring_sites, minimal_si
 
 
 def ComputeStatsForSite(CountsSeq, CountsBck, Site, fg_state, nr_of_genes, gene_nr, EmissionParameters):
-    '''
+    """
     Get the score for a Site
-    '''
+    """
 
     Start = Site[0]
     Stop = Site[1]
@@ -662,9 +662,9 @@ def ComputeStatsForSite(CountsSeq, CountsBck, Site, fg_state, nr_of_genes, gene_
 
 
 def get_max_position(Score, Site, fg_state, strand):
-    '''
+    """
     Get the site where the score is maximal
-    '''
+    """
 
     Start = Site[0]
     Stop = Site[1]
@@ -692,9 +692,9 @@ def get_max_position(Score, Site, fg_state, strand):
 
 
 def EvaluateSite(Score, Site, fg_state):
-    '''
+    """
     Get the score for a Site
-    '''
+    """
 
     Start = Site[0]
     Stop = Site[1]
@@ -713,9 +713,9 @@ def EvaluateSite(Score, Site, fg_state):
 
 
 def WriteResults(Sequences, Background, ScoredSites, OutFile, GeneAnnotation):
-    '''
+    """
     This function writes the sites into a result file
-    '''
+    """
 
     #Get the gene annotation
     Iter = GeneAnnotation.features_of_type('gene')
@@ -752,9 +752,9 @@ def GetGenomicCoord(gene, Coord):
 
 
 def estimate_library_size(Sequences):
-    '''
+    """
     This function estimates the library size of all samples
-    '''
+    """
 
     lib_size_dict = defaultdict(list)
     lib_size_red = defaultdict(int)
@@ -773,10 +773,10 @@ def estimate_library_size(Sequences):
 
 
 def ParallelGetMostLikelyPath(MostLikelyPaths, Sequences, Background, EmissionParameters, TransitionParameters, TransitionTypeFirst, RandomNoise = False, chunksize = 1, verbosity=1):
-    '''
+    """
     This function computes the most likely path. Ther are two options, 'homo' and 'nonhomo' for TransitionType.
     This specifies whether the transition probabilities should be homogenous or non-homogenous.
-    '''
+    """
 
     for gene in list(MostLikelyPaths.keys()):
         del MostLikelyPaths[gene]
@@ -820,9 +820,9 @@ def ParallelGetMostLikelyPath(MostLikelyPaths, Sequences, Background, EmissionPa
 
 
 def ParallelGetMostLikelyPathForGene(data):
-    '''
+    """
     This function computes the most likely path for a gene
-    '''
+    """
 
     gene, nr_of_genes, gene_nr, EmissionParameters, TransitionParameters, TransitionTypeFirst, RandomNoise = data
 
@@ -916,9 +916,9 @@ def ParallelGetMostLikelyPathForGene(data):
 
 
 def subsample_suff_stat(Counts, NrOfCounts, subsample_size=250000):
-    '''
+    """
     This function  creates a subsample of the counts
-    '''
+    """
 
     #iterate over the keys
     for key in Counts:

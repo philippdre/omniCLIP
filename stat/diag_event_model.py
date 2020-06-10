@@ -1,4 +1,4 @@
-'''
+"""
     omniCLIP is a CLIP-Seq peak caller
 
     Copyright (C) 2017 Philipp Boss
@@ -15,7 +15,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-'''
+"""
 
 
 import FitBinoDirchEmmisionProbabilities
@@ -25,9 +25,9 @@ from scipy.special import logsumexp
 
 
 def pred_log_lik(counts, state, EmissionParameters, single_mix=None):
-	'''
+	"""
 	This function computes the log_likelihood for counts
-	'''
+	"""
 
 	alpha = EmissionParameters['Diag_event_params']['alpha'][state]
 
@@ -82,9 +82,9 @@ def pred_log_lik(counts, state, EmissionParameters, single_mix=None):
 
 
 def estimate_multinomial_parameters(Counts, NrOfCounts, EmissionParameters, OldAlpha):
-	'''
+	"""
 	This function estimates for a mixture component the DirchMult parameters
-	'''
+	"""
 
 	x_0  = OldAlpha
 	if len(Counts.shape) == 1:

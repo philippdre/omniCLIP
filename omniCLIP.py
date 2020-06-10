@@ -1,4 +1,4 @@
-'''
+"""
     omniCLIP is a CLIP-Seq peak caller
 
     Copyright (C) 2017 Philipp Boss
@@ -15,7 +15,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-'''
+"""
 
 
 import sys
@@ -421,11 +421,11 @@ def run_omniCLIP(args):
 
 
 def mask_miRNA_positions(Sequences, GeneAnnotation):
-    '''
+    """
     This function takes the sequences and
     the gene annotation and sets all counts in Sequences to zero that overlap
     miRNAs in the gene annotaion
-    '''
+    """
     keys = ['Coverage', 'Read-ends', 'Variants']
     #Create a dictionary that stores the genes in the Gene annnotation
     gene_dict = {}
@@ -482,10 +482,10 @@ def mask_miRNA_positions(Sequences, GeneAnnotation):
 
 
 def mark_overlapping_positions(Sequences, GeneAnnotation):
-    '''
+    """
     This function takes the sequences and
     the gene annotation and adds to Sequences a track that indicates the overlaping regions
-    '''
+    """
 
     #add fields to Sequence structure:
     for gene in list(Sequences.keys()):
@@ -624,9 +624,9 @@ def pred_sites(args, verbosity=1):
 
 
 def PerformIteration(Sequences, Background, IterParameters, NrOfStates, First, NewPaths={}, verbosity=1):
-    '''
+    """
     This function performs an iteration of the HMM algorithm
-    '''
+    """
     #unpack the Iteration parameters
     EmissionParameters = IterParameters[0]
     TransitionParameters = IterParameters[1]

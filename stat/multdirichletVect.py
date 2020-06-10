@@ -1,4 +1,4 @@
-'''
+"""
     omniCLIP is a CLIP-Seq peak caller
 
     Copyright (C) 2017 Philipp Boss
@@ -15,7 +15,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-'''
+"""
 
 
 from scipy.special import gammaln
@@ -24,9 +24,9 @@ import pdb
 
 
 def log_pdf_vect(k, alpha):
-    '''
+    """
     This function computes the log pdf for an array of counts
-    '''
+    """
 
     #First check whether the input is one dimnesional and set parameters acordingly
     alpha = np.expand_dims(alpha, axis=1)
@@ -43,9 +43,9 @@ def log_pdf_vect(k, alpha):
 
 
 def expand_k(k):
-    '''
+    """
     Thid function adds one dimension to k if k is only a 1-dim  array
-    '''
+    """
 
     if len(k.shape) == 1:
         Ks = 1
@@ -56,9 +56,9 @@ def expand_k(k):
 
 
 def log_pdf_vect_rep(Counts, alpha, tracks_per_rep, NrOfReplicates):
-    '''
+    """
     This function computes the log pdf for an array of counts
-    '''
+    """
 
     #First check whether the input is one dimnesional and set parameters acordingly
     alpha = np.expand_dims(alpha, axis=1)
@@ -86,9 +86,9 @@ def log_pdf_vect_rep(Counts, alpha, tracks_per_rep, NrOfReplicates):
 
 
 def TwoBinomlog_pdf_vect(k1, k2, alpha):
-    '''
+    """
     This is the pdf for an array of counts for the case when two multinomial distributions are observed
-    '''
+    """
 
     alpha = np.expand_dims(alpha, axis=1)
     if len(k1.shape) == 1:

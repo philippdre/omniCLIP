@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-#'''
+#"""
 #    omniCLIP is a CLIP-Seq peak caller
 #
 #    Copyright (C) 2017 Philipp Boss#
@@ -17,7 +17,7 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#'''
+#"""
 
 
 cimport cython
@@ -62,7 +62,7 @@ def viterbi(np.ndarray[DTYPE_t, ndim=2] EmmisionProbabilites, np.ndarray[DTYPE_t
 				if CurrMax < Temp:
 					CurrMax = Temp
 					CurrArgmax = k
-			
+
 			TraceBack[j, i] = CurrArgmax
 			V[j, i + 1] = V[CurrArgmax, i] + EmmisionProbabilites[j, i] + TransistionProbabilities[CurrArgmax, j, i]
 
@@ -82,6 +82,5 @@ def viterbi(np.ndarray[DTYPE_t, ndim=2] EmmisionProbabilites, np.ndarray[DTYPE_t
 		Path[i] = k
 
 	LogLik = V[0, SeqLen]
-	
-	return Path, LogLik
 
+	return Path, LogLik

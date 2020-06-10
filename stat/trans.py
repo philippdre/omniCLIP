@@ -1,4 +1,4 @@
-'''
+"""
     omniCLIP is a CLIP-Seq peak caller
 
     Copyright (C) 2017 Philipp Boss
@@ -15,7 +15,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-'''
+"""
 
 
 import sys
@@ -34,9 +34,9 @@ import tools
 
 
 def PredictTransistions(Counts, TransitionParameters, NrOfStates, Type = 'multi', verbosity=1):
-    '''
+    """
     This function predicts the transition probabilities for a gene given the transition parameters
-    '''
+    """
 
     TransistionProb = PredictTransistionsSimple(Counts, TransitionParameters, NrOfStates)
 
@@ -44,9 +44,9 @@ def PredictTransistions(Counts, TransitionParameters, NrOfStates, Type = 'multi'
 
 
 def PredictTransistionsSimple(Counts, TransitionParameters, NrOfStates, verbosity=1):
-    '''
+    """
     This function predicts the transition probabilities for a gene given the transition parameters
-    '''
+    """
 
     TransitionParametersLogReg = TransitionParameters[1]
     TransistionProb = np.ones((NrOfStates, NrOfStates, Counts.shape[1])) * np.log((1 / np.float64(NrOfStates)))
@@ -87,9 +87,9 @@ def PredictTransistionsSimple(Counts, TransitionParameters, NrOfStates, verbosit
 
 
 def FitTransistionParameters(Sequences, Background, TransitionParameters, CurrPath, C, Type = 'multi', verbosity=1):
-    '''
+    """
     This function determines the optimal parameters of the logistic regression for predicting the TransitionParameters
-    '''
+    """
 
     print('Fitting transition parameters')
     if verbosity > 0:
@@ -103,9 +103,9 @@ def FitTransistionParameters(Sequences, Background, TransitionParameters, CurrPa
 
 
 def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, CurrPath, C, verbosity=1):
-    '''
+    """
     This function determines the optimal parameters of the logistic regression for predicting the TransitionParameters
-    '''
+    """
 
     #Generate features from the CurrPaths and the Information in the coverage
     TransitionMatrix = TransitionParameters[0]
@@ -202,9 +202,9 @@ def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, 
 
 
 def GenerateFeatures(Ix, CovMat):
-    '''
+    """
     This funnction generates, for a set of positions, the features for the logistic regression from the Coverage matrix
-    '''
+    """
 
     FeatureMatrix = np.log(1 + CovMat[:, Ix])
     return FeatureMatrix

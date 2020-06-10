@@ -1,5 +1,5 @@
 
-'''
+"""
     omniCLIP is a CLIP-Seq peak caller
 
     Copyright (C) 2017 Philipp Boss
@@ -20,7 +20,7 @@
     The code in this file has been adapted from the statsmodels package:
     https://github.com/statsmodels/statsmodels/blob/master/statsmodels/genmod/generalized_linear_model.py
     Thus, for this file the licence of the original file applies additionally.
-'''
+"""
 
 
 from scipy.sparse import csc_matrix, linalg as sla

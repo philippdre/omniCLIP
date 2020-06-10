@@ -3,9 +3,9 @@ import sys
 
 
 def CreateDB(FileNameGFF, FileNameDB):
-    '''
+    """
     This function creates a GFF database
-    '''
+    """
 
     db = gffutils.create_db(FileNameGFF, dbfn=FileNameDB, force=True, keep_order=True, merge_strategy='merge', sort_attribute_values=True)
     return

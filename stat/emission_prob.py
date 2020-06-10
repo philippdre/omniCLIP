@@ -1,4 +1,4 @@
-'''
+"""
     omniCLIP is a CLIP-Seq peak caller
 
     Copyright (C) 2017 Philipp Boss
@@ -15,7 +15,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-'''
+"""
 
 
 from scipy import special
@@ -33,9 +33,9 @@ import time
 
 
 def NB_parameter_estimation(mean, var):
-    '''
+    """
     This function computes the parameters p and r for the negative binomial distribution
-    '''
+    """
 
     mean = np.float64(mean)
     var = np.float64(var)
@@ -49,9 +49,9 @@ def NB_parameter_estimation(mean, var):
 
 def estimate_expression_param(expr_data, verbosity=1):
     EmissionParameters, Sequences, Background, Paths, sample_size, bg_type = expr_data
-    '''
+    """
     This function estimates the parameters for the expression GLM
-    '''
+    """
     print ('Start estimation of expression parameters')
     # 1) Get the library size
     bg_type = EmissionParameters['BckType']
@@ -243,10 +243,10 @@ def construct_glm_matrix(EmissionParameters, Sequences, Background, Paths, bg_ty
 
 
 def process_bck_gene_for_glm_mat(data):
-    '''
+    """
     This function computes how much coverage is at each position in each state.
     It returns a dictionary with the histogram with of the counts in each state.
-    '''
+    """
 
     CurrGenePath, gene_rep_back, gene, gene_nr, rep, NrOfStates, nr_of_genes, bg_type, fg_state, bg_state = data
 
@@ -388,10 +388,10 @@ def process_bck_gene_for_glm_mat(data):
 
 
 def process_gene_for_glm_mat(data):
-    '''
+    """
     This function computes how much coverage is at each position in each state.
     It returns a dictionary with the histogram with of the counts in each state.
-    '''
+    """
 
     CurrGenePath, rep_gene_seq, gene, gene_nr, rep, NrOfStates, nr_of_genes, bg_type, fg_state, bg_state, verbosity = data
 
@@ -537,9 +537,9 @@ def process_gene_for_glm_mat(data):
 
 
 def fit_glm(A, w, Y, offset, sample_size, disp = None, start_params = None, norm_class=False, verbosity=1):
-    '''
+    """
     This function fits the GLM
-    '''
+    """
     if disp == None:
         disp = 1.0
     for i in range(3):
@@ -614,9 +614,9 @@ def neg_NB_GLM_loglike(alpha, endog, mu, weights):
 
 
 def get_expected_mean_and_var(CurrStackSum, State, nr_of_genes, gene_nr, EmissionParameters, curr_type = 'fg', verbosity=1):
-    '''
+    """
     This function computes the expected means and variances for each of the states
-    '''
+    """
 
     fg_state, bg_state = get_fg_and_bck_state(EmissionParameters)
     start_params = EmissionParameters['ExpressionParameters'][0]
@@ -725,9 +725,9 @@ def get_expected_mean_and_var(CurrStackSum, State, nr_of_genes, gene_nr, Emissio
 
 
 def predict_expression_log_likelihood_for_gene(CurrStackSum, State, nr_of_genes, gene_nr, EmissionParameters, curr_type = 'fg'):
-    '''
+    """
     This function predicts the likelihood of expression for a gene
-    '''
+    """
 
     nr_of_rep = EmissionParameters['NrOfReplicates']
     mean_mat, var_mat = get_expected_mean_and_var(CurrStackSum, State, nr_of_genes, gene_nr, EmissionParameters, curr_type = curr_type)
@@ -760,9 +760,9 @@ def predict_expression_log_likelihood_for_gene(CurrStackSum, State, nr_of_genes,
 
 
 def get_fg_and_bck_state(EmissionParameters, final_pred=False):
-    '''
+    """
     This function determines the fg and background state
-    '''
+    """
 
     #Ckeck whether the parameters have been already defined
     if final_pred:
