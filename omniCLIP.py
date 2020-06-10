@@ -850,14 +850,6 @@ def add_pseudo_gene(Sequences, Background, NewPaths, PriorMatrix):
     pseudo_gene_names = ['Pseudo']
     return Sequences, Background, NewPaths, pseudo_gene_names
 
-#@profile
-def ComputeLikelihood(Sequences, IterParameters):
-    '''
-    This function computes the log-likelihood of the FitModel
-    '''
-    LogLikelihood = 0
-
-    return LogLikelihood
 
 if __name__ == '__main__':
 

@@ -24,36 +24,6 @@ import pdb
 
 
 #@profile
-def pdf(k, alpha):
-    Ret = np.exp(log_pdf(k, alpha))
-    return np.exp(Ret)
-
-
-#@profile
-def log_pdf(k, alpha):
-    Pos = gammaln(np.sum(k) + 1) + gammaln(np.sum(alpha)) + np.sum(gammaln(alpha + k))
-    Neg = np.sum(gammaln(k + 1)) + gammaln(np.sum(alpha + k)) + np.sum(gammaln(alpha))
-    log = Pos - Neg
-    if np.isinf(log) or np.isnan(log):
-        pdb.set_trace()
-    return log
-
-
-#@profile
-def TwoBinomlog_pdf(k1, k2, alpha):
-    '''
-    This is the pdf for the case when two multinomial distributions are observed
-    '''
-
-    k = k1 + k2
-    Pos = gammaln(np.sum(k1) + 1) + gammaln(np.sum(k2) + 1) + gammaln(np.sum(alpha)) + np.sum(gammaln(alpha + k))
-    Neg = np.sum(gammaln(k1 + 1)) + np.sum(gammaln(k2 + 1)) + gammaln(np.sum(alpha + k)) + np.sum(gammaln(alpha))
-    log = Pos - Neg
-
-    return log
-
-
-#@profile
 def log_pdf_vect(k, alpha):
     '''
     This function computes the log pdf for an array of counts
@@ -136,23 +106,3 @@ def TwoBinomlog_pdf_vect(k1, k2, alpha):
     Neg = np.sum(gammaln(k1 + 1), axis=0) + np.sum(gammaln(k2 + 1), axis=0) + gammaln(np.sum(np.tile(alpha, (1, Ks)) + k, axis=0)) + np.tile(np.sum(gammaln(alpha)), (1, Ks))
     log = Pos - Neg
     return log
-
-
-#@profile
-def __init__(self, Parameters):
-    self.name = 'MultDirichlet'
-    self.parameters = [Parameters]
-    self.frozen = frozen
-    def log_probability(self, sample):
-        alpha = self.parameters[0]
-        Pos = gammaln(np.sum(k) + 1) + gammaln(np.sum(alpha)) + np.sum(gammaln(alpha + k))
-        Neg = np.sum(gammaln(k + 1)) + gammaln(np.sum(alpha + k)) + np.sum(gammaln(alpha))
-        Log = Pos - Neg
-        return Log
-    def from_sample(self, items, weights=None):
-        if weights is None:
-            weights = numpy.ones_like(items, dtype=float)
-        self.parameters = [float(numpy.dot(items, weights)) / len(items)]
-    def sample(self):
-
-        return random.random() < self.parameters[0]

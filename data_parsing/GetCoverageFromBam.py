@@ -197,43 +197,6 @@ def GetRawCoverageFromRegion(SamReader, Chr, Start, Stop, Collapse = False, CovT
     return ret_arrays
 
 
-#@profile
-def GetCoverageFromBam(InFile, HDF5OutFile, Collapse = False):
-    '''
-    This function gets from a BAM-file the coverage and returns it as a sparse vector for each chromosome and strand
-    '''
-
-    GetRawCoverageFromBam(InFile, HDF5OutFile, Collapse, 'coverage')
-
-
-#@profile
-def GetDeletionsFromBAM(InFile, HDF5OutFile, Collapse = False):
-    '''
-    This function  gets from a BAM-file the deletions and returns them as a sparse vector for each chromosome  and strand
-    '''
-
-    GetRawCoverageFromBam(InFile, HDF5OutFile, Collapse, 'deletions')
-
-
-#@profile
-def GetReadEndsFromBAM(InFile, HDF5OutFile, Collapse = False):
-    '''
-    This function  gets from a BAM-file the deletions and returns them as a sparse vector for each chromosome  and strand
-    '''
-
-    GetRawCoverageFromBam(InFile, HDF5OutFile, Collapse, 'read_ends')
-
-
-
-#@profile
-def GetVariantsFromBAM(InFile, HDF5OutFile, Collapse = False):
-    '''
-    This function  gets from a BAM-file the Variants and returns them as a sparse vector for each chromosome
-    Variants are coded by a four bit flag where the first two bytes code for the reference and the last two for the observed variants and strand
-    '''
-
-    GetRawCoverageFromBam(InFile, HDF5OutFile, Collapse, 'variants')
-
 ##@profile
 #@profile
 def GetVariantsFromRead(CurrRead, r):
