@@ -33,7 +33,6 @@ import time
 import tools
 
 
-#@profile
 def PredictTransistions(Counts, TransitionParameters, NrOfStates, Type = 'multi', verbosity=1):
     '''
     This function predicts the transition probabilities for a gene given the transition parameters
@@ -44,8 +43,6 @@ def PredictTransistions(Counts, TransitionParameters, NrOfStates, Type = 'multi'
     return TransistionProb
 
 
-##@profile
-#@profile
 def PredictTransistionsSimple(Counts, TransitionParameters, NrOfStates, verbosity=1):
     '''
     This function predicts the transition probabilities for a gene given the transition parameters
@@ -89,7 +86,6 @@ def PredictTransistionsSimple(Counts, TransitionParameters, NrOfStates, verbosit
     return TransistionProb
 
 
-#@profile
 def FitTransistionParameters(Sequences, Background, TransitionParameters, CurrPath, C, Type = 'multi', verbosity=1):
     '''
     This function determines the optimal parameters of the logistic regression for predicting the TransitionParameters
@@ -106,8 +102,6 @@ def FitTransistionParameters(Sequences, Background, TransitionParameters, CurrPa
     return NewTransitionParametersLogReg
 
 
-
-#@profile
 def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, CurrPath, C, verbosity=1):
     '''
     This function determines the optimal parameters of the logistic regression for predicting the TransitionParameters
@@ -207,9 +201,6 @@ def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, 
     return NewTransitionParametersLogReg
 
 
-
-
-#@profile
 def GenerateFeatures(Ix, CovMat):
     '''
     This funnction generates, for a set of positions, the features for the logistic regression from the Coverage matrix

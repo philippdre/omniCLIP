@@ -25,7 +25,6 @@ import multdirichletVect
 import numpy as np
 
 
-#@profile
 def ComputeStateProbForGeneMD_unif(*args):
     '''
     This function computes the prior for the dirichlet model
@@ -62,8 +61,7 @@ def ComputeStateProbForGeneMD_unif(*args):
 
     return Prob
 
-##@profile
-#@profile
+
 def ComputeStateProbForGeneMD_unif_rep(*args):
     '''
     This function computes the prior for the dirichlet model
@@ -103,8 +101,7 @@ def ComputeStateProbForGeneMD_unif_rep(*args):
 
     return Prob
 
-##@profile
-#@profile
+
 def MDK_f_joint_vect_unif(x, *args):
     '''
     This function computes the lieklihood of the parameters
@@ -125,8 +122,6 @@ def MDK_f_joint_vect_unif(x, *args):
     return -LogLikelihood
 
 
-##@profile
-#@profile
 def MD_f_joint_vect_unif(x, *args):
     '''
     This function computes the lieklihood of the parameters
@@ -150,8 +145,6 @@ def MD_f_joint_vect_unif(x, *args):
     return -LogLikelihood
 
 
-##@profile
-#@profile
 def MD_f_prime_joint_vect_unif(x, *args):
     Counts, NrOfCounts, EmissionParameters = args
 

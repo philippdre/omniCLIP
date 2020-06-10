@@ -27,8 +27,6 @@ import multiprocessing
 import numpy as np
 
 
-##@profile
-#@profile
 def em(counts, nr_of_counts, EmissionParameters, x_0=None, First=False, max_nr_iter=15, tol=0.0001, rand_sample_size=10, verbosity=1):
 	'''
 	This function performs the EMlagorithm
@@ -71,8 +69,6 @@ def em(counts, nr_of_counts, EmissionParameters, x_0=None, First=False, max_nr_i
 	return EmissionParameters
 
 
-##@profile
-#@profile
 def Parallel_estimate_mixture_params(EmissionParameters, curr_counts_orig, curr_nr_of_counts_orig, curr_state, rand_sample_size, max_nr_iter, nr_of_iter=20, stop_crit=1.0, nr_of_init=10, verbosity=1):
 	'''
 	This function estimates thedirichlet multinomial mixture parameters
@@ -142,8 +138,7 @@ def Parallel_estimate_mixture_params(EmissionParameters, curr_counts_orig, curr_
 	mixtures = mixtures_list[max_ll_pos]
 	return alpha, mixtures
 
-##@profile
-#@profile
+
 def Parallel_estimate_single_mixture_params(args):
 	'''
 	This function estimates thedirichlet multinomial mixture parameters
@@ -252,8 +247,7 @@ def Parallel_estimate_single_mixture_params(args):
 
 	return [deepcopy(OldAlpha), mixtures, ll]
 
-##@profile
-#@profile
+
 def score_counts(counts, state, EmissionParameters):
 	'''
 	This function scores the the coutns for each mixture component

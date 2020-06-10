@@ -34,8 +34,6 @@ import os
 import pysam
 
 
-##@profile
-#@profile
 def load_data(bam_files, genome_dir, gene_annotation, out_file, load_from_file = False, save_results = True, Collapse = False, OnlyCoverage = False, select_chrom = None, store_gene_seq=False, mask_flank_variants=3, max_mm=2, ign_out_rds=False, rev_strand=None):
 	'''
 	This function reads the data from the bam-files

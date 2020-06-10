@@ -23,8 +23,7 @@ import numpy as np
 from scipy.optimize import fmin_tnc
 from scipy.special import logsumexp
 
-##@profile
-#@profile
+
 def pred_log_lik(counts, state, EmissionParameters, single_mix=None):
 	'''
 	This function computes the log_likelihood for counts
@@ -81,8 +80,7 @@ def pred_log_lik(counts, state, EmissionParameters, single_mix=None):
 
 	return Prob
 
-##@profile
-#@profile
+
 def estimate_multinomial_parameters(Counts, NrOfCounts, EmissionParameters, OldAlpha):
 	'''
 	This function estimates for a mixture component the DirchMult parameters

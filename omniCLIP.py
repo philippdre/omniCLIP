@@ -43,8 +43,7 @@ import time
 import tools
 import trans
 
-##@profile
-#@profile
+
 def run_omniCLIP(args):
     # Get the args
     args = parser.parse_args()
@@ -420,8 +419,7 @@ def run_omniCLIP(args):
 
     return
 
-##@profile
-#@profile
+
 def mask_miRNA_positions(Sequences, GeneAnnotation):
     '''
     This function takes the sequences and
@@ -483,7 +481,6 @@ def mask_miRNA_positions(Sequences, GeneAnnotation):
     return Sequences
 
 
-#@profile
 def mark_overlapping_positions(Sequences, GeneAnnotation):
     '''
     This function takes the sequences and
@@ -540,8 +537,6 @@ def mark_overlapping_positions(Sequences, GeneAnnotation):
     return Sequences
 
 
-
-#@profile
 def pred_sites(args, verbosity=1):
     # Get the args
 
@@ -628,9 +623,6 @@ def pred_sites(args, verbosity=1):
     print('Done')
 
 
-
-##@profile
-#@profile
 def PerformIteration(Sequences, Background, IterParameters, NrOfStates, First, NewPaths={}, verbosity=1):
     '''
     This function performs an iteration of the HMM algorithm
@@ -700,8 +692,7 @@ def PerformIteration(Sequences, Background, IterParameters, NrOfStates, First, N
         print(CurrLogLikelihood)
     return CurrLogLikelihood, NewIterParameters, First, NewPaths
 
-##@profile
-#@profile
+
 def FitEmissionParameters(Sequences, Background, NewPaths, OldEmissionParameters, First, verbosity=1):
     print('Fitting emission parameters')
     t = time.time()
@@ -819,7 +810,7 @@ def FitEmissionParameters(Sequences, Background, NewPaths, OldEmissionParameters
         print('Done: Elapsed time: ' + str(time.time() - t))
     return NewEmissionParameters
 
-#@profile
+
 def add_pseudo_gene(Sequences, Background, NewPaths, PriorMatrix):
     pseudo_gene_names = ['Pseudo']
     nr_of_genes_to_gen = np.sum(PriorMatrix == 0)

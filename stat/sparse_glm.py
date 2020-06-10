@@ -42,7 +42,6 @@ import time
 __all__ = ['GLM']
 
 
-#@profile
 def _check_convergence(criterion, iteration, tol):
     return not (np.fabs(criterion[iteration] - criterion[iteration-1]) > tol)
 

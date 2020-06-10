@@ -40,8 +40,7 @@ import time
 import trans
 import viterbi
 
-##@profile
-#@profile
+
 def GetModelIx(Sequences, Type = 'all', snps_thresh = 0.4, snps_min_cov = 10, Background = None):
     '''
     This function returns the positions for at which the emission should be Computed
@@ -78,8 +77,7 @@ def GetModelIx(Sequences, Type = 'all', snps_thresh = 0.4, snps_min_cov = 10, Ba
         Ix = np.sum(StackData(Sequences, add = 'nocov'), axis = 0) > 0
     return Ix
 
-##@profile
-#@profile
+
 def StackData(Sequences, add = 'all', use_strand = 'True'):
     '''
     This function stacks the data for a gene
@@ -150,8 +148,7 @@ def StackData(Sequences, add = 'all', use_strand = 'True'):
     CurrStack[CurrStack < 0] = 0
     return CurrStack
 
-##@profile
-#@profile
+
 def PreloadSequencesForGene(Sequences, gene):
     '''
     This function stacks the data for a gene
@@ -174,8 +171,6 @@ def PreloadSequencesForGene(Sequences, gene):
     return Sequences_per_gene
 
 
-##@profile
-#@profile
 def GetSuffStat(Sequences, Background, Paths, NrOfStates, Type, ResetNotUsedStates = True, EmissionParameters=None, verbosity=1):
     '''
     This function computes for each CurrPath state a set of suffcient statistics:
@@ -259,8 +254,7 @@ def GetSuffStat(Sequences, Background, Paths, NrOfStates, Type, ResetNotUsedStat
 
     return SuffStat
 
-##@profile
-#@profile
+
 def GetSuffStatBck(Sequences, Background, Paths, NrOfStates, Type, ResetNotUsedStates = True, EmissionParameters=None, verbosity=1):
     '''
     This function computes for each CurrPath state a set of suffcient statistics:
@@ -347,8 +341,7 @@ def GetSuffStatBck(Sequences, Background, Paths, NrOfStates, Type, ResetNotUsedS
 
     return SuffStatBck
 
-##@profile
-#@profile
+
 def ConvertSuffStatToArrays(SuffStat):
     '''
     This function converts the Suffcient statistics into a list of arrays
@@ -369,7 +362,6 @@ def ConvertSuffStatToArrays(SuffStat):
     return Counts, NrOfCounts
 
 
-#@profile
 def repl_track_nr(ex_list, offset):
     '''
     This function computes for a list of tracks in one replicate additionaly the list for the second replicate
@@ -379,8 +371,7 @@ def repl_track_nr(ex_list, offset):
 
     return new_list
 
-##@profile
-#@profile
+
 def GeneratePred(Paths, Sequences, Background, IterParameters, GeneAnnotation, OutFile, fg_state = 1, noise_state = 0, seq_file='', bck_file='', pv_cutoff=0.05, verbosity=1):
     '''
     This function writes the predictions
@@ -418,7 +409,6 @@ def GeneratePred(Paths, Sequences, Background, IterParameters, GeneAnnotation, O
     return
 
 
-#@profile
 def generate_bed(file, pv_cutoff=0.05):
     df = pd.read_table(file, low_memory = False)
 
@@ -457,8 +447,7 @@ def generate_bed(file, pv_cutoff=0.05):
     df.to_csv(file.replace('.txt', '.bed') , sep = '\t', header=False, index=False)
     return
 
-##@profile
-#@profile
+
 def GetSites(Paths, Sequences, Background, EmissionParameters, TransitionParameters, TransitionTypeFirst, fg_state, merge_neighbouring_sites, minimal_site_length, seq_file='', bck_file=''):
     '''
     This function get the predicted sites
@@ -501,8 +490,6 @@ def GetSites(Paths, Sequences, Background, EmissionParameters, TransitionParamet
     return ScoredSites
 
 
-##@profile
-#@profile
 def GetSitesForGene(data):
     '''
     This function determines for each gene the score of the sites
@@ -652,8 +639,6 @@ def convert_paths_to_sites(Paths, fg_state, merge_neighbouring_sites, minimal_si
     return sites
 
 
-##@profile
-#@profile
 def ComputeStatsForSite(CountsSeq, CountsBck, Site, fg_state, nr_of_genes, gene_nr, EmissionParameters):
     '''
     Get the score for a Site
@@ -676,7 +661,6 @@ def ComputeStatsForSite(CountsSeq, CountsBck, Site, fg_state, nr_of_genes, gene_
     return mean_mat_fg, var_mat_fg, mean_mat_bg, var_mat_bg, counts_fg, counts_bg
 
 
-#@profile
 def get_max_position(Score, Site, fg_state, strand):
     '''
     Get the site where the score is maximal
@@ -707,7 +691,6 @@ def get_max_position(Score, Site, fg_state, strand):
     return pos
 
 
-#@profile
 def EvaluateSite(Score, Site, fg_state):
     '''
     Get the score for a Site
@@ -728,8 +711,7 @@ def EvaluateSite(Score, Site, fg_state):
 
     return SiteScore
 
-##@profile
-#@profile
+
 def WriteResults(Sequences, Background, ScoredSites, OutFile, GeneAnnotation):
     '''
     This function writes the sites into a result file
@@ -764,13 +746,11 @@ def WriteResults(Sequences, Background, ScoredSites, OutFile, GeneAnnotation):
     return
 
 
-#@profile
 def GetGenomicCoord(gene, Coord):
 
     return gene.start + Coord
 
 
-#@profile
 def estimate_library_size(Sequences):
     '''
     This function estimates the library size of all samples
@@ -792,8 +772,6 @@ def estimate_library_size(Sequences):
     return lib_size_red
 
 
-##@profile
-#@profile
 def ParallelGetMostLikelyPath(MostLikelyPaths, Sequences, Background, EmissionParameters, TransitionParameters, TransitionTypeFirst, RandomNoise = False, chunksize = 1, verbosity=1):
     '''
     This function computes the most likely path. Ther are two options, 'homo' and 'nonhomo' for TransitionType.
@@ -840,8 +818,7 @@ def ParallelGetMostLikelyPath(MostLikelyPaths, Sequences, Background, EmissionPa
 
     return MostLikelyPaths, LogLikelihood
 
-##@profile
-#@profile
+
 def ParallelGetMostLikelyPathForGene(data):
     '''
     This function computes the most likely path for a gene
@@ -937,8 +914,7 @@ def ParallelGetMostLikelyPathForGene(data):
 
     return [gene, CurrPath, Currloglik]
 
-##@profile
-#@profile
+
 def subsample_suff_stat(Counts, NrOfCounts, subsample_size=250000):
     '''
     This function  creates a subsample of the counts
