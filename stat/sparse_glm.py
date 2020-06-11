@@ -59,7 +59,7 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
         self.offset = offset
         self.exposure = exposure
         if data_weights is not None:
-        	self.data_weights = data_weights
+            self.data_weights = data_weights
         if exposure is not None:
             exposure = np.log(exposure)
         if offset is not None:  # this should probably be done upstream
@@ -154,7 +154,7 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
         self._offset_exposure = offset_exposure
 
         if method.lower() == "irls_sparse":
-        	return self._fit_irls_sparse(start_params=start_params, maxiter=maxiter,
+            return self._fit_irls_sparse(start_params=start_params, maxiter=maxiter,
                                   tol=tol, scale=scale, cov_type=cov_type,
                                   cov_kwds=cov_kwds, use_t=use_t, **kwargs)
         else:
@@ -178,7 +178,7 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
         """
 
         if not scipy.sparse.issparse(self.exog):
-        	raise ValueError("Matrix not sparse")
+            raise ValueError("Matrix not sparse")
 
         endog = self.endog
         wlsexog = self.exog
