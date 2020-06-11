@@ -76,14 +76,14 @@ omniCLIP can be run as follows:
 ```
 $ python omniCLIP.py [Commands]
 ```
-omniCLIP has the following ***required*** commanline arguments
+omniCLIP has the following ***required*** commandline arguments
 
 Argument  | Description
 ------------- | -------------
 --annot | File where gene annotation is stored
 --genome-dir | Directory where fasta files are stored
---clip-files | Bam-file for CLIP-library. The alignments need to have the NM and MD tag. 
---bg-files | Bam-file for bg-library. The alignments need to have the NM and MD tag.
+--clip-files | Bam-file for CLIP-library. The alignments need to have the MD and NM tags. 
+--bg-files | Bam-file for bg-library. The alignments need to have the MD and NM tags.
 --out-dir | Output directory for results
 
 
@@ -102,12 +102,12 @@ Argument  | Description
 --max-it-glm | Maximal number of iterations in GLM
 --tmp-dir | Output directory for temporary results
 --gene-sample | Nr of genes to sample
---no-subsample | Disabaple subsampling for parameter estimations (Warning: Leads to slow estimation)
+--no-subsample | Disable subsampling for parameter estimations (Warning: Leads to slow estimation)
 --filter-snps | Do not fit diagnostic events at SNP-positions
 --snp-ratio | Ratio of reads showing the SNP
 --snp-abs-cov | Absolute number of reads covering the SNP position (default = 10)
 --nr_mix_comp | Number of diagnostic events mixture components (default = 1)
---nb-cores | Number of cores o use'
+--nb-cores | Number of cores to use
 --mask-miRNA | Mask miRNA positions
 --mask-ovrlp | Ignore overlping gene regions for diagnostic event model fitting
 --norm_class | Normalize class weights during glm fit
@@ -134,17 +134,17 @@ $ python omniCLIP.py parsingCLIP
 
 
 ## Examples
-An example dataset can be  downloaded [here](https://ohlerlab.mdc-berlin.de/files/omniCLIP/example_data.tar.gz). Extract it into the omniCLIP folder for the example below.
+An example dataset can be downloaded [here](https://ohlerlab.mdc-berlin.de/files/omniCLIP/example_data.tar.gz). Extract it into the omniCLIP folder for the example below.
 
 Then you can run omniCLIP on the example data by:
 ```
 $ python omniCLIP.py --annot example_data/gencode.v19.annotation.chr1.gtf.db --genome-dir example_data/hg37/ --clip-files example_data/PUM2_rep1_chr1.bam --clip-files example_data/PUM2_rep2_chr1.bam --bg-files example_data/RZ_rep1_chr1.bam --bg-files example_data/RZ_rep2_chr1.bam --out-dir example_data --collapsed-CLIP --bck-var
 ```
-This command creats the files below:
+which creates the files below:
 
 File Name | Description
 ------------- | -------------
-pred.bed | This file contains the peaks that are signifikant after Bonferroni correction
+pred.bed | This file contains the peaks that are significant after Bonferroni correction
 pred.txt | This file contains all peaks 
 fg_reads.dat | This file contains the parsed reads from the CLIP libraries
 bg_reads.dat | This file contains the parsed reads from the background libraries

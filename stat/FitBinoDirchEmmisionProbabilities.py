@@ -1,4 +1,4 @@
-'''
+"""
     omniCLIP is a CLIP-Seq peak caller
 
     Copyright (C) 2017 Philipp Boss
@@ -15,7 +15,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-'''
+"""
 
 import sys
 sys.path.append('./Utils/')
@@ -25,80 +25,10 @@ import multdirichletVect
 import numpy as np
 
 
-#@profile 
-def ComputePrior(*args):
-    '''
-    This function computes the prior for the dirichlet model
-    '''
-
-    alpha, OldPriorMatrix, Counts, NrOfCounts, EmissionParameters = args
-    #Prepare the return variable
-    NrOfNegObs = 0
-    NrOfPosObs = 0
-    NrOfBackObs = 0
-
-    PriorMatrix = np.zeros_like(OldPriorMatrix)
-    #Iterate over the states:
-    for State in list(Counts.keys()):
-        #Computet the likelihood for the current observation for both models
-
-        #State 0 
-        p_0 = EmissionParameters['ExpNonTC'][0][0]
-        p_1 = EmissionParameters['ExpNonTC'][1][0]
-        n_0 = EmissionParameters['ExpNonTC'][0][1]
-        n_1 = EmissionParameters['ExpNonTC'][1][1]
-        ExprLikelihood = nbinom.logpmf(np.sum(Counts[State][list(range(0,6,2)), :], axis = 0), n_0, p_0) + nbinom.logpmf(np.sum(Counts[State][list(range(1,6,2)), :], axis = 0), n_1, p_1)
-        RatioLikelihood = (multdirichletVect.log_pdf_vect(Counts[State][list(range(0,6,2)), :], alpha[3:6]) + multdirichletVect.log_pdf_vect(Counts[State][list(range(1,6,2)), :], alpha[3:6]))
-        CurrLogLikelihoodNeg = (ExprLikelihood + RatioLikelihood)
-
-        #State 1
-        p_0 = EmissionParameters['ExpTC'][0][0]
-        p_1 = EmissionParameters['ExpTC'][1][0]
-        n_0 = EmissionParameters['ExpTC'][0][1]
-        n_1 = EmissionParameters['ExpTC'][1][1]
-        ExprLikelihood = nbinom.logpmf(np.sum(Counts[State][list(range(0,6,2)), :], axis = 0), n_0, p_0) + nbinom.logpmf(np.sum(Counts[State][list(range(1,6,2)), :], axis = 0), n_1, p_1)
-        RatioLikelihood = (multdirichletVect.TwoBinomlog_pdf_vect(Counts[State][list(range(0,6,2)), :], Counts[State][list(range(1,6,2)), :], alpha[0:3]))
-        CurrLogLikelihoodPos = (ExprLikelihood + RatioLikelihood)
-
-        #State 2
-        p_0 = EmissionParameters['ExpBck'][0][0]
-        p_1 = EmissionParameters['ExpBck'][1][0]
-        n_0 = EmissionParameters['ExpBck'][0][1]
-        n_1 = EmissionParameters['ExpBck'][1][1]
-        ExprLikelihood = nbinom.logpmf(np.sum(Counts[State][list(range(0,6,2)), :], axis = 0), n_0, p_0) + nbinom.logpmf(np.sum(Counts[State][list(range(1,6,2)), :], axis = 0), n_1, p_1)
-        RatioLikelihood = (multdirichletVect.log_pdf_vect(Counts[State][list(range(0,6,2)), :], alpha[6:9]) + multdirichletVect.log_pdf_vect(Counts[State][list(range(1,6,2)), :], alpha[6:9]))
-        CurrLogLikelihoodBack = (ExprLikelihood + RatioLikelihood)
-
-        #Determine the likelihodd that are not inf 
-        IxNonInf = np.isinf(CurrLogLikelihoodNeg * CurrLogLikelihoodPos * CurrLogLikelihoodBack) == 0
-        CurrLogLikelihoodNeg = CurrLogLikelihoodNeg[IxNonInf]
-        CurrLogLikelihoodPos = CurrLogLikelihoodPos[IxNonInf]
-        CurrLogLikelihoodBack = CurrLogLikelihoodBack[IxNonInf]
-        CurrCounts = NrOfCounts[State][IxNonInf]
-
-        #Determine the probabilty of being in each state
-        TempSumPos = (np.exp(CurrLogLikelihoodPos) /(np.exp(CurrLogLikelihoodPos) + np.exp(CurrLogLikelihoodNeg + np.exp(CurrLogLikelihoodBack))))
-        TempSumNeg = (np.exp(CurrLogLikelihoodNeg) /(np.exp(CurrLogLikelihoodPos) + np.exp(CurrLogLikelihoodNeg + np.exp(CurrLogLikelihoodBack))))
-        CurrCounts = CurrCounts[np.isnan(TempSumPos + TempSumNeg) == 0]
-        Ix = np.isnan(TempSumPos + TempSumNeg) == 0
-        TempSumPos = TempSumPos[Ix]
-        TempSumNeg = TempSumNeg[Ix] 
-        NrOfPosObs += np.sum(TempSumPos * CurrCounts)
-        NrOfNegObs += np.sum(TempSumNeg * CurrCounts)
-        NrOfBackObs += np.sum((1 - (TempSumPos + TempSumNeg)) * CurrCounts)
-
-    #Compute the new prior
-    PriorMatrix[0, 0] = NrOfNegObs / (NrOfPosObs + NrOfNegObs + NrOfBackObs)
-    PriorMatrix[1, 0] = NrOfPosObs / (NrOfPosObs + NrOfNegObs + NrOfBackObs)
-    PriorMatrix[2, 0] = NrOfBackObs / (NrOfPosObs + NrOfNegObs + NrOfBackObs)
-
-    return PriorMatrix
-
-#@profile 
 def ComputeStateProbForGeneMD_unif(*args):
-    '''
+    """
     This function computes the prior for the dirichlet model
-    '''
+    """
     Counts, alpha, State, EmissionParameters = args
 
     tracks_per_rep = alpha.shape[0]
@@ -131,15 +61,14 @@ def ComputeStateProbForGeneMD_unif(*args):
 
     return Prob
 
-##@profile
-#@profile 
+
 def ComputeStateProbForGeneMD_unif_rep(*args):
-    '''
+    """
     This function computes the prior for the dirichlet model
-    '''
+    """
 
     Counts, alpha, State, EmissionParameters = args
-    
+
     tracks_per_rep = alpha.shape[0]
     NrOfReplicates = Counts.shape[0] / tracks_per_rep
 
@@ -172,17 +101,16 @@ def ComputeStateProbForGeneMD_unif_rep(*args):
 
     return Prob
 
-##@profile
-#@profile 
+
 def MDK_f_joint_vect_unif(x, *args):
-    '''
+    """
     This function computes the lieklihood of the parameters
-    '''
+    """
 
     alpha = x
     Counts, NrOfCounts, EmissionParameters = args
     #Prepare the return variable
-    LogLikelihood = 0.0    
+    LogLikelihood = 0.0
     #NrOfReplicates = EmissionParameters['NrOfReplicates']
     NrOfReplicates = Counts.shape[0] / alpha.shape[0]
     tracks_per_rep =  x.shape[0]
@@ -194,50 +122,17 @@ def MDK_f_joint_vect_unif(x, *args):
     return -LogLikelihood
 
 
-##@profile
-#@profile 
-def MDK_f_prime_joint_vect_unif(x, *args):
-    Counts, NrOfCounts, EmissionParameters = args
-    
-    tracks_per_rep = x.shape[0]
-    NrOfReplicates = Counts.shape[0] / tracks_per_rep
-    #Prepare the return variable
-    LogLikelihood = np.zeros_like(x, dtype=np.float)
-
-    #compute the likelihood
-    curr_alpha = x
-
-    k = Counts[0 : tracks_per_rep, :]
-    k, Ks = multdirichletVect.expand_k(k)
-    for rep in range(1, int(NrOfReplicates)):
-        new_k, Ks = multdirichletVect.expand_k(Counts[rep * tracks_per_rep:(rep + 1) * tracks_per_rep, :])
-        k += new_k
-
-    DBase = psi(np.sum(curr_alpha)) - psi(np.sum(k, axis=0) + np.sum(curr_alpha)) 
-
-    for J in range(0, curr_alpha.shape[0]):
-        D = psi(curr_alpha[J] + k) -  psi(curr_alpha[J])
-
-    CurrLogLikeliehood = np.float64((D + DBase) * NrOfCounts)
-    LogLikelihood[J] += np.sum(CurrLogLikeliehood[np.isinf(CurrLogLikeliehood) == 0])
-
-    return -LogLikelihood
-
-
-
-##@profile
-#@profile 
 def MD_f_joint_vect_unif(x, *args):
-    '''
+    """
     This function computes the lieklihood of the parameters
-    '''
+    """
 
     alpha = x
     Counts, NrOfCounts, EmissionParameters = args
 
     #Prepare the return variable
-    LogLikelihood = 0.0    
-    
+    LogLikelihood = 0.0
+
     tracks_per_rep =  x.shape[0]
     NrOfReplicates = Counts.shape[0] / tracks_per_rep
 
@@ -250,11 +145,9 @@ def MD_f_joint_vect_unif(x, *args):
     return -LogLikelihood
 
 
-##@profile
-#@profile 
 def MD_f_prime_joint_vect_unif(x, *args):
     Counts, NrOfCounts, EmissionParameters = args
-    
+
     tracks_per_rep = x.shape[0]
     NrOfReplicates = Counts.shape[0] / tracks_per_rep
 
@@ -265,10 +158,10 @@ def MD_f_prime_joint_vect_unif(x, *args):
     curr_k = Counts[0 : tracks_per_rep, :]
     curr_alpha = x
 
-    DBase = NrOfReplicates * psi(np.sum(curr_alpha)) - psi(np.sum(curr_k, axis=0) + np.sum(curr_alpha)) 
+    DBase = NrOfReplicates * psi(np.sum(curr_alpha)) - psi(np.sum(curr_k, axis=0) + np.sum(curr_alpha))
     for rep in range(1, int(NrOfReplicates)):
         curr_k = Counts[rep * tracks_per_rep:(rep + 1) * tracks_per_rep, :]
-        DBase -=  psi(np.sum(curr_k, axis=0) + np.sum(curr_alpha))  
+        DBase -=  psi(np.sum(curr_k, axis=0) + np.sum(curr_alpha))
 
     for J in range(0, curr_alpha.shape[0]):
         curr_k = Counts[J, :]
@@ -287,7 +180,7 @@ def MD_f_prime_joint_vect_unif(x, *args):
                 D += psi(curr_alpha[J] + curr_k)  - psi(curr_alpha[J])
             else:
                 D[ix_zero] += psi(curr_alpha[J] + curr_k[ix_zero])  - psi(curr_alpha[J])
-            
+
         CurrLogLikeliehood = np.float64((D + DBase) * np.float64(NrOfCounts))
         LogLikelihood[J] += np.sum(CurrLogLikeliehood[np.isinf(CurrLogLikeliehood) == 0])
     return -LogLikelihood

@@ -1,4 +1,4 @@
-'''
+"""
     omniCLIP is a CLIP-Seq peak caller
 
     Copyright (C) 2017 Philipp Boss
@@ -15,7 +15,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-'''
+"""
 
 import sys
 sys.path.append('./Analysis/')
@@ -34,13 +34,11 @@ import os
 import pysam
 
 
-##@profile
-#@profile 
 def load_data(bam_files, genome_dir, gene_annotation, out_file, load_from_file = False, save_results = True, Collapse = False, OnlyCoverage = False, select_chrom = None, store_gene_seq=False, mask_flank_variants=3, max_mm=2, ign_out_rds=False, rev_strand=None):
-	'''
+	"""
 	This function reads the data from the bam-files
-	'''
-	
+	"""
+
 	if load_from_file:
 		GeneConversionEvents = h5py.File(out_file, 'r+')
 		return GeneConversionEvents
@@ -70,7 +68,7 @@ def load_data(bam_files, genome_dir, gene_annotation, out_file, load_from_file =
 		for bam_file in bam_files:
 			pass
 
-		#3. Iterate over the CurrChromosomes 
+		#3. Iterate over the CurrChromosomes
 		for CurrChr in Chrs:
 			if select_chrom != None:
 				if select_chrom != CurrChr:
@@ -98,7 +96,7 @@ def load_data(bam_files, genome_dir, gene_annotation, out_file, load_from_file =
 					Coverage = {}
 					if gene.chrom == CurrChr:
 						Start = gene.start
-						Stop = gene.stop 
+						Stop = gene.stop
 						new_gene_name = gene.id.split('.')[0]
 						Strand =  1 if gene.strand == '+' else -1
 						#get the data
@@ -116,7 +114,7 @@ def load_data(bam_files, genome_dir, gene_annotation, out_file, load_from_file =
 
 						#Save the total coverage
 						GeneConversionEvents[new_gene_name]['SummedCoverage'].create_dataset(str(i), data=Coverage, compression="gzip", compression_opts=9, chunks=Coverage.shape)
-						
+
 						if not OnlyCoverage:
 							Variants = ret_arrays['variants']
 							ReadEnds = ret_arrays['read-ends']
@@ -126,7 +124,7 @@ def load_data(bam_files, genome_dir, gene_annotation, out_file, load_from_file =
 							#Get the TC conversions
 							CurrSeq = str(CurrChrSeq.seq[Start : Stop]).upper()
 							GeneSeq = np.zeros((1, len(CurrSeq)), dtype=np.uint8)
-							
+
 							trdict = {"A":0,"C":1,"G":2,"T":3, "N":4}
 							GeneSeq[0, :] = np.array([trdict[e] for e in list(CurrSeq)])
 
@@ -140,9 +138,9 @@ def load_data(bam_files, genome_dir, gene_annotation, out_file, load_from_file =
 								GeneConversionEvents[new_gene_name].create_group('Variants')
 								GeneConversionEvents[new_gene_name].create_group('Coverage')
 								GeneConversionEvents[new_gene_name].create_group('Read-ends')
-							
+
 							#Ignore Variants at N positions
-							Variants[:, GeneSeq[0, :] == 4] = 0 
+							Variants[:, GeneSeq[0, :] == 4] = 0
 							Variants[Variants < 0] = 0
 
 							non_zer_var = np.where(Variants)
@@ -168,21 +166,18 @@ def load_data(bam_files, genome_dir, gene_annotation, out_file, load_from_file =
 							del Variants, ReadEnds, CurrSeq, GeneSeq, Variants_sparse
 
 						else:
-							if not 'Coverage' in GeneConversionEvents[new_gene_name]:								
+							if not 'Coverage' in GeneConversionEvents[new_gene_name]:
 								GeneConversionEvents[new_gene_name].create_group('Coverage')
 						GeneConversionEvents[new_gene_name]['Coverage'].create_dataset(str(i), data=Coverage, compression="gzip", compression_opts=9)#, chunks=Coverage.shape)
-						
+
 						if str(i)=='0':
 							GeneConversionEvents[new_gene_name].create_dataset('strand', data=Strand)
 						del Coverage
 
 			del CurrChrSeq
 			del record_dict
-			
+
 		print('Saving results')
 		GeneConversionEvents.close()
 		GeneConversionEvents = h5py.File(out_file, 'r+')
 	return GeneConversionEvents
-
-
-

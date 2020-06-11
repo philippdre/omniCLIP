@@ -1,4 +1,4 @@
-'''
+"""
     omniCLIP is a CLIP-Seq peak caller
 
     Copyright (C) 2017 Philipp Boss
@@ -15,7 +15,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-'''
+"""
 
 
 import sys
@@ -45,8 +45,7 @@ import trans
 
 import CreateGeneAnnotDB
 
-##@profile
-#@profile
+
 def run_omniCLIP(args):
     # Get the args
     args = parser.parse_args()
@@ -294,7 +293,7 @@ def run_omniCLIP(args):
     iter_cond = True
     #Check whether to preload the iteration file
     if EmissionParameters['only_pred']:
-        IterParameters, args_old = pickle.load(open(IterSaveFile,'r'))
+        IterParameters, args_old = pickle.load(open(IterSaveFile,'rb'))
         EmissionParameters['mask_miRNA'] = args.mask_miRNA
         EmissionParameters['glm_weight'] = args.glm_weight
         EmissionParameters['restart_from_file'] = restart_from_file
@@ -316,7 +315,7 @@ def run_omniCLIP(args):
         iter_cond = False
 
     if restart_from_file:
-        IterParameters, args_old = pickle.load(open(IterSaveFile,'r'))
+        IterParameters, args_old = pickle.load(open(IterSaveFile,'rb'))
         EmissionParameters =  IterParameters[0]
         EmissionParameters['mask_miRNA'] = args.mask_miRNA
         EmissionParameters['glm_weight'] = args.glm_weight
@@ -422,14 +421,13 @@ def run_omniCLIP(args):
 
     return
 
-##@profile
-#@profile
+
 def mask_miRNA_positions(Sequences, GeneAnnotation):
-    '''
+    """
     This function takes the sequences and
     the gene annotation and sets all counts in Sequences to zero that overlap
     miRNAs in the gene annotaion
-    '''
+    """
     keys = ['Coverage', 'Read-ends', 'Variants']
     #Create a dictionary that stores the genes in the Gene annnotation
     gene_dict = {}
@@ -467,21 +465,29 @@ def mask_miRNA_positions(Sequences, GeneAnnotation):
 
             #Set for each field the sequences to zeros
             for curr_key in keys:
-                if curr_key in Sequences[curr_gene]:
-                    for rep in list(Sequences[curr_gene][curr_key].keys()):
-                        curr_seq = Sequences[curr_gene][curr_key][rep][:, :]
-                        curr_seq[:, curr_start: curr_stop] = 0
-                        Sequences[curr_gene][curr_key][rep][:, :] = curr_seq
+                if curr_key in Sequences:
+                    if curr_key in Sequences[curr_gene]:
+                        for rep in list(Sequences[curr_gene][curr_key].keys()):
+                            if curr_key == 'Variants':
+                               #Convert the Variants to array
+                                curr_seq = csr_matrix((Sequences[curr_gene]['Variants'][rep]['data'][:],Sequences[curr_gene]['Variants'][rep]['indices'][:],
+                                    Sequences[curr_gene]['Variants'][rep]['indptr'][:]), shape=Sequences[curr_gene]['Variants'][rep]['shape'][:])
+
+                                ix_slice =  np.logical_and(curr_start <= curr_seq.indices, curr_seq.indices < curr_stop)
+                                Sequences[curr_gene]['Variants'][rep]['data'][ix_slice] = 0
+                            else:
+                                curr_seq = Sequences[curr_gene][curr_key][rep][:, :]
+                                curr_seq[:, curr_start: curr_stop] = 0
+                                Sequences[curr_gene][curr_key][rep][:, :] = curr_seq
 
     return Sequences
 
 
-#@profile
 def mark_overlapping_positions(Sequences, GeneAnnotation):
-    '''
+    """
     This function takes the sequences and
     the gene annotation and adds to Sequences a track that indicates the overlaping regions
-    '''
+    """
 
     #add fields to Sequence structure:
     for gene in list(Sequences.keys()):
@@ -533,8 +539,6 @@ def mark_overlapping_positions(Sequences, GeneAnnotation):
     return Sequences
 
 
-
-#@profile
 def pred_sites(args, verbosity=1):
     # Get the args
 
@@ -602,7 +606,7 @@ def pred_sites(args, verbosity=1):
         print('Done: Elapsed time: ' + str(time.time() - t))
 
     #Load data
-    tmp_file = pickle.load(open(os.path.join(out_path, 'IterSaveFile.dat'), 'r'))
+    tmp_file = pickle.load(open(os.path.join(out_path, 'IterSaveFile.dat'), 'rb'))
     IterParameters = tmp_file[0]
     args = tmp_file[1]
     EmissionParameters = IterParameters[0]
@@ -621,13 +625,10 @@ def pred_sites(args, verbosity=1):
     print('Done')
 
 
-
-##@profile
-#@profile
 def PerformIteration(Sequences, Background, IterParameters, NrOfStates, First, NewPaths={}, verbosity=1):
-    '''
+    """
     This function performs an iteration of the HMM algorithm
-    '''
+    """
     #unpack the Iteration parameters
     EmissionParameters = IterParameters[0]
     TransitionParameters = IterParameters[1]
@@ -693,8 +694,7 @@ def PerformIteration(Sequences, Background, IterParameters, NrOfStates, First, N
         print(CurrLogLikelihood)
     return CurrLogLikelihood, NewIterParameters, First, NewPaths
 
-##@profile
-#@profile
+
 def FitEmissionParameters(Sequences, Background, NewPaths, OldEmissionParameters, First, verbosity=1):
     print('Fitting emission parameters')
     t = time.time()
@@ -812,7 +812,7 @@ def FitEmissionParameters(Sequences, Background, NewPaths, OldEmissionParameters
         print('Done: Elapsed time: ' + str(time.time() - t))
     return NewEmissionParameters
 
-#@profile
+
 def add_pseudo_gene(Sequences, Background, NewPaths, PriorMatrix):
     pseudo_gene_names = ['Pseudo']
     nr_of_genes_to_gen = np.sum(PriorMatrix == 0)
@@ -842,15 +842,6 @@ def add_pseudo_gene(Sequences, Background, NewPaths, PriorMatrix):
 
     pseudo_gene_names = ['Pseudo']
     return Sequences, Background, NewPaths, pseudo_gene_names
-
-#@profile
-def ComputeLikelihood(Sequences, IterParameters):
-    '''
-    This function computes the log-likelihood of the FitModel
-    '''
-    LogLikelihood = 0
-
-    return LogLikelihood
 
 
 def generateDB(args):
