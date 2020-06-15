@@ -17,46 +17,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import h5py
 import numpy as np
-import pysam
 import re
-
-
-def GetRawCoverageFromBam(InFile, HDF5OutFile, Collapse = False, CovType = 'coverage', Genome = ''):
-    """
-    This function gets from a BAM-file the coverage and returns it as a sparse vector for each chromosome and strand
-    """
-
-    #Initialize the HDF5 outfile
-    OutFile = h5py.File(HDF5OutFile, 'w')
-
-    #Open the Bam-file
-    SamReader = pysam.Samfile(InFile,'rb')
-    print('Parsing: ' + InFile)
-
-    #Get chromsome lengths from Header
-    ChromosomeLengths = {}
-    for Entry in SamReader.header['SQ']:
-        ChromosomeLengths[Entry['SN']] = Entry['LN']
-
-    #Iterate over chromosomes
-    for Chr in list(ChromosomeLengths.keys()):
-        print('Processing chromsome: ' + Chr)
-        #Initialise the length vectors
-        if CovType == 'variants':#Check type to get the coverage for
-            CurrChrCoverage = np.zeros((4, ChromosomeLengths[Chr]), dtype = np.int32)
-        else:
-            CurrChrCoverage = np.zeros((1, ChromosomeLengths[Chr]), dtype = np.int32)
-        #iterate over Reads
-        GetRawCoverageFromRegion(SamReader, Chr, 0, ChromosomeLengths[Chr], Collapse = False, CovType = 'coverage', Genome = '')
-
-        OutFile.create_dataset(Chr, data = CurrChrCoverage, chunks=True, compression="gzip")
-
-    OutFile.close()
-    SamReader.close()
-
-    return
 
 
 def GetRawCoverageFromRegion(SamReader, Chr, Start, Stop, Collapse = False, CovType = 'coverage', Genome = '', legacy = True, mask_flank_variants=3, max_mm=2, ign_out_rds=False, rev_strand=None, gene_strand=0):
