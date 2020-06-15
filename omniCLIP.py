@@ -133,13 +133,13 @@ def run_omniCLIP(args):
     EmissionParameters['tmp_dir'] = args.tmp_dir
     t = time.time()
 
-    Sequences = LoadReads.load_data(args.fg_libs, GenomeDir, GeneAnnotation, EmissionParameters['DataOutFile_seq'], load_from_file = ((not args.overwrite_fg) or restart_from_file), save_results = True, Collapse = args.fg_collapsed, mask_flank_variants=EmissionParameters['mask_flank_variants'], max_mm=EmissionParameters['max_mm'], ign_out_rds=EmissionParameters['ign_out_rds'], rev_strand=EmissionParameters['rev_strand'])
-    Background = LoadReads.load_data(args.bg_libs, GenomeDir, GeneAnnotation, EmissionParameters['DataOutFile_bck'], load_from_file = ((not args.overwrite_bg) or restart_from_file), save_results = True, Collapse = args.bg_collapsed, OnlyCoverage = args.only_coverage,  mask_flank_variants=EmissionParameters['mask_flank_variants'], max_mm=EmissionParameters['max_mm'], ign_out_rds=EmissionParameters['ign_out_rds'], rev_strand=EmissionParameters['rev_strand'])
+    # Sequences = LoadReads.load_data(args.fg_libs, GenomeDir, GeneAnnotation, EmissionParameters['DataOutFile_seq'], load_from_file = ((not args.overwrite_fg) or restart_from_file), save_results = True, Collapse = args.fg_collapsed, mask_flank_variants=EmissionParameters['mask_flank_variants'], max_mm=EmissionParameters['max_mm'], ign_out_rds=EmissionParameters['ign_out_rds'], rev_strand=EmissionParameters['rev_strand'])
+    # Background = LoadReads.load_data(args.bg_libs, GenomeDir, GeneAnnotation, EmissionParameters['DataOutFile_bck'], load_from_file = ((not args.overwrite_bg) or restart_from_file), save_results = True, Collapse = args.bg_collapsed, OnlyCoverage = args.only_coverage,  mask_flank_variants=EmissionParameters['mask_flank_variants'], max_mm=EmissionParameters['max_mm'], ign_out_rds=EmissionParameters['ign_out_rds'], rev_strand=EmissionParameters['rev_strand'])
     #pdb.set_trace()
     #Mask the positions that overlap miRNA sites in the geneome
 
-    Sequences.close()
-    Background.close()
+    # Sequences.close()
+    # Background.close()
 
     f_name_read_fg = EmissionParameters['DataOutFile_seq']
     f_name_read_bg = EmissionParameters['DataOutFile_bck']
@@ -188,7 +188,7 @@ def run_omniCLIP(args):
     for i, gene in enumerate(Sequences.keys()):
         curr_cov = sum([Sequences[gene]['Coverage'][rep][()].sum() for rep in list(Sequences[gene]['Coverage'].keys())])
 
-        if curr_cov <= 100:
+        if curr_cov <= 1000:  # Change ME
             continue
 
         genes_to_keep.append(gene)
@@ -576,7 +576,7 @@ def pred_sites(args, verbosity=1):
     t = time.time()
     print('Loading reads')
     DataOutFile = os.path.join(out_path, 'fg_reads.dat')
-    Sequences = LoadReads.load_data(args.fg_libs, GenomeDir, GeneAnnotation, DataOutFile, load_from_file = True, save_results = False, Collapse = args.fg_collapsed, ign_out_rds=EmissionParameters['ign_out_rds'], rev_strand=EmissionParameters['rev_strand'])
+    Sequences = LoadReads.load_data(args.fg_libs, GenomeDir, GeneAnnotation, DataOutFile, Collapse = args.fg_collapsed, ign_out_rds=EmissionParameters['ign_out_rds'], rev_strand=EmissionParameters['rev_strand'])
 
     DataOutFile = os.path.join(out_path, 'bg_reads.dat')
     Background = LoadReads.load_data(args.bg_libs, GenomeDir, GeneAnnotation, DataOutFile, load_from_file = True, save_results = False, Collapse = args.bg_collapsed, OnlyCoverage = True, ign_out_rds=EmissionParameters['ign_out_rds'], rev_strand=EmissionParameters['rev_strand'])
@@ -859,34 +859,31 @@ def generateDB(args):
 
 def parsingBG(args):
     """ Initial parsing of the BG files """
-    
+    print(args.db_file)
     GeneAnnotation = gffutils.FeatureDB(args.db_file, keep_order=True)
-    Sequence = LoadReads.load_data(
-        bam_files=args.clip_libs,
+    LoadReads.load_data(
+        bam_files=args.bg_libs,
         genome_dir=args.genome_dir,
-        genome_annotation=GeneAnnotation,
-        out_file=args.out_path,
-        save_results=True, 
+        gene_annotation=GeneAnnotation,
+        out_file=args.out_file,
         Collapse=args.collapsed,
-        OnlyCoverage = args.only_coverage,
+        OnlyCoverage=args.only_coverage,
         mask_flank_variants=args.mask_flank_variants,
         max_mm=args.max_mm,
         ign_out_rds=args.ign_out_rds,
         rev_strand=args.rev_strand
     )
 
-    
+
 def parsingCLIP(args):
     """ Initial parsing of the CLIP files """
-    
+
     GeneAnnotation = gffutils.FeatureDB(args.db_file, keep_order=True)
-    Sequence = LoadReads.load_data(
+    LoadReads.load_data(
         bam_files=args.clip_libs,
         genome_dir=args.genome_dir,
-        genome_annotation=GeneAnnotation,
-        out_file=args.out_path,
-        save_results=True, 
-        OnlyCoverage = args.only_coverage,
+        gene_annotation=GeneAnnotation,
+        out_file=args.out_file,
         mask_flank_variants=args.mask_flank_variants,
         max_mm=args.max_mm,
         ign_out_rds=args.ign_out_rds,
@@ -905,7 +902,7 @@ if __name__ == '__main__':
     parser_generateDB_reqNamed.add_argument('--gff-file', dest='gff_file', help='Path to the .GFF annotation file', required=True)
     parser_generateDB_reqNamed.add_argument('--db-file', dest='db_file', help='Path to the output .GFF.DB file', required=True)
 
-    # Shared arguments from parsingBG and parsingCLIP command
+    # Shared optional arguments from parsingBG and parsingCLIP command
     parent_parsing = argparse.ArgumentParser(add_help=False)
     parent_parsing.add_argument('--rev_strand', action='store', dest='rev_strand', choices=[0, 1], help='Only consider reads on the forward (0) or reverse strand (1) relative to the gene orientation', type=int, default=None)
     parent_parsing.add_argument('--collapsed', action='store_true', default=False, dest='collapsed', help='Reads are collapsed')
@@ -917,18 +914,26 @@ if __name__ == '__main__':
     parser_parsingBG = subparsers.add_parser('parsingBG', help='parsingBG help', description="Parsing the background files.", parents=[parent_parsing])
     parser_parsingBG_reqNamed = parser_parsingBG.add_argument_group('required arguments')
     parser_parsingBG_reqNamed.add_argument('--bg-files', action='append', dest='bg_libs', help='BAM files for background libraries', required=True)
-    parser_parsingBG_reqNamed.add_argument('--db-file', action='append', dest='db_file', help='Path to the .GFF.DB file', required=True)
-    parser_parsingBG_reqNamed.add_argument('--out-file', action='store', dest='out_path', help='Output path for .dat file', required=True)
+    parser_parsingBG_reqNamed.add_argument('--db-file', action='store', dest='db_file', help='Path to the .GFF.DB file', required=True)
+    parser_parsingBG_reqNamed.add_argument('--out-file', action='store', dest='out_file', help='Output path for .dat file', required=True)
+    parser_parsingBG_reqNamed.add_argument('--genome-dir', action='store', dest='genome_dir', help='Directory where fasta files are stored')
     # Optional args for the parsingBG command
     parser_parsingBG.add_argument('--bck-var', action='store_false', default=True, dest='only_coverage', help='Parse variants for background reads')
-    
+
     # Create the parser for the parsingCLIP command
     parser_parsingCLIP = subparsers.add_parser('parsingCLIP', help='parsingCLIP help', description="Parsing the CLIP files.", parents=[parent_parsing])
     parser_parsingCLIP_reqNamed = parser_parsingCLIP.add_argument_group('required arguments')
     parser_parsingCLIP_reqNamed.add_argument('--clip-files', action='append', dest='clip_libs', help='BAM files for CLIP libraries', required=True)
-    parser_parsingCLIP_reqNamed.add_argument('--db-file', action='append', dest='db_file', help='Path to the .GFF.DB file', required=True)
-    parser_parsingCLIP_reqNamed.add_argument('--out-file', action='store', dest='out_path', help='Output path for .dat file', required=True)
-    
+    parser_parsingCLIP_reqNamed.add_argument('--db-file', action='store', dest='db_file', help='Path to the .GFF.DB file', required=True)
+    parser_parsingCLIP_reqNamed.add_argument('--out-file', action='store', dest='out_file', help='Output path for .dat file', required=True)
+    parser_parsingCLIP_reqNamed.add_argument('--genome-dir', action='store', dest='genome_dir', help='Directory where fasta files are stored')
+
+    # Create the parser for the run_omniCLIP command
+    parser_run_omniCLIP = subparsers.add_parser('run_omniCLIP', help='run_omniCLIP help', description="running the main omniCLIP program.")
+    parser_run_omniCLIP_reqNamed = parser_run_omniCLIP.add_argument_group('required arguments')
+    parser_run_omniCLIP_reqNamed.add_argument('--bg-dat', action='store', dest='bg_dat', help='Path to the parsed background .dat file', required=True)
+    parser_run_omniCLIP_reqNamed.add_argument('--clip-dat', action='store', dest='clip_dat', help='Path to the parsed CLIP .dat file', required=True)
+
 
     # Gene annotation
     parser.add_argument('--annot', action='store', dest='gene_anno_file', help='File where gene annotation is stored')
