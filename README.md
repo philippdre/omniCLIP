@@ -1,5 +1,5 @@
 # omniCLIP
-omniCLIP is a Bayesian peak caller that can be applied to data from CLIP-Seq experiments to detect regulatory elements in RNAs. 
+omniCLIP is a Bayesian peak caller that can be applied to data from CLIP-Seq experiments to detect regulatory elements in RNAs.
 
 ## Overview
 
@@ -37,6 +37,16 @@ omniCLIP requires Python (v.3.7) and the following python libraries:
 * scipy (> v.1.4.1)
 * statsmodels (> v.0.11.0)
 
+All required dependencies can be installed using conda by executing the following in the main project directory :
+```
+$ conda env create -f environment.yml
+```
+
+The environment then needs to be activated in order to run omniCLIP :
+```
+$ conda activate omniEnv
+```
+
 Currently, omniCLIP requires a standard workstation with 32 Gb of RAM.
 
 
@@ -52,10 +62,10 @@ After this the follwing comand has to be executed:
 $ cd omniCLIP/stat
 $ ./CompileCython.sh
 ```
-This compiles the cyton code for the viterbi algorithm. Note that if your python libraries is not in the directory "/usr/include/python2.7", then you need to change in CompileCython.sh in the line 
+This compiles the cyton code for the viterbi algorithm. Note that if your python libraries is not in the directory "/usr/include/python2.7", then you need to change in CompileCython.sh in the line
 ```
 gcc -shared -pthread -fPIC -fwrapv -O2 -Wall -fno-strict-aliasing -I/usr/include/python2.7 -o viterbi.so viterbi.c
-``` 
+```
 -I/usr/include/python2.7" to the path to your python installation.
 
 ### Conda
@@ -82,7 +92,7 @@ Argument  | Description
 ------------- | -------------
 --annot | File where gene annotation is stored
 --genome-dir | Directory where fasta files are stored
---clip-files | Bam-file for CLIP-library. The alignments need to have the MD and NM tags. 
+--clip-files | Bam-file for CLIP-library. The alignments need to have the MD and NM tags.
 --bg-files | Bam-file for bg-library. The alignments need to have the MD and NM tags.
 --out-dir | Output directory for results
 
@@ -112,9 +122,9 @@ Argument  | Description
 --mask-ovrlp | Ignore overlping gene regions for diagnostic event model fitting
 --norm_class | Normalize class weights during glm fit
 --max-mismatch | Maximal number of mismatches that is allowed per read (default: 2)
---mask_flank_mm | Do not consider mismatches in the N bp at the ends of reads for diagnostic event modelling 
+--mask_flank_mm | Do not consider mismatches in the N bp at the ends of reads for diagnostic event modelling
 --rev_strand | Only consider reads on the forward (0) or reverse strand (1) relative to the gene orientation
---use_precomp_diagmod | Use a precomputed diagnostic event model (Path to IterSaveFile.dat) 
+--use_precomp_diagmod | Use a precomputed diagnostic event model (Path to IterSaveFile.dat)
 --seed | Set a seed for the random number generators
 --pv | Bonferroni corrected p-value cutoffs for peaks in bed-file
 
@@ -131,7 +141,7 @@ which creates the files below:
 File Name | Description
 ------------- | -------------
 pred.bed | This file contains the peaks that are significant after Bonferroni correction
-pred.txt | This file contains all peaks 
+pred.txt | This file contains all peaks
 fg_reads.dat | This file contains the parsed reads from the CLIP libraries
 bg_reads.dat | This file contains the parsed reads from the background libraries
 IterSaveFile.dat | This file contains the learnt parameters of the model
