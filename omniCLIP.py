@@ -22,8 +22,6 @@ import sys
 sys.path.append('./data_parsing/')
 sys.path.append('./stat/')
 sys.path.append('./visualisation/')
-from intervaltree import Interval, IntervalTree
-from scipy.sparse import *
 import argparse
 import pickle
 import emission_prob
@@ -55,64 +53,51 @@ def run_omniCLIP(args):
     if verbosity > 1:
         print(args)
 
-    #Check parameters
-    if len(args.fg_libs) == 0:
-        raise sys.exit('No CLIP-libraries given')
+    # Check parameters
+    # if len(args.fg_libs) == 0:
+    #     raise sys.exit('No CLIP-libraries given')
 
-    if len(args.bg_libs) == 0:
-        bg_type = 'None'
-    else:
-        bg_type = args.bg_type
+    # if len(args.bg_libs) == 0:
+    #     bg_type = 'None'
+    # else:
+    bg_type = args.bg_type
 
-
-    if args.out_dir == None:
+    if args.out_dir is None:
         out_path = os.getcwd()
     else:
         out_path = args.out_dir
 
-    MaxIter  = args.max_it
+    MaxIter = args.max_it
     # process the parameters
 
-    if not (bg_type == 'Coverage' or  bg_type == 'Coverage_bck'):
+    if not (bg_type == 'Coverage' or bg_type == 'Coverage_bck'):
         print('Bg-type: ' + bg_type + ' has not been implemented yet')
         return
 
-    #Set seed for the random number generators
+    # Set seed for the random number generators
     if args.rnd_seed is not None:
         random.seed(args.rnd_seed)
         print('setting seed')
 
-    #Set the p-value cutoff for the bed-file creation
+    # Set the p-value cutoff for the bed-file creation
     pv_cutoff = args.pv_cutoff
 
-    #Load the gene annotation
+    # Load the gene annotation
     print('Loading gene annotation')
     if args.gene_anno_file.split('.')[-1] == 'db':
         GeneAnnotation = gffutils.FeatureDB(args.gene_anno_file, keep_order=True)
-    else:
-        if os.path.isfile(args.gene_anno_file + '.db'):
-            print('Using existing gene annotation database: ' + args.gene_anno_file + '.db')
-            GeneAnnotation = gffutils.FeatureDB(args.gene_anno_file + '.db', keep_order=True)
-        else:
-            print('Creating gene annotation database')
-            db = gffutils.create_db(args.gene_anno_file, dbfn=(args.gene_anno_file + '.db'), force=True, keep_order=True, merge_strategy='merge', sort_attribute_values=True, disable_infer_transcripts=True, disable_infer_genes=True)
-            GeneAnnotation = gffutils.FeatureDB(args.gene_anno_file + '.db', keep_order=True)
-            del db
-
-    GenomeDir = args.genome_dir
 
     import warnings
     warnings.filterwarnings('error')
 
-
-    #Load the reads
+    # Load the reads
     if verbosity > 0:
         print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
     print('Loading reads')
 
     EmissionParameters = {}
 
-    #Check whether existing iteration parameters should be used
+    # Check whether existing iteration parameters should be used
     restart_from_file = args.restart_from_file
     EmissionParameters['restart_from_file'] = restart_from_file
 
@@ -120,34 +105,22 @@ def run_omniCLIP(args):
 
     EmissionParameters['mask_flank_variants'] = args.mask_flank_variants
 
-    EmissionParameters['max_mm'] = args.max_mm
-
-    EmissionParameters['rev_strand'] = args.rev_strand
-
     EmissionParameters['skip_diag_event_mdl'] = args.skip_diag_event_mdl
 
     EmissionParameters['ign_out_rds'] = args.ign_out_rds
 
-    EmissionParameters['DataOutFile_seq'] = os.path.join(out_path, 'fg_reads.dat')
-    EmissionParameters['DataOutFile_bck'] = os.path.join(out_path, 'bg_reads.dat')
+    EmissionParameters['DataOutFile_seq'] = args.clip_dat
+    EmissionParameters['DataOutFile_bck'] = args.bg_dat
     EmissionParameters['tmp_dir'] = args.tmp_dir
     t = time.time()
-
-    # Sequences = LoadReads.load_data(args.fg_libs, GenomeDir, GeneAnnotation, EmissionParameters['DataOutFile_seq'], load_from_file = ((not args.overwrite_fg) or restart_from_file), save_results = True, Collapse = args.fg_collapsed, mask_flank_variants=EmissionParameters['mask_flank_variants'], max_mm=EmissionParameters['max_mm'], ign_out_rds=EmissionParameters['ign_out_rds'], rev_strand=EmissionParameters['rev_strand'])
-    # Background = LoadReads.load_data(args.bg_libs, GenomeDir, GeneAnnotation, EmissionParameters['DataOutFile_bck'], load_from_file = ((not args.overwrite_bg) or restart_from_file), save_results = True, Collapse = args.bg_collapsed, OnlyCoverage = args.only_coverage,  mask_flank_variants=EmissionParameters['mask_flank_variants'], max_mm=EmissionParameters['max_mm'], ign_out_rds=EmissionParameters['ign_out_rds'], rev_strand=EmissionParameters['rev_strand'])
-    #pdb.set_trace()
-    #Mask the positions that overlap miRNA sites in the geneome
-
-    # Sequences.close()
-    # Background.close()
 
     f_name_read_fg = EmissionParameters['DataOutFile_seq']
     f_name_read_bg = EmissionParameters['DataOutFile_bck']
 
-    #Create temporary read-files that can be modified by the masking operations
+    # Create temporary read-files that can be modified by the masking operations
     if EmissionParameters['tmp_dir'] is None:
-        f_name_read_fg_tmp = EmissionParameters['DataOutFile_seq'].replace('fg_reads.dat', 'fg_reads.tmp.dat')
-        f_name_read_bg_tmp = EmissionParameters['DataOutFile_bck'].replace('bg_reads.dat', 'bg_reads.tmp.dat')
+        f_name_read_fg_tmp = EmissionParameters['DataOutFile_seq'] + '.tmp'
+        f_name_read_bg_tmp = EmissionParameters['DataOutFile_bck'] + '.tmp'
     else:
         f_name_read_fg_tmp = os.path.join(EmissionParameters['tmp_dir'], next(tempfile._get_candidate_names()) + '.dat')
         f_name_read_bg_tmp = os.path.join(EmissionParameters['tmp_dir'], next(tempfile._get_candidate_names()) + '.dat')
@@ -155,7 +128,7 @@ def run_omniCLIP(args):
     shutil.copy(f_name_read_fg, f_name_read_fg_tmp)
     shutil.copy(f_name_read_bg, f_name_read_bg_tmp)
 
-    #open the temporary read files
+    # Open the temporary read files
     Sequences = h5py.File(f_name_read_fg_tmp, 'r+')
     Background = h5py.File(f_name_read_bg_tmp, 'r+')
 
@@ -175,11 +148,11 @@ def run_omniCLIP(args):
         print('Masking overlapping positions')
         Sequences = ParsingPositions.mark_overlapping_positions(Sequences, GeneAnnotation)
 
-    #Estimate the library size
+    # Estimate the library size
     EmissionParameters['BckLibrarySize'] =  tools.estimate_library_size(Background)
     EmissionParameters['LibrarySize'] = tools.estimate_library_size(Sequences)
 
-    #Removing genes without any reads in the CLIP data
+    # Removing genes without any reads in the CLIP data
     print("Removing genes without CLIP coverage")
 
     genes_to_keep = []
@@ -226,7 +199,6 @@ def run_omniCLIP(args):
     TransMat = TransMat / np.sum(np.sum(TransMat))
     TransitionParameters = [TransMat, []]
 
-    NrOfReplicates = len(args.fg_libs)
     gene = list(Sequences.keys())[0]
 
     EmissionParameters['PriorMatrix'] = np.ones((NrOfStates, 1)) / float(NrOfStates)
@@ -234,7 +206,7 @@ def run_omniCLIP(args):
     EmissionParameters['emp_var'] = args.emp_var
     EmissionParameters['norm_class'] = args.norm_class
 
-    #Define flag for penalized path prediction
+    # Define flag for penalized path prediction
     EmissionParameters['LastIter'] = False
     EmissionParameters['fg_pen'] = args.fg_pen
 
@@ -245,19 +217,20 @@ def run_omniCLIP(args):
         mixtures = np.random.uniform(0.0, 1.0, size=(args.nr_mix_comp))
         EmissionParameters['Diag_event_params']['mix_comp'][state] = mixtures / np.sum(mixtures)
 
-    #initialise the parameter vector alpha
+    # Initialise the parameter vector alpha
     alphashape = (Sequences[gene]['Variants']['0']['shape'][0] + Sequences[gene]['Coverage']['0'][()].shape[0] + Sequences[gene]['Read-ends']['0'][()].shape[0])
     alpha = {}
     for state in range(NrOfStates):
             alpha[state] = np.random.uniform(0.9, 1.1, size=(alphashape, args.nr_mix_comp))
 
+    EmissionParameters['NrOfReplicates'] = len(Sequences[list(Sequences.keys())[0]]['Coverage'])
+    EmissionParameters['NrOfBckReplicates'] = len(Background[list(Background.keys())[0]]['Coverage'])
+
     EmissionParameters['Diag_event_params']['alpha'] = alpha
     EmissionParameters['Diag_event_type'] = args.diag_event_mod
     EmissionParameters['NrOfStates'] = NrOfStates
-    EmissionParameters['NrOfReplicates'] = NrOfReplicates
     EmissionParameters['ExpressionParameters'] = [None, None]
     EmissionParameters['BckType'] = bg_type
-    EmissionParameters['NrOfBckReplicates'] = len(args.bg_libs)
     EmissionParameters['TransitionType'] = 'binary'
     EmissionParameters['Verbosity'] = args.verbosity
     EmissionParameters['NbProc'] = args.nb_proc
@@ -277,9 +250,9 @@ def run_omniCLIP(args):
     # Transistion parameters
     IterParameters = [EmissionParameters, TransitionParameters]
 
-    #Start computation
+    # Start computation
 
-    #Iterativly fit the parameters of the model
+    # Iterativly fit the parameters of the model
     OldLogLikelihood = 0
     CurrLogLikelihood = -np.inf
     CurrIter = 0
@@ -290,13 +263,13 @@ def run_omniCLIP(args):
     IterHist = []
     Paths = {}
     iter_cond = True
-    #Check whether to preload the iteration file
+    # Check whether to preload the iteration file
     if EmissionParameters['only_pred']:
         IterParameters, args_old = pickle.load(open(IterSaveFile,'rb'))
         EmissionParameters['mask_miRNA'] = args.mask_miRNA
         EmissionParameters['glm_weight'] = args.glm_weight
         EmissionParameters['restart_from_file'] = restart_from_file
-        EmissionParameters =  IterParameters[0]
+        EmissionParameters = IterParameters[0]
         EmissionParameters['ign_diag'] = args.ign_diag
         if EmissionParameters['ign_out_rds']:
             EmissionParameters['ign_diag'] = EmissionParameters['ign_out_rds']
@@ -315,7 +288,7 @@ def run_omniCLIP(args):
 
     if restart_from_file:
         IterParameters, args_old = pickle.load(open(IterSaveFile,'rb'))
-        EmissionParameters =  IterParameters[0]
+        EmissionParameters = IterParameters[0]
         EmissionParameters['mask_miRNA'] = args.mask_miRNA
         EmissionParameters['glm_weight'] = args.glm_weight
         EmissionParameters['restart_from_file'] = restart_from_file
@@ -330,12 +303,6 @@ def run_omniCLIP(args):
         First = 1
         iter_cond = True
 
-
-    #import warnings
-    #warnings.filterwarnings('error')
-
-
-
     if not EmissionParameters['use_precomp_diagmod'] is None:
         IterParametersPreComp, args_old = pickle.load(open(EmissionParameters['use_precomp_diagmod'],'r'))
         IterParameters[0]['Diag_event_params'] = IterParametersPreComp[0]['Diag_event_params']
@@ -346,7 +313,7 @@ def run_omniCLIP(args):
         if EmissionParameters['Verbosity'] > 1:
             print(IterParameters[0])
 
-        OldLogLikelihood  = CurrLogLikelihood
+        OldLogLikelihood = CurrLogLikelihood
 
         CurrLogLikelihood, IterParameters, First, Paths = PerformIteration(Sequences, Background, IterParameters, NrOfStates, First, Paths, verbosity=EmissionParameters['Verbosity'])
         gc.collect()
@@ -383,7 +350,7 @@ def run_omniCLIP(args):
             else:
                 iter_cond = (CurrIter < MaxIter) and ((abs(CurrLogLikelihood - OldLogLikelihood)/max(abs(CurrLogLikelihood), abs(OldLogLikelihood))) > 0.01) and (abs(CurrLogLikelihood - OldLogLikelihood) > args.tol_lg_lik)
 
-    #Return the fitted parameters
+    # Return the fitted parameters
     print('Finished parameter fitting')
 
     EmissionParameters, TransitionParameters = IterParameters
@@ -392,11 +359,11 @@ def run_omniCLIP(args):
         return
     out_file_base = 'pred'
     if EmissionParameters['ign_GLM']:
-       out_file_base += '_no_glm'
+        out_file_base += '_no_glm'
     if EmissionParameters['ign_diag']:
-       out_file_base += '_no_diag'
+        out_file_base += '_no_diag'
     OutFile = os.path.join(out_path, out_file_base + '.txt')
-    #determine which state has higher weight in fg.
+    # Determine which state has higher weight in fg.
     if verbosity > 0:
         print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
     fg_state, bg_state = emission_prob.get_fg_and_bck_state(EmissionParameters, final_pred=True)
@@ -412,7 +379,7 @@ def run_omniCLIP(args):
     tools.GeneratePred(Paths, Sequences, Background, IterParameters, GeneAnnotation, OutFile, fg_state, bg_state, seq_file=EmissionParameters['DataOutFile_seq'], bck_file=EmissionParameters['DataOutFile_bck'], pv_cutoff=pv_cutoff, verbosity=EmissionParameters['Verbosity'])
     print('Done')
 
-    #Remove the temporary files
+    # Remove the temporary files
     if not (EmissionParameters['tmp_dir'] is None):
         print('removing temporary files')
         os.remove(EmissionParameters['DataOutFile_seq'])
@@ -427,7 +394,7 @@ def pred_sites(args, verbosity=1):
     args = parser.parse_args()
     print(args)
 
-    #Check parameters
+    # Check parameters
     if len(args.fg_libs) == 0:
         raise sys.exit('No CLIP-libraries given')
 
@@ -437,34 +404,33 @@ def pred_sites(args, verbosity=1):
         bg_type = args.bg_type
 
 
-    if args.out_dir == None:
+    if args.out_dir is None:
         out_path = os.getcwd()
     else:
         out_path = args.out_dir
 
-    MaxIter  = args.max_it
+    MaxIter = args.max_it
     # process the parameters
 
-    if not (bg_type == 'Coverage' or  bg_type == 'Coverage_bck'):
+    if not (bg_type == 'Coverage' or bg_type == 'Coverage_bck'):
         print('Bg-type: ' + bg_type + ' has not been implemented yet')
         return
 
-    #Load the gene annotation
+    # Load the gene annotation
     print('Loading gene annotation')
     GeneAnnotation = gffutils.FeatureDB(args.gene_anno_file, keep_order=True)
     GenomeDir = args.genome_dir
 
-    #Load the reads
+    # Load the reads
     t = time.time()
     print('Loading reads')
     DataOutFile = os.path.join(out_path, 'fg_reads.dat')
-    Sequences = LoadReads.load_data(args.fg_libs, GenomeDir, GeneAnnotation, DataOutFile, Collapse = args.fg_collapsed, ign_out_rds=EmissionParameters['ign_out_rds'], rev_strand=EmissionParameters['rev_strand'])
+    Sequences = LoadReads.load_data(args.fg_libs, GenomeDir, GeneAnnotation, DataOutFile, Collapse=args.fg_collapsed, ign_out_rds=EmissionParameters['ign_out_rds'], rev_strand=EmissionParameters['rev_strand'])
 
     DataOutFile = os.path.join(out_path, 'bg_reads.dat')
-    Background = LoadReads.load_data(args.bg_libs, GenomeDir, GeneAnnotation, DataOutFile, load_from_file = True, save_results = False, Collapse = args.bg_collapsed, OnlyCoverage = True, ign_out_rds=EmissionParameters['ign_out_rds'], rev_strand=EmissionParameters['rev_strand'])
+    Background = LoadReads.load_data(args.bg_libs, GenomeDir, GeneAnnotation, DataOutFile, load_from_file=True, save_results = False, Collapse = args.bg_collapsed, OnlyCoverage = True, ign_out_rds=EmissionParameters['ign_out_rds'], rev_strand=EmissionParameters['rev_strand'])
 
-
-    #Removing genes without any reads in the CLIP data
+    # Removing genes without any reads in the CLIP data
     genes_to_keep = []
     all_genes = list(Sequences.keys())
     for i, gene in enumerate(Sequences.keys()):
@@ -487,7 +453,7 @@ def pred_sites(args, verbosity=1):
     if verbosity > 0:
         print('Done: Elapsed time: ' + str(time.time() - t))
 
-    #Load data
+    # Load data
     tmp_file = pickle.load(open(os.path.join(out_path, 'IterSaveFile.dat'), 'rb'))
     IterParameters = tmp_file[0]
     args = tmp_file[1]
@@ -511,12 +477,12 @@ def PerformIteration(Sequences, Background, IterParameters, NrOfStates, First, N
     """
     This function performs an iteration of the HMM algorithm
     """
-    #unpack the Iteration parameters
+    # Unpack the Iteration parameters
     EmissionParameters = IterParameters[0]
     TransitionParameters = IterParameters[1]
     TransitionType = EmissionParameters['TransitionType']
 
-    #Get new most likely path
+    # Get new most likely path
     if (not EmissionParameters['restart_from_file']) and First:
         NewPaths, LogLike = tools.ParallelGetMostLikelyPath(NewPaths, Sequences, Background, EmissionParameters, TransitionParameters, 'homo', RandomNoise = True, verbosity=verbosity)
         Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
@@ -525,7 +491,7 @@ def PerformIteration(Sequences, Background, IterParameters, NrOfStates, First, N
         if verbosity > 0:
             print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
-    #Perform EM to compute the new emission parameters
+    # Perform EM to compute the new emission parameters
     print('Fitting emission parameters')
     if verbosity > 0:
         print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
@@ -535,7 +501,7 @@ def PerformIteration(Sequences, Background, IterParameters, NrOfStates, First, N
         First = 0
     if verbosity > 0:
         print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-    #Fit the transition matrix parameters
+    # Fit the transition matrix parameters
     NewTransitionParameters = TransitionParameters
     C = 1
     print('Fitting transition parameters')
@@ -580,19 +546,19 @@ def PerformIteration(Sequences, Background, IterParameters, NrOfStates, First, N
 def FitEmissionParameters(Sequences, Background, NewPaths, OldEmissionParameters, First, verbosity=1):
     print('Fitting emission parameters')
     t = time.time()
-    #Unpack the arguments
+    # Unpack the arguments
     OldAlpha = OldEmissionParameters['Diag_event_params']
     NrOfStates = OldEmissionParameters['NrOfStates']
     OldPriorMatrix = OldEmissionParameters['PriorMatrix']
     NewEmissionParameters = OldEmissionParameters
 
-    #Compute new prior matrix
+    # Compute new prior matrix
     PriorMatrix = np.zeros_like(OldPriorMatrix)
     for State in range(NrOfStates):
         for path in NewPaths:
             PriorMatrix[State] += np.sum(NewPaths[path] == State)
 
-    #Check if one of the states is not used and add pseudo gene to prevent singularities during distribution fitting
+    # Check if one of the states is not used and add pseudo gene to prevent singularities during distribution fitting
     if np.sum(PriorMatrix == 0) > 0:
         Sequences.close()
         Background.close()
@@ -607,14 +573,14 @@ def FitEmissionParameters(Sequences, Background, NewPaths, OldEmissionParameters
 
     CorrectedPriorMatrix[CorrectedPriorMatrix == 0] = np.min(CorrectedPriorMatrix[CorrectedPriorMatrix > 0])/10
     CorrectedPriorMatrix /= np.sum(CorrectedPriorMatrix)
-    #Keep a copy to check which states are not used
+    # Keep a copy to check which states are not used
     NewEmissionParameters['PriorMatrix'] = CorrectedPriorMatrix
 
-    #Add Pseudo gene to Sequences, Background and Paths
+    # Add Pseudo gene to Sequences, Background and Paths
     if NewEmissionParameters['ExpressionParameters'][0] is not None:
         Sequences, Background, NewPaths, pseudo_gene_names = add_pseudo_gene(Sequences, Background, NewPaths, PriorMatrix)
 
-    #Compute parameters for the expression
+    # Compute parameters for the expression
     sample_size = 10000
 
     if NewEmissionParameters['BckType'] != 'None':
@@ -816,28 +782,30 @@ if __name__ == '__main__':
     parser_run_omniCLIP_reqNamed.add_argument('--bg-dat', action='store', dest='bg_dat', help='Path to the parsed background .dat file', required=True)
     parser_run_omniCLIP_reqNamed.add_argument('--clip-dat', action='store', dest='clip_dat', help='Path to the parsed CLIP .dat file', required=True)
 
+    parser.add_argument('--bg-dat', action='store', dest='bg_dat', help='Path to the parsed background .dat file', required=True)
+    parser.add_argument('--clip-dat', action='store', dest='clip_dat', help='Path to the parsed CLIP .dat file', required=True)
 
     # Gene annotation
     parser.add_argument('--annot', action='store', dest='gene_anno_file', help='File where gene annotation is stored')
     parser.add_argument('--genome-dir', action='store', dest='genome_dir', help='Directory where fasta files are stored')
 
     # FG files
-    parser.add_argument('--clip-files', action='append', dest='fg_libs', default=[], help='Bam-files for CLIP-libraries')
+    # parser.add_argument('--clip-files', action='append', dest='fg_libs', default=[], help='Bam-files for CLIP-libraries')
 
     # BG collapsed
     parser.add_argument('--restart-from-iter', action='store_true', default=False, dest='restart_from_file', help='restart from existing run')
 
     # Overwrite existing FG .dat files
-    parser.add_argument('--use-precomp-CLIP-data', action='store_false', default=True, dest='overwrite_fg', help='Use existing fg_data.dat file')
+    # parser.add_argument('--use-precomp-CLIP-data', action='store_false', default=True, dest='overwrite_fg', help='Use existing fg_data.dat file')
 
     # FG collapsed
     parser.add_argument('--collapsed-CLIP', action='store_true', default=False, dest='fg_collapsed', help='CLIP-reads are collapsed')
 
     # BG files
-    parser.add_argument('--bg-files', action='append', dest='bg_libs', default=[], help='Bam-files for bg-libraries or files with counts per gene')
+    # parser.add_argument('--bg-files', action='append', dest='bg_libs', default=[], help='Bam-files for bg-libraries or files with counts per gene')
 
     # Overwrite existing BG .dat files
-    parser.add_argument('--use-precomp-bg-data', action='store_false', default=True, dest='overwrite_bg', help='Use existing bg_data.dat data')
+    # parser.add_argument('--use-precomp-bg-data', action='store_false', default=True, dest='overwrite_bg', help='Use existing bg_data.dat data')
 
     # BG collapsed
     parser.add_argument('--collapsed-bg', action='store_true', default=False, dest='bg_collapsed', help='bg-reads are collapsed')
