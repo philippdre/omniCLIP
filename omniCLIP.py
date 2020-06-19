@@ -53,13 +53,6 @@ def run_omniCLIP(args):
     if verbosity > 1:
         print(args)
 
-    # Check parameters
-    # if len(args.fg_libs) == 0:
-    #     raise sys.exit('No CLIP-libraries given')
-
-    # if len(args.bg_libs) == 0:
-    #     bg_type = 'None'
-    # else:
     bg_type = args.bg_type
 
     if args.out_dir is None:
@@ -96,19 +89,9 @@ def run_omniCLIP(args):
     print('Loading reads')
 
     EmissionParameters = {}
-
-    # Check whether existing iteration parameters should be used
-    restart_from_file = args.restart_from_file
-    EmissionParameters['restart_from_file'] = restart_from_file
-
     EmissionParameters['glm_weight'] = args.glm_weight
-
-    EmissionParameters['mask_flank_variants'] = args.mask_flank_variants
-
     EmissionParameters['skip_diag_event_mdl'] = args.skip_diag_event_mdl
-
     EmissionParameters['ign_out_rds'] = args.ign_out_rds
-
     EmissionParameters['DataOutFile_seq'] = args.clip_dat
     EmissionParameters['DataOutFile_bck'] = args.bg_dat
     EmissionParameters['tmp_dir'] = args.tmp_dir
@@ -164,8 +147,6 @@ def run_omniCLIP(args):
             continue
 
         genes_to_keep.append(gene)
-        if i > args.gene_sample:
-            break
 
     genes_to_del = list(set(all_genes).difference(set(genes_to_keep)))
 
@@ -178,14 +159,14 @@ def run_omniCLIP(args):
         print('Done: Elapsed time: ' + str(time.time() - t))
         print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
-    #Initializing parameters
+    # Initializing parameters
     print('Initialising the parameters')
     if bg_type == 'Coverage_bck':
         NrOfStates = 4
     else:
         NrOfStates = 3
 
-    #Remove the gene sequence from the Sequences and Background when not needed. Currently this is always the case:
+    # Remove the gene sequence from the Sequences and Background when not needed. Currently this is always the case:
     for gene in list(Sequences.keys()):
         if 'GeneSeq' in Sequences[gene]:
             del Sequences[gene]['GeneSeq']
@@ -194,7 +175,6 @@ def run_omniCLIP(args):
         if 'GeneSeq' in Background[gene]:
             del Background[gene]['GeneSeq']
 
-    #pdb.set_trace()
     TransMat = np.ones((NrOfStates, NrOfStates)) + np.eye(NrOfStates)
     TransMat = TransMat / np.sum(np.sum(TransMat))
     TransitionParameters = [TransMat, []]
@@ -221,7 +201,7 @@ def run_omniCLIP(args):
     alphashape = (Sequences[gene]['Variants']['0']['shape'][0] + Sequences[gene]['Coverage']['0'][()].shape[0] + Sequences[gene]['Read-ends']['0'][()].shape[0])
     alpha = {}
     for state in range(NrOfStates):
-            alpha[state] = np.random.uniform(0.9, 1.1, size=(alphashape, args.nr_mix_comp))
+        alpha[state] = np.random.uniform(0.9, 1.1, size=(alphashape, args.nr_mix_comp))
 
     EmissionParameters['NrOfReplicates'] = len(Sequences[list(Sequences.keys())[0]]['Coverage'])
     EmissionParameters['NrOfBckReplicates'] = len(Background[list(Background.keys())[0]]['Coverage'])
@@ -243,16 +223,13 @@ def run_omniCLIP(args):
     if EmissionParameters['ign_out_rds']:
         EmissionParameters['ign_diag'] = EmissionParameters['ign_out_rds']
     EmissionParameters['ign_GLM'] = args.ign_GLM
-    EmissionParameters['only_pred'] = args.only_pred
-
-    EmissionParameters['use_precomp_diagmod'] = args.use_precomp_diagmod
 
     # Transistion parameters
     IterParameters = [EmissionParameters, TransitionParameters]
 
     # Start computation
 
-    # Iterativly fit the parameters of the model
+    # Iteratively fit the parameters of the model
     OldLogLikelihood = 0
     CurrLogLikelihood = -np.inf
     CurrIter = 0
@@ -263,49 +240,6 @@ def run_omniCLIP(args):
     IterHist = []
     Paths = {}
     iter_cond = True
-    # Check whether to preload the iteration file
-    if EmissionParameters['only_pred']:
-        IterParameters, args_old = pickle.load(open(IterSaveFile,'rb'))
-        EmissionParameters['mask_miRNA'] = args.mask_miRNA
-        EmissionParameters['glm_weight'] = args.glm_weight
-        EmissionParameters['restart_from_file'] = restart_from_file
-        EmissionParameters = IterParameters[0]
-        EmissionParameters['ign_diag'] = args.ign_diag
-        if EmissionParameters['ign_out_rds']:
-            EmissionParameters['ign_diag'] = EmissionParameters['ign_out_rds']
-        EmissionParameters['ign_GLM'] = args.ign_GLM
-        TransitionParameters = IterParameters[1]
-        TransitionType = EmissionParameters['TransitionType']
-        OldLogLikelihood = -np.inf
-        fg_state, bg_state = emission_prob.get_fg_and_bck_state(EmissionParameters, final_pred=True)
-
-        Paths, CurrLogLikelihood = tools.ParallelGetMostLikelyPath(Paths, Sequences, Background, EmissionParameters, TransitionParameters, 'nonhomo')
-        Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
-        Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
-
-        First = 0
-        iter_cond = False
-
-    if restart_from_file:
-        IterParameters, args_old = pickle.load(open(IterSaveFile,'rb'))
-        EmissionParameters = IterParameters[0]
-        EmissionParameters['mask_miRNA'] = args.mask_miRNA
-        EmissionParameters['glm_weight'] = args.glm_weight
-        EmissionParameters['restart_from_file'] = restart_from_file
-        EmissionParameters['ign_diag'] = args.ign_diag
-        EmissionParameters['ign_GLM'] = args.ign_GLM
-        TransitionParameters = IterParameters[1]
-        TransitionType = EmissionParameters['TransitionType']
-        OldLogLikelihood = -np.inf
-        Paths, CurrLogLikelihood = tools.ParallelGetMostLikelyPath(Paths, Sequences, Background, EmissionParameters, TransitionParameters, 'nonhomo')
-        Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
-        Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
-        First = 1
-        iter_cond = True
-
-    if not EmissionParameters['use_precomp_diagmod'] is None:
-        IterParametersPreComp, args_old = pickle.load(open(EmissionParameters['use_precomp_diagmod'],'r'))
-        IterParameters[0]['Diag_event_params'] = IterParametersPreComp[0]['Diag_event_params']
 
     while iter_cond:
         print("\n")
@@ -338,17 +272,10 @@ def run_omniCLIP(args):
         if CurrIter >= MaxIter:
             print('Maximal number of iterations reached')
 
-        if not restart_from_file:
-            if CurrIter < max(3, MaxIter):
-                iter_cond = True
-            else:
-                iter_cond = (CurrIter < MaxIter) and ((abs(CurrLogLikelihood - OldLogLikelihood)/max(abs(CurrLogLikelihood), abs(OldLogLikelihood))) > 0.01) and (abs(CurrLogLikelihood - OldLogLikelihood) > args.tol_lg_lik)
-
+        if CurrIter < max(3, MaxIter):
+            iter_cond = True
         else:
-            if np.isinf(OldLogLikelihood):
-                iter_cond = (CurrIter < MaxIter) and (abs(CurrLogLikelihood - OldLogLikelihood) > args.tol_lg_lik)
-            else:
-                iter_cond = (CurrIter < MaxIter) and ((abs(CurrLogLikelihood - OldLogLikelihood)/max(abs(CurrLogLikelihood), abs(OldLogLikelihood))) > 0.01) and (abs(CurrLogLikelihood - OldLogLikelihood) > args.tol_lg_lik)
+            iter_cond = (CurrIter < MaxIter) and ((abs(CurrLogLikelihood - OldLogLikelihood)/max(abs(CurrLogLikelihood), abs(OldLogLikelihood))) > 0.01) and (abs(CurrLogLikelihood - OldLogLikelihood) > args.tol_lg_lik)
 
     # Return the fitted parameters
     print('Finished parameter fitting')
@@ -388,91 +315,6 @@ def run_omniCLIP(args):
     return
 
 
-def pred_sites(args, verbosity=1):
-    # Get the args
-
-    args = parser.parse_args()
-    print(args)
-
-    # Check parameters
-    if len(args.fg_libs) == 0:
-        raise sys.exit('No CLIP-libraries given')
-
-    if len(args.bg_libs) == 0:
-        bg_type = 'None'
-    else:
-        bg_type = args.bg_type
-
-
-    if args.out_dir is None:
-        out_path = os.getcwd()
-    else:
-        out_path = args.out_dir
-
-    MaxIter = args.max_it
-    # process the parameters
-
-    if not (bg_type == 'Coverage' or bg_type == 'Coverage_bck'):
-        print('Bg-type: ' + bg_type + ' has not been implemented yet')
-        return
-
-    # Load the gene annotation
-    print('Loading gene annotation')
-    GeneAnnotation = gffutils.FeatureDB(args.gene_anno_file, keep_order=True)
-    GenomeDir = args.genome_dir
-
-    # Load the reads
-    t = time.time()
-    print('Loading reads')
-    DataOutFile = os.path.join(out_path, 'fg_reads.dat')
-    Sequences = LoadReads.load_data(args.fg_libs, GenomeDir, GeneAnnotation, DataOutFile, Collapse=args.fg_collapsed, ign_out_rds=EmissionParameters['ign_out_rds'], rev_strand=EmissionParameters['rev_strand'])
-
-    DataOutFile = os.path.join(out_path, 'bg_reads.dat')
-    Background = LoadReads.load_data(args.bg_libs, GenomeDir, GeneAnnotation, DataOutFile, load_from_file=True, save_results = False, Collapse = args.bg_collapsed, OnlyCoverage = True, ign_out_rds=EmissionParameters['ign_out_rds'], rev_strand=EmissionParameters['rev_strand'])
-
-    # Removing genes without any reads in the CLIP data
-    genes_to_keep = []
-    all_genes = list(Sequences.keys())
-    for i, gene in enumerate(Sequences.keys()):
-        curr_cov = np.sum(np.array([np.sum(Sequences[gene]['Coverage'][rep].toarray()) for rep in list(Sequences[gene]['Coverage'].keys())]))
-
-        if curr_cov < 100:
-            continue
-
-        genes_to_keep.append(gene)
-        if i > args.gene_sample:
-            break
-
-    genes_to_del = list(set(all_genes).difference(set(genes_to_keep)))
-
-    for gene in genes_to_del:
-        del Sequences[gene]
-        del Background[gene]
-
-    del all_genes, genes_to_del, genes_to_keep
-    if verbosity > 0:
-        print('Done: Elapsed time: ' + str(time.time() - t))
-
-    # Load data
-    tmp_file = pickle.load(open(os.path.join(out_path, 'IterSaveFile.dat'), 'rb'))
-    IterParameters = tmp_file[0]
-    args = tmp_file[1]
-    EmissionParameters = IterParameters[0]
-    fg_state, bg_state = emission_prob.get_fg_and_bck_state(EmissionParameters, final_pred=True)
-    if EmissionParameters['fg_pen'] > 0.0:
-        print('Recomputing paths')
-        EmissionParameters['LastIter'] = True
-        Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
-        Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
-        Paths, LogLike = tools.ParallelGetMostLikelyPath(Paths, Sequences, Background, EmissionParameters, TransitionParameters, 'nonhomo', verbosity=EmissionParameters['Verbosity'])
-        Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
-        Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
-
-    tools.GeneratePred(Sequences, Background, IterParameters, GeneAnnotation, OutFile, fg_state, bg_state, verbosity=EmissionParameters['Verbosity'])
-
-    print('Done')
-
-
 def PerformIteration(Sequences, Background, IterParameters, NrOfStates, First, NewPaths={}, verbosity=1):
     """
     This function performs an iteration of the HMM algorithm
@@ -483,7 +325,8 @@ def PerformIteration(Sequences, Background, IterParameters, NrOfStates, First, N
     TransitionType = EmissionParameters['TransitionType']
 
     # Get new most likely path
-    if (not EmissionParameters['restart_from_file']) and First:
+    # if (not EmissionParameters['restart_from_file']) and First:
+    if First:
         NewPaths, LogLike = tools.ParallelGetMostLikelyPath(NewPaths, Sequences, Background, EmissionParameters, TransitionParameters, 'homo', RandomNoise = True, verbosity=verbosity)
         Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
         Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
@@ -536,7 +379,7 @@ def PerformIteration(Sequences, Background, IterParameters, NrOfStates, First, N
 
     CurrLogLikelihood = LogLike
     if verbosity > 0:
-            print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
     if verbosity > 1:
         print('LogLik:')
         print(CurrLogLikelihood)
@@ -567,7 +410,7 @@ def FitEmissionParameters(Sequences, Background, NewPaths, OldEmissionParameters
         Sequences, Background, NewPaths, pseudo_gene_names = add_pseudo_gene(Sequences, Background, NewPaths, PriorMatrix)
         Sequences.close()
         Background.close()
-        print('Addes pseudo gene to prevent singular matrix during GLM fitting')
+        print('Adds pseudo gene to prevent singular matrix during GLM fitting')
 
     CorrectedPriorMatrix = np.copy(PriorMatrix)
 
@@ -607,14 +450,14 @@ def FitEmissionParameters(Sequences, Background, NewPaths, OldEmissionParameters
             new_pars = np.vstack((new_pars[:(nr_of_genes-1), :], new_pars[(nr_of_genes):, :]))
             NewEmissionParameters['ExpressionParameters'][0] = new_pars
 
-    if (NewEmissionParameters['skip_diag_event_mdl'] == False) or (not (EmissionParameters['use_precomp_diagmod'] is None)):
-        #Compute parameters for the ratios
+    if NewEmissionParameters['skip_diag_event_mdl'] is False:
+        # Compute parameters for the ratios
         print('Computing sufficient statistic for fitting md')
         if verbosity > 0:
             print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
         SuffStat = tools.GetSuffStat(Sequences, Background, NewPaths, NrOfStates, Type='Conv', EmissionParameters=NewEmissionParameters, verbosity=verbosity)
 
-        #Vectorize SuffStat
+        # Vectorize SuffStat
         Counts, NrOfCounts = tools.ConvertSuffStatToArrays(SuffStat)
 
         del SuffStat
@@ -623,7 +466,6 @@ def FitEmissionParameters(Sequences, Background, NewPaths, OldEmissionParameters
         if NewEmissionParameters['Subsample']:
             Counts, NrOfCounts = tools.subsample_suff_stat(Counts, NrOfCounts)
 
-
         print('Fitting md distribution')
         if verbosity > 0:
             print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
@@ -631,13 +473,13 @@ def FitEmissionParameters(Sequences, Background, NewPaths, OldEmissionParameters
         if NewEmissionParameters['diag_bg']:
             print("Adjusting background")
             SuffStatBck = tools.GetSuffStatBck(Sequences, Background, NewPaths, NrOfStates, Type='Conv', EmissionParameters=NewEmissionParameters, verbosity=verbosity)
-            #Vectorize SuffStat
+            # Vectorize SuffStat
             CountsBck, NrOfCountsBck = tools.ConvertSuffStatToArrays(SuffStatBck)
 
             if NewEmissionParameters['Subsample']:
                 CountsBck, NrOfCountsBck = tools.subsample_suff_stat(CountsBck, NrOfCountsBck)
 
-            #Overwrite counts in other bins
+            # Overwrite counts in other bins
             fg_state, bg_state = emission_prob.get_fg_and_bck_state(NewEmissionParameters, final_pred=True)
             for curr_state in list(Counts.keys()):
                 if curr_state != fg_state:
@@ -665,15 +507,15 @@ def add_pseudo_gene(Sequences, Background, NewPaths, PriorMatrix):
     pseudo_gene_names = ['Pseudo']
     nr_of_genes_to_gen = np.sum(PriorMatrix == 0)
 
-    #if no pseudo gen has tp be generated, continue
+    # If no pseudo gen has tp be generated, continue
     if nr_of_genes_to_gen == 0:
         return Sequences, Background, NewPaths, pseudo_gene_names
 
-    #Generate pseudo genes
-    #Get the gene lengths
+    # Generate pseudo genes
+    # Get the gene lengths
     gen_lens = [Sequences[gene]['Coverage']['0'][()].shape[1] for gene in Sequences]
 
-    random_gen  = np.random.choice(np.arange(len(gen_lens)), 1, p = np.array(gen_lens)/np.float(sum(gen_lens)))
+    random_gen = np.random.choice(np.arange(len(gen_lens)), 1, p=np.array(gen_lens)/np.float(sum(gen_lens)))
 
     if len(random_gen) == 1:
         gene_name = list(Sequences.keys())[random_gen[0]]
@@ -693,8 +535,7 @@ def add_pseudo_gene(Sequences, Background, NewPaths, PriorMatrix):
 
 
 def generateDB(args):
-    """ Given a GFF file, launches to CreateDB function """
-
+    """Given a GFF file, launches to CreateDB function."""
     # Verifications on the file paths
     if args.gff_file[-4:] != '.gff':
         raise sys.exit('Wrong file format. The annotation should be provided as a .gff file')
@@ -706,8 +547,7 @@ def generateDB(args):
 
 
 def parsingBG(args):
-    """ Initial parsing of the BG files """
-    print(args.db_file)
+    """Parse the background (BG) BAM files."""
     GeneAnnotation = gffutils.FeatureDB(args.db_file, keep_order=True)
     LoadReads.load_data(
         bam_files=args.bg_libs,
@@ -724,14 +564,14 @@ def parsingBG(args):
 
 
 def parsingCLIP(args):
-    """ Initial parsing of the CLIP files """
-
+    """Parse the CLIP (BG) BAM files."""
     GeneAnnotation = gffutils.FeatureDB(args.db_file, keep_order=True)
     LoadReads.load_data(
         bam_files=args.clip_libs,
         genome_dir=args.genome_dir,
         gene_annotation=GeneAnnotation,
         out_file=args.out_file,
+        Collapse=args.collapsed,
         mask_flank_variants=args.mask_flank_variants,
         max_mm=args.max_mm,
         ign_out_rds=args.ign_out_rds,
@@ -781,160 +621,46 @@ if __name__ == '__main__':
     parser_run_omniCLIP_reqNamed = parser_run_omniCLIP.add_argument_group('required arguments')
     parser_run_omniCLIP_reqNamed.add_argument('--bg-dat', action='store', dest='bg_dat', help='Path to the parsed background .dat file', required=True)
     parser_run_omniCLIP_reqNamed.add_argument('--clip-dat', action='store', dest='clip_dat', help='Path to the parsed CLIP .dat file', required=True)
+    parser_run_omniCLIP_reqNamed.add_argument('--out-dir', action='store', dest='out_dir', help='Output directory for results')
+    parser_run_omniCLIP_reqNamed.add_argument('--annot', action='store', dest='gene_anno_file', help='File where gene annotation is stored')
+    # Optional args for the run_omniCLIP command
+    parser_run_omniCLIP.add_argument('--bg-type', action='store', dest='bg_type', help='Background type', choices=['None', 'Coverage', 'Coverage_bck'], default='Coverage_bck')
+    parser_run_omniCLIP.add_argument('--max-it', action='store', dest='max_it', help='Maximal number of iterations', type=int, default=20)
+    parser_run_omniCLIP.add_argument('--tol-log-like', action='store', dest='tol_lg_lik', help='tolerance for lok-likelihood', type=float, default=10000.0)
+    parser_run_omniCLIP.add_argument('--nr_mix_comp', action='store', dest='nr_mix_comp', help='Number of diagnostic events mixture components', type=int, default=1)
+    parser_run_omniCLIP.add_argument('--ign-diag', action='store_true', dest='ign_diag', help='Ignore diagnostic event model for scoring', default=False)
+    parser_run_omniCLIP.add_argument('--ign-GLM', action='store_true', dest='ign_GLM', help='Ignore GLM model for scoring', default=False)
+    parser_run_omniCLIP.add_argument('--snp-ratio', action='store', dest='snps_thresh', help='Ratio of reads showing the SNP', type=float, default=0.2)
+    parser_run_omniCLIP.add_argument('--snp-abs-cov', action='store', dest='snps_min_cov', help='Absolute number of reads covering the SNP position', type=float, default=10)
+    parser_run_omniCLIP.add_argument('--norm_class', action='store_true', dest='norm_class', help='Normalize class weights during glm fit', default=False)
+    parser_run_omniCLIP.add_argument('--seed', action='store', dest='rnd_seed', help='Set a seed for the random number generators', default=None)
+    parser_run_omniCLIP.add_argument('--diag_event_mod', action='store', dest='diag_event_mod', help='Diagnostic event model', choices=['DirchMult', 'DirchMultK'], default='DirchMultK')
+    parser_run_omniCLIP.add_argument('--glm_weight', action='store', dest='glm_weight', help='weight of the glm score with respect to the diagnostic event score', type=float, default=-1.0)
+    parser_run_omniCLIP.add_argument('--skip_diag_event_mdl', action='store_true', dest='skip_diag_event_mdl', help='Do not model the diagnostic events', default=False)
+    parser_run_omniCLIP.add_argument('--pv', action='store', dest='pv_cutoff', help='bonferroni corrected p-value cutoff for peaks in bed-file', type=float, default=0.05)
+    parser_run_omniCLIP.add_argument('--emp-var', action='store_true', dest='emp_var', help='use the empirical variance if it larger than the expected variance', default=False)
+    parser_run_omniCLIP.add_argument('--diag-bg', action='store_true', dest='diag_bg', help='estimate diagnostic events for the background states on the background', default=False)
+    parser_run_omniCLIP.add_argument('--fg_pen', action='store', dest='fg_pen', help='Penalty for fg during scoring', type=float, default=0.0)
+    parser_run_omniCLIP.add_argument('--filter-snps', action='store_true', dest='filter_snps', help='Do not fit diagnostic events at SNP-positions', default=False)
+    parser_run_omniCLIP.add_argument('--no-subsample', action='store_false', default=True, dest='subs', help='Disable subsampling for parameter estimations (Warning: Leads to slow estimation)')
+    parser_run_omniCLIP.add_argument('--ign_out_rds', action='store_true', dest='ign_out_rds', help='ignore reads where the ends map ouside of the genes', default=False)
+    # Runtime args for the run_omniCLIP command (using a different subparser?)
+    parser_run_omniCLIP.add_argument('--nb-cores', action='store', dest='nb_proc', help='Number of cores o use', type=int, default=1)
+    parser_run_omniCLIP.add_argument('--save-tmp', action='store_true', dest='safe_tmp', help='Safe temporary results', default=False)
+    parser_run_omniCLIP.add_argument('--tmp-dir', action='store', dest='tmp_dir', help='Output directory for temporary results', default=None)
+    parser_run_omniCLIP.add_argument('--verbosity', action='store', dest='verbosity', help='Verbosity: 0 (default) gives information of current state of site prediction, 1 gives aditional output on runtime and meomry consupmtiona and 2 shows selected internal variables', type=int, default=0)
+    # Move them to Load_reads?
+    parser_run_omniCLIP.add_argument('--mask-miRNA', action='store_true', dest='mask_miRNA', help='Mask miRNA positions', default=False)
+    parser_run_omniCLIP.add_argument('--mask-ovrlp', action='store_true', dest='mask_ovrlp', help='Ignore overlping gene regions for diagnostic event model fitting', default=True)
 
-    parser.add_argument('--bg-dat', action='store', dest='bg_dat', help='Path to the parsed background .dat file', required=True)
-    parser.add_argument('--clip-dat', action='store', dest='clip_dat', help='Path to the parsed CLIP .dat file', required=True)
-
-    # Gene annotation
-    parser.add_argument('--annot', action='store', dest='gene_anno_file', help='File where gene annotation is stored')
-    parser.add_argument('--genome-dir', action='store', dest='genome_dir', help='Directory where fasta files are stored')
-
-    # FG files
-    # parser.add_argument('--clip-files', action='append', dest='fg_libs', default=[], help='Bam-files for CLIP-libraries')
-
-    # BG collapsed
-    parser.add_argument('--restart-from-iter', action='store_true', default=False, dest='restart_from_file', help='restart from existing run')
-
-    # Overwrite existing FG .dat files
-    # parser.add_argument('--use-precomp-CLIP-data', action='store_false', default=True, dest='overwrite_fg', help='Use existing fg_data.dat file')
-
-    # FG collapsed
-    parser.add_argument('--collapsed-CLIP', action='store_true', default=False, dest='fg_collapsed', help='CLIP-reads are collapsed')
-
-    # BG files
-    # parser.add_argument('--bg-files', action='append', dest='bg_libs', default=[], help='Bam-files for bg-libraries or files with counts per gene')
-
-    # Overwrite existing BG .dat files
-    # parser.add_argument('--use-precomp-bg-data', action='store_false', default=True, dest='overwrite_bg', help='Use existing bg_data.dat data')
-
-    # BG collapsed
-    parser.add_argument('--collapsed-bg', action='store_true', default=False, dest='bg_collapsed', help='bg-reads are collapsed')
-
-    #Also load variants for background
-    parser.add_argument('--bck-var', action='store_false', default=True, dest='only_coverage', help='Parse variants for background reads')
-
-    # BG type
-    parser.add_argument('--bg-type', action='store', dest='bg_type', help='Background type', choices=['None', 'Coverage', 'Coverage_bck'], default='Coverage_bck')
-
-    # Transistion type
-    #parser.add_argument('--trans-model', action='store', dest='tr_type', help='Transition type', choices=['binary', 'binary_bck', 'multi'], default='binary')
-
-    # verbosity
-    parser.add_argument('--verbosity', action='store', dest='verbosity', help='Verbosity: 0 (default) gives information of current state of site prediction, 1 gives aditional output on runtime and meomry consupmtiona and 2 shows selected internal variables', type=int, default=0)
-
-    # save temporary results
-    parser.add_argument('--save-tmp', action='store_true', default=False, dest='safe_tmp', help='Safe temporary results')
-
-    # only predict sites using existing mode
-    parser.add_argument('--pred-sites', action='store_true', default=False, dest='pred_sites', help='Only predict sites')
-
-    # Likelihood treshold
-    parser.add_argument('--thresh', action='store', dest='thresh', help='Likelihood threshold after which to stop the iterations', type=float)
-
-    # max number of iterations
-    parser.add_argument('--tol-log-like', action='store', dest='tol_lg_lik', help='tolerance for lok-likelihood', type=float, default = 10000.0)
-
-    # max number of iterations
-    parser.add_argument('--max-it', action='store', dest='max_it', help='Maximal number of iterations', type=int, default = 20)
-
-    # max iterations for GLM
-    parser.add_argument('--max-it-glm', action='store', dest='max_it_glm', help='Maximal number of iterations in GLM', type=int, default = 10)
-
-    # Pseudo count for null state
-    parser.add_argument('--pseudo', action='store', dest='pseudo_count', help='Pseudo count for null state', type=int)
-
-    # Output directory
-    parser.add_argument('--out-dir', action='store', dest='out_dir', help='Output directory for results')
-
-    # Output directory
-    parser.add_argument('--tmp-dir', action='store', default=None, dest='tmp_dir', help='Output directory for temporary results')
-
-    # Number of genes to sample
-    parser.add_argument('--gene-sample', action='store', dest='gene_sample', help='Nr of genes to sample', type=int, default = 100000)
-    # Disable subsampling for parameter estimation
-    parser.add_argument('--no-subsample', action='store_false', default=True, dest='subs', help='Disabaple subsampling for parameter estimations (Warning: Leads to slow estimation)')
-
-    #Do not fit diagnostic events at SNP-Positions
-    parser.add_argument('--filter-snps', action='store_true', default=False, dest='filter_snps', help='Do not fit diagnostic events at SNP-positions')
-
-    #Criterion for definition of SNPs
-    parser.add_argument('--snp-ratio', action='store', dest='snps_thresh', help='Ratio of reads showing the SNP', type=float, default = 0.2)
-    parser.add_argument('--snp-abs-cov', action='store', dest='snps_min_cov', help='Absolute number of reads covering the SNP position', type=float, default = 10)
-
-    #Number of mixture components for the diagnostic event model
-    parser.add_argument('--nr_mix_comp', action='store', dest='nr_mix_comp', help='Number of diagnostic events mixture components', type=int, default = 1)
-
-    #Diagnostic event model
-    parser.add_argument('--diag_event_mod', action='store', dest='diag_event_mod', help='Diagnostic event model', choices=['DirchMult', 'DirchMultK'], default='DirchMultK')
-
-    # Number of cores to use
-    parser.add_argument('--nb-cores', action='store', dest='nb_proc', help='Number of cores o use', type=int, default = 1)
-
-    #Mask miRNA positions
-    parser.add_argument('--mask-miRNA', action='store_true', default=False, dest='mask_miRNA', help='Mask miRNA positions')
-
-    #Ignore overlping gene regions for diagnostic event model
-    parser.add_argument('--mask-ovrlp', action='store_true', default=True, dest='mask_ovrlp', help='Ignore overlping gene regions for diagnostic event model fitting')
-
-    #Ignore diagnostic event model for scoring
-    parser.add_argument('--ign-diag', action='store_true', default=False, dest='ign_diag', help='Ignore diagnostic event model for scoring')
-
-    #Ignore GLM model for scoring
-    parser.add_argument('--ign-GLM', action='store_true', default=False, dest='ign_GLM', help='Ignore GLM model for scoring')
-
-    #Only predict, do no model fiting
-    parser.add_argument('--only-pred', action='store_true', default=False, dest='only_pred', help='only predict the sites. No model fitting')
-
-    #Estimate diagnostic events on background
-    parser.add_argument('--diag-bg', action='store_true', default=False, dest='diag_bg', help='estimate diagnostic events for the background states on the background')
-
-    #Estimate diagnostic events on background
-    parser.add_argument('--emp-var', action='store_true', default=False, dest='emp_var', help='use the empirical variance if it larger than the expected variance')
-
-    #Normalize class weights during glm fit
-    parser.add_argument('--norm_class', action='store_true', default=False, dest='norm_class', help='Normalize class weights during glm fit')
-
-    # reweight glm and diagnostic events
-    parser.add_argument('--glm_weight', action='store', dest='glm_weight', help='weight of the glm score with respect to the diagnostic event score', type=float, default = -1.0)
-
-    # max mismatches per read
-    parser.add_argument('--max-mismatch', action='store', dest='max_mm', help='Maximal number of mismatches that is allowed per read (default: 2)', type=int, default = 2)
-
-    # mask read ends fo diag event counting
-    parser.add_argument('--mask_flank_mm', action='store', dest='mask_flank_variants', help='Do not consider mismatches in the N bp at the ends of reads for diagnostic event modelling (default: 3)', type=int, default = 3)
-
-    # ignore reads where the ends map ouside of the genes
-    parser.add_argument('--ign_out_rds', action='store_true', dest='ign_out_rds', help='ignore reads where the ends map ouside of the genes', default = False)
-
-    # Do not model the diagnostic events
-    parser.add_argument('--skip_diag_event_mdl', action='store_true', dest='skip_diag_event_mdl', help='Do not model the diagnostic events', default = False)
-
-    # reweight glm and diagnostic events
-    parser.add_argument('--fg_pen', action='store', dest='fg_pen', help='Penalty for fg during scoring', type=float, default = 0.0)
-
-    # only consider reads on a given strand
-    parser.add_argument('--rev_strand', action='store', dest='rev_strand', help='Only consider reads on the forward (0) or reverse strand (1) relative to the gene orientation', type=int, default = None)
-
-    # only consider reads on a given strand
-    parser.add_argument('--use_precomp_diagmod', action='store', dest='use_precomp_diagmod', help='Use a precomputed diagnostic event model (Stored in ', type=str, default = None)
-
-    # mask read ends fo diag event counting
-    parser.add_argument('--seed', action='store', default=None, dest='rnd_seed', help='Set a seed for the random number generators')
-
-    # bonferroni cutoff
-    parser.add_argument('--pv', action='store', dest='pv_cutoff', help='bonferroni corrected p-value cutoff for peaks in bed-file', type=float, default = 0.05)
-
-    #Check if only sites should be predicted
+    # Parsing the arguments if only sites should be predicted
     args = parser.parse_args()
 
-    if args.pred_sites:
-        pred_sites()
-    elif args.command == 'generateDB':
+    if args.command == 'generateDB':
         generateDB(args)
     elif args.command == 'parsingBG':
         parsingBG(args)
     elif args.command == 'parsingCLIP':
         parsingCLIP(args)
-    else:
-        #if not run omniCLIP
+    elif args.command == 'run_omniCLIP':
         run_omniCLIP(args)

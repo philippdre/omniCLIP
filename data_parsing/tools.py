@@ -176,7 +176,7 @@ def GetSuffStat(Sequences, Background, Paths, NrOfStates, Type, ResetNotUsedStat
     This function computes for each CurrPath state a set of suffcient statistics:
     """
 
-    #Initialize the sufficent statistcs variable
+    # Initialize the sufficent statistics variable
     print("Getting suffcient statistic")
     t = time.time()
     SuffStat = {}
@@ -194,12 +194,12 @@ def GetSuffStat(Sequences, Background, Paths, NrOfStates, Type, ResetNotUsedStat
     Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
     Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
 
-    #Fil the sufficent statistcs variable
+    # Fill the sufficent statistics variable
     for gene in list(Sequences.keys()):
         rep = list(Sequences[gene]['Coverage'].keys())[0]
         CurrGenePath = Paths[gene]
 
-        #Stack the matrizes together and convert to dense matrix
+        # Stack the matrices together and convert to dense matrix
         Sequences_per_gene = PreloadSequencesForGene(Sequences, gene)
         Background_per_gene = PreloadSequencesForGene(Background, gene)
         if Type == 'Conv':
@@ -211,13 +211,13 @@ def GetSuffStat(Sequences, Background, Paths, NrOfStates, Type, ResetNotUsedStat
             if Type == 'Conv':
                 Ix = GetModelIx(Sequences_per_gene, Type='no_snps_conv', snps_thresh=EmissionParameters['SnpRatio'], snps_min_cov=EmissionParameters['SnpAbs'], Background=Background_per_gene)
             else:
-                Ix = GetModelIx(SSequences_per_gene, Type)
+                Ix = GetModelIx(Sequences_per_gene, Type)
         else:
             Ix = GetModelIx(Sequences_per_gene, Type)
 
         NonZero = np.sum(CurrStack, axis = 0) > 0
 
-        #Determine the nonzeros elements
+        # Determine the nonzeros elements
         for CurrState in range(NrOfStates):
             if EmissionParameters['mask_ovrlp']:
                 CurrIx = Ix * (Sequences_per_gene['mask'][rep][0, :] == 0) * NonZero * (CurrGenePath == CurrState) > 0
@@ -231,11 +231,11 @@ def GetSuffStat(Sequences, Background, Paths, NrOfStates, Type, ResetNotUsedStat
 
             vals, val_counts = np.unique(struct, return_counts=True)
 
-            #Save the tuples and how many times they have been seen so far.
+            # Save the tuples and how many times they have been seen so far.
             for curr_val, curr_count in zip(vals, val_counts):
                 SuffStat[CurrState][tuple(curr_val)] += curr_count
 
-            #Treat the 0 tuple seperately for speed improvment
+            # Treat the 0 tuple seperately for speed improvment
             if len(Ix) == 0:
                 continue
 
@@ -255,12 +255,12 @@ def GetSuffStat(Sequences, Background, Paths, NrOfStates, Type, ResetNotUsedStat
     return SuffStat
 
 
-def GetSuffStatBck(Sequences, Background, Paths, NrOfStates, Type, ResetNotUsedStates = True, EmissionParameters=None, verbosity=1):
+def GetSuffStatBck(Sequences, Background, Paths, NrOfStates, Type, ResetNotUsedStates=True, EmissionParameters=None, verbosity=1):
     """
     This function computes for each CurrPath state a set of suffcient statistics:
     """
 
-    #Initialize the sufficent statistcs variable
+    # Initialize the sufficent statistics variable
     print("Getting suffcient statistic")
     t = time.time()
     SuffStatBck = {}
@@ -280,12 +280,12 @@ def GetSuffStatBck(Sequences, Background, Paths, NrOfStates, Type, ResetNotUsedS
     Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
     Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
 
-    #Fil the sufficent statistcs variable
+    # Fill the sufficient statistics variable
     for gene in list(Sequences.keys()):
         rep = list(Background[gene]['Coverage'].keys())[0]
         CurrGenePath = Paths[gene]
 
-        #Stack the matrizes together and convert to dense matrix
+        # Stack the matrices together and convert to dense matrix
         Background_per_gene = PreloadSequencesForGene(Background, gene)
         Sequences_per_gene = PreloadSequencesForGene(Sequences, gene)
         if Type == 'Conv':
@@ -303,7 +303,7 @@ def GetSuffStatBck(Sequences, Background, Paths, NrOfStates, Type, ResetNotUsedS
 
         NonZero = np.sum(CurrStack, axis = 0) > 0
 
-        #Determine the nonzeros elements
+        # Determine the nonzeros elements
         CurrState = fg_state
 
         CurrIx = Ix * NonZero > 0
@@ -319,11 +319,11 @@ def GetSuffStatBck(Sequences, Background, Paths, NrOfStates, Type, ResetNotUsedS
 
         vals, val_counts = np.unique(struct, return_counts=True)
 
-        #Save the tuples and how many times they have been seen so far.
+        # Save the tuples and how many times they have been seen so far.
         for curr_val, curr_count in zip(vals, val_counts):
             SuffStatBck[CurrState][tuple(curr_val)] += curr_count
 
-        #Treat the 0 tuple seperately for speed improvment
+        # Treat the 0 tuple seperately for speed improvment
         if len(Ix) == 0:
             continue
         NullIx = (NonZero == 0) * (CurrGenePath == CurrState) > 0
@@ -347,7 +347,7 @@ def ConvertSuffStatToArrays(SuffStat):
     This function converts the Suffcient statistics into a list of arrays
     """
 
-    #Initializse the return values
+    # Initialise the return values
     Counts = {}
     NrOfCounts = {}
     for State in list(SuffStat.keys()):
@@ -383,7 +383,7 @@ def GeneratePred(Paths, Sequences, Background, IterParameters, GeneAnnotation, O
     merge_neighbouring_sites = False
     minimal_site_length = 1
 
-    #Predict the sites
+    # Predict the sites
     print('Score peaks')
     try:
         Sequences.close()
@@ -402,7 +402,7 @@ def GeneratePred(Paths, Sequences, Background, IterParameters, GeneAnnotation, O
     Background = h5py.File(bck_file, 'r')
 
     print('Write peaks')
-    #Write the results
+    # Write the results
     WriteResults(Sequences, Background, ScoredSites, OutFile, GeneAnnotation)
 
     generate_bed(OutFile, pv_cutoff=0.05)
@@ -410,41 +410,37 @@ def GeneratePred(Paths, Sequences, Background, IterParameters, GeneAnnotation, O
 
 
 def generate_bed(file, pv_cutoff=0.05):
-    df = pd.read_table(file, low_memory = False)
+    df = pd.read_table(file, low_memory=False)
 
-    #Determine the cutoff for the p-vales aften Bonferroni
-    cutoff = np.log( 0.05 /  df.shape[0])
+    # Determine the cutoff for the p-vales aften Bonferroni
+    cutoff = np.log(0.05 / df.shape[0])
     df = df[df['pv'] < cutoff]
 
-
-    #Make the names unique
+    # Make the names unique
     df['Gene'] = df['Gene'] + ['_' + str(i) for i in range(df.shape[0])]
 
-    #Transform the Score to be betweeen 0 and 1000
+    # Transform the Score to be betweeen 0 and 1000
     df['SiteScore'] /= np.max(df['SiteScore']) * 0.001
 
-
-    #Compute thickstart and end
+    # Compute thick start and end
     df['ThickStart'] = 0
     df['ThickStop'] = 0
-
 
     df.loc[df['Strand'] == 1, 'ThickStart'] = df['Start'] + df['max_pos']
     df.loc[df['Strand'] == -1, 'ThickStart'] = df['Stop'] - df['max_pos']
 
-
     df.loc[df['Strand'] == 1, 'ThickStop'] = df['Start'] + df['max_pos'] + 1
     df.loc[df['Strand'] == -1, 'ThickStop'] = df['Stop'] - df['max_pos'] + 1
 
-    #rename the strands
+    # Rename the strands
     df.loc[df['Strand'] == 1, 'Strand'] = '+'
     df.loc[df['Strand'] == -1, 'Strand'] = '-'
 
-    #Keep only the columns that are relevant for the bed-file
+    # Keep only the columns that are relevant for the bed-file
     df = df[['ChrName', 'Start', 'Stop', 'Gene', 'SiteScore', 'Strand' , 'ThickStart', 'ThickStop']].sort_values('SiteScore', ascending=False)
 
-    #Write the output
-    df.to_csv(file.replace('.txt', '.bed') , sep = '\t', header=False, index=False)
+    # Write the output
+    df.to_csv(file.replace('.txt', '.bed'), sep='\t', header=False, index=False)
     return
 
 
@@ -456,7 +452,7 @@ def GetSites(Paths, Sequences, Background, EmissionParameters, TransitionParamet
     TransitionType = EmissionParameters['TransitionType']
     alpha = EmissionParameters['Diag_event_params']
 
-    #Extract the paths
+    # Extract the paths
     Sites = convert_paths_to_sites(Paths, fg_state, merge_neighbouring_sites, minimal_site_length)
 
     np_proc = EmissionParameters['NbProc']
@@ -486,7 +482,6 @@ def GetSites(Paths, Sequences, Background, EmissionParameters, TransitionParamet
         if len(ScoredSites[key]) == 0:
             del ScoredSites[key]
 
-
     return ScoredSites
 
 
@@ -495,10 +490,10 @@ def GetSitesForGene(data):
     This function determines for each gene the score of the sites
     """
 
-    #Computing the probabilities for the current gene
-
+    # Computing the probabilities for the current gene
     Sites, gene, nr_of_genes, gene_nr, seq_file, bck_file, EmissionParameters, TransitionParameters, TransitionTypeFirst, fg_state, merge_neighbouring_sites, minimal_site_length = data
-    #Turn the Sequence and Bacground objects into dictionaries again such that the subsequent methods for using these do not need to be modified
+
+    # Turn the Sequence and Bacground objects into dictionaries again such that the subsequent methods for using these do not need to be modified
     if len(Sites) == 0:
         return gene, []
 
@@ -523,7 +518,7 @@ def GetSitesForGene(data):
     else:
         Ix = GetModelIx(Sequences_per_gene, Type='Conv')
 
-    #Only compute the emission probability for regions where a site is
+    # Only compute the emission probability for regions where a site is
     ix_sites = np.zeros_like(Ix)
     ix_sites_len = Ix.shape[0]
     for currsite in Sites[gene]:
@@ -533,10 +528,10 @@ def GetSitesForGene(data):
     #2) Compute the probabilities for both states
     EmmisionProbGene = np.log(np.ones((NrOfStates, Ix.shape[0])) * (1 / np.float64(NrOfStates)))
     CurrStackSum = StackData(Sequences_per_gene)
-    CurrStackVar = StackData(Sequences_per_gene, add = 'no')
-    CurrStackSumBck = StackData(Background_per_gene, add = 'only_cov')
+    CurrStackVar = StackData(Sequences_per_gene, add='no')
+    CurrStackSumBck = StackData(Background_per_gene, add='only_cov')
 
-    CurrStackVarSumm = StackData(Sequences_per_gene, add = 'only_var_summed')
+    CurrStackVarSumm = StackData(Sequences_per_gene, add='only_var_summed')
     EmmisionProbGeneDir = np.zeros_like(EmmisionProbGene)
 
     if EmissionParameters['glm_weight'] < 0.0:
@@ -552,7 +547,6 @@ def GetSitesForGene(data):
         weight1 = EmissionParameters['glm_weight']
         weight2 = (1.0 - EmissionParameters['glm_weight'])
 
-
     for State in range(NrOfStates):
         EmmisionProbGene[State, ix_sites] = np.log(weight1) + emission_prob.predict_expression_log_likelihood_for_gene(CurrStackSum[:, ix_sites], State, nr_of_genes, gene_nr, EmissionParameters)
         if EmissionParameters['BckType'] == 'Coverage':
@@ -564,27 +558,27 @@ def GetSitesForGene(data):
         EmmisionProbGene[State, Ix] += np.log(weight2) + EmmisionProbGeneDir[State, Ix]
 
     if TransitionType == 'unif_bck' or TransitionType == 'binary_bck':
-        CountsSeq = StackData(Sequences_per_gene, add = 'all')
-        CountsBck = StackData(Background_per_gene, add = 'only_cov')
+        CountsSeq = StackData(Sequences_per_gene, add='all')
+        CountsBck = StackData(Background_per_gene, add='only_cov')
         Counts = np.vstack((CountsSeq, CountsBck))
     else:
-        Counts = StackData(Sequences_per_gene, add = 'all')
+        Counts = StackData(Sequences_per_gene, add='all')
 
 
     Score = EmmisionProbGene
     CurrStack = CurrStackVar
-    #Compute the scores when staying in the same state
-    #RowIx = list(range(16)) + list(range(17, 38)) + list(range(39,44))
+    # Compute the scores when staying in the same state
+    # RowIx = list(range(16)) + list(range(17, 38)) + list(range(39,44))
     strand = Sequences_per_gene['strand']
 
-    #Get the coverages for the froeground and background
-    CountsSeq = StackData(Sequences_per_gene, add = 'only_cov')
-    CountsBck = StackData(Background_per_gene, add = 'only_cov')
+    # Get the coverages for the froeground and background
+    CountsSeq = StackData(Sequences_per_gene, add='only_cov')
+    CountsBck = StackData(Background_per_gene, add='only_cov')
 
     if strand == 0:
         strand = -1
-    #Since we the transition probabilty is the same for all States we do not need to compute it for the bayes factor
-    #this list contains the returned sites
+    # Since we the transition probabilty is the same for all States we do not need to compute it for the bayes factor
+    # this list contains the returned sites
     sites = []
     for currsite in Sites[gene]:
         mean_mat_fg, var_mat_fg, mean_mat_bg, var_mat_bg, counts_fg, counts_bg = ComputeStatsForSite(CountsSeq, CountsBck, currsite, fg_state, nr_of_genes, gene_nr, EmissionParameters)
@@ -594,8 +588,8 @@ def GetSitesForGene(data):
         site['Stop'] = currsite[1]
         site['Strand'] = strand
         site['SiteScore'] = EvaluateSite(Score, currsite, fg_state)
-        site['Coverage'] = np.sum(np.sum(Counts[:, site['Start'] : site['Stop']], axis=0))
-        site['Variants'] = np.sum(CurrStackVarSumm[:, site['Start'] : site['Stop']], axis=1)
+        site['Coverage'] = np.sum(np.sum(Counts[:, site['Start']:site['Stop']], axis=0))
+        site['Variants'] = np.sum(CurrStackVarSumm[:, site['Start']:site['Stop']], axis=1)
         site['mean_mat_fg'] = mean_mat_fg
         site['var_mat_fg'] = var_mat_fg
         site['mean_mat_bg'] = mean_mat_bg
@@ -625,11 +619,8 @@ def convert_paths_to_sites(Paths, fg_state, merge_neighbouring_sites, minimal_si
 
     sites = defaultdict(list)
 
-    #Iterate over the paths
+    # Iterate over the paths
     for gene in Paths:
-        #first_pos = -1
-        #end_pos = -1
-        #curr_dist_counter = merge_neighbouring_sites
         curr_path = Paths[gene] == fg_state
         Starts = np.where(np.concatenate(([curr_path[0]], curr_path[:-1] != curr_path[1:], [curr_path[-1]])))[0][::2]
         Stops = np.where(np.concatenate(([curr_path[0]], curr_path[:-1] != curr_path[1:], [curr_path[-1]])))[0][1::2]
@@ -838,8 +829,7 @@ def ParallelGetMostLikelyPathForGene(data):
     TransitionType = EmissionParameters['TransitionType']
 
     fg_state, bg_state = emission_prob.get_fg_and_bck_state(EmissionParameters, final_pred=True)
-    fg_pen = EmissionParameters['fg_pen']
-    #Score the state sequences
+    # Score the state sequences
     #1) Determine the positions where an observation is possible
 
     Sequences_per_gene = PreloadSequencesForGene(Sequences, gene)
@@ -849,7 +839,7 @@ def ParallelGetMostLikelyPathForGene(data):
 
     if np.sum(Ix) == 0:
         CurrPath = 2 * np.ones((0, Ix.shape[0]), dtype=np.int)
-        return  [gene, CurrPath, 0]
+        return [gene, CurrPath, 0]
 
     if EmissionParameters['FilterSNPs']:
         Ix = GetModelIx(Sequences_per_gene, Type='no_snps_conv', snps_thresh=EmissionParameters['SnpRatio'], snps_min_cov=EmissionParameters['SnpAbs'], Background=Background_per_gene)
@@ -889,7 +879,7 @@ def ParallelGetMostLikelyPathForGene(data):
             EmmisionProbGene[State, Ix] += np.log(weight2) + diag_event_model.pred_log_lik(CurrStackVar[:, Ix], State, EmissionParameters)
         if State == fg_state:
             if EmissionParameters['LastIter']:
-                EmmisionProbGene[State, :] -= fg_pen
+                EmmisionProbGene[State, :] -= EmissionParameters['fg_pen']
     if RandomNoise:
         EmmisionProbGene = np.logaddexp(EmmisionProbGene, np.random.uniform(np.min(EmmisionProbGene[np.isfinite(EmmisionProbGene)]) - 4, np.min(EmmisionProbGene[np.isfinite(EmmisionProbGene)]) - 0.1, EmmisionProbGene.shape)) #Add some random noise
 
