@@ -52,7 +52,7 @@ def mask_miRNA_positions(Sequences, GeneAnnotation):
     miRNAs = [miRNA for miRNA in GeneAnnotation.features_of_type('gene') if miRNA.attributes.get('gene_type').count('miRNA') > 0]
     for miRNA in miRNAs:
         curr_chr = miRNA.chrom
-        curr_genes = sorted(interval_chr_dict[curr_chr][miRNA.start : miRNA.stop])
+        curr_genes = sorted(interval_chr_dict[curr_chr][miRNA.start:miRNA.stop])
         curr_genes = [gene[2] for gene in curr_genes]
 
         # Get the miRNAs that overalp:

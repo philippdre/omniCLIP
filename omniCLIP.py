@@ -118,21 +118,8 @@ def run_omniCLIP(args):
     EmissionParameters['DataOutFile_seq'] = f_name_read_fg_tmp
     EmissionParameters['DataOutFile_bck'] = f_name_read_bg_tmp
 
-    # Set coverage for regions that overlapp annotated miRNAs to zero
-    EmissionParameters['mask_miRNA'] = args.mask_miRNA
-    if args.mask_miRNA:
-        print('Removing miRNA-coverage')
-        Sequences = ParsingPositions.mask_miRNA_positions(Sequences, GeneAnnotation)
-
-    # Mask regions where genes overlap
-    EmissionParameters['mask_ovrlp'] = args.mask_ovrlp
-
-    if EmissionParameters['mask_ovrlp']:
-        print('Masking overlapping positions')
-        Sequences = ParsingPositions.mark_overlapping_positions(Sequences, GeneAnnotation)
-
     # Estimate the library size
-    EmissionParameters['BckLibrarySize'] =  tools.estimate_library_size(Background)
+    EmissionParameters['BckLibrarySize'] = tools.estimate_library_size(Background)
     EmissionParameters['LibrarySize'] = tools.estimate_library_size(Sequences)
 
     # Removing genes without any reads in the CLIP data
@@ -578,6 +565,16 @@ def parsingCLIP(args):
         rev_strand=args.rev_strand
     )
 
+    Sequences = LoadReads.get_data_handle(args.out_file, write=True)
+
+    if args.mask_miRNA:
+        print('Removing miRNA-coverage')
+        Sequences = ParsingPositions.mask_miRNA_positions(Sequences, GeneAnnotation)
+
+    if args.mask_ovrlp:
+        print('Masking overlapping positions')
+        Sequences = ParsingPositions.mark_overlapping_positions(Sequences, GeneAnnotation)
+
 
 if __name__ == '__main__':
 
@@ -615,6 +612,9 @@ if __name__ == '__main__':
     parser_parsingCLIP_reqNamed.add_argument('--db-file', action='store', dest='db_file', help='Path to the .GFF.DB file', required=True)
     parser_parsingCLIP_reqNamed.add_argument('--out-file', action='store', dest='out_file', help='Output path for .dat file', required=True)
     parser_parsingCLIP_reqNamed.add_argument('--genome-dir', action='store', dest='genome_dir', help='Directory where fasta files are stored')
+    # Optional args for the parsingCLIP command
+    parser_parsingCLIP.add_argument('--mask-miRNA', action='store_true', dest='mask_miRNA', help='Mask miRNA positions', default=False)
+    parser_parsingCLIP.add_argument('--mask-ovrlp', action='store_true', dest='mask_ovrlp', help='Ignore overlping gene regions for diagnostic event model fitting', default=True)
 
     # Create the parser for the run_omniCLIP command
     parser_run_omniCLIP = subparsers.add_parser('run_omniCLIP', help='run_omniCLIP help', description="running the main omniCLIP program.")

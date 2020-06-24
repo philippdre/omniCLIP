@@ -34,16 +34,17 @@ import os
 import pysam
 
 
-def get_data_handle(file_path):
-    """ Returns the h5py file handle """
-    return h5py.File(file_path, 'r+')
+def get_data_handle(file_path, write=False):
+    """Return the h5py file handle."""
+    if write:
+        return h5py.File(file_path, 'r+')
+    else:
+        return h5py.File(file_path, 'r')
+
 
 
 def load_data(bam_files, genome_dir, gene_annotation, out_file, Collapse=False, OnlyCoverage=False, select_chrom=None, store_gene_seq=False, mask_flank_variants=3, max_mm=2, ign_out_rds=False, rev_strand=None):
-    """
-    This function reads the data from the bam-files
-    """
-
+    """Read the data from the bam-files."""
     GeneConversionEvents = h5py.File(out_file, 'w')
 
     if OnlyCoverage:
