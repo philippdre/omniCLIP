@@ -559,8 +559,7 @@ def GetSitesForGene(data):
             EmmisionProbGene[State, ix_sites] += np.log(weight1) + emission_prob.predict_expression_log_likelihood_for_gene(CurrStackSumBck[:, ix_sites], State, nr_of_genes, gene_nr, EmissionParameters, 'bg')
         if EmissionParameters['BckType'] == 'Coverage_bck':
             EmmisionProbGene[State, ix_sites] += np.log(weight1) + emission_prob.predict_expression_log_likelihood_for_gene(CurrStackSumBck[:, ix_sites], State, nr_of_genes, gene_nr, EmissionParameters, 'bg')
-        if not EmissionParameters['ign_out_rds']:
-            EmmisionProbGeneDir[State, Ix] = np.log(weight2) + diag_event_model.pred_log_lik(CurrStackVar[:, Ix], State, EmissionParameters)
+        EmmisionProbGeneDir[State, Ix] = np.log(weight2) + diag_event_model.pred_log_lik(CurrStackVar[:, Ix], State, EmissionParameters)
         EmmisionProbGene[State, Ix] += np.log(weight2) + EmmisionProbGeneDir[State, Ix]
 
     if TransitionType == 'unif_bck' or TransitionType == 'binary_bck':
