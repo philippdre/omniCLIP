@@ -569,11 +569,11 @@ def parsingCLIP(args):
 
     if args.mask_miRNA:
         print('Removing miRNA-coverage')
-        Sequences = ParsingPositions.mask_miRNA_positions(Sequences, GeneAnnotation)
+        ParsingPositions.mask_miRNA_positions(Sequences, GeneAnnotation)
 
     if args.mask_ovrlp:
         print('Masking overlapping positions')
-        Sequences = ParsingPositions.mark_overlapping_positions(Sequences, GeneAnnotation)
+        ParsingPositions.mask_overlapping_positions(Sequences, GeneAnnotation)
 
 
 if __name__ == '__main__':
@@ -614,7 +614,7 @@ if __name__ == '__main__':
     parser_parsingCLIP_reqNamed.add_argument('--genome-dir', action='store', dest='genome_dir', help='Directory where fasta files are stored')
     # Optional args for the parsingCLIP command
     parser_parsingCLIP.add_argument('--mask-miRNA', action='store_true', dest='mask_miRNA', help='Mask miRNA positions', default=False)
-    parser_parsingCLIP.add_argument('--mask-ovrlp', action='store_true', dest='mask_ovrlp', help='Ignore overlping gene regions for diagnostic event model fitting', default=True)
+    parser_parsingCLIP.add_argument('--mask-ovrlp', action='store_true', dest='mask_ovrlp', help='Ignore overlapping gene regions for diagnostic event model fitting', default=True)
 
     # Create the parser for the run_omniCLIP command
     parser_run_omniCLIP = subparsers.add_parser('run_omniCLIP', help='run_omniCLIP help', description="running the main omniCLIP program.")
@@ -649,9 +649,6 @@ if __name__ == '__main__':
     parser_run_omniCLIP.add_argument('--save-tmp', action='store_true', dest='safe_tmp', help='Safe temporary results', default=False)
     parser_run_omniCLIP.add_argument('--tmp-dir', action='store', dest='tmp_dir', help='Output directory for temporary results', default=None)
     parser_run_omniCLIP.add_argument('--verbosity', action='store', dest='verbosity', help='Verbosity: 0 (default) gives information of current state of site prediction, 1 gives aditional output on runtime and meomry consupmtiona and 2 shows selected internal variables', type=int, default=0)
-    # Move them to Load_reads?
-    parser_run_omniCLIP.add_argument('--mask-miRNA', action='store_true', dest='mask_miRNA', help='Mask miRNA positions', default=False)
-    parser_run_omniCLIP.add_argument('--mask-ovrlp', action='store_true', dest='mask_ovrlp', help='Ignore overlping gene regions for diagnostic event model fitting', default=True)
 
     # Parsing the arguments if only sites should be predicted
     args = parser.parse_args()

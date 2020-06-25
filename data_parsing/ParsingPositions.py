@@ -24,10 +24,10 @@ from scipy.sparse import csr_matrix
 
 
 def mask_miRNA_positions(Sequences, GeneAnnotation):
-    """
-    This function takes the sequences and
-    the gene annotation and sets all counts in Sequences to zero that overlap
-    miRNAs in the gene annotaion
+    """Remove counts overlapping miRNA positions.
+
+    This function takes the sequences and the gene annotation and sets all
+    counts in Sequences to zero that overlap miRNAs in the gene annotation.
     """
     keys = ['Coverage', 'Read-ends', 'Variants']
     # Create a dictionary that stores the genes in the Gene annnotation
@@ -55,7 +55,7 @@ def mask_miRNA_positions(Sequences, GeneAnnotation):
         curr_genes = sorted(interval_chr_dict[curr_chr][miRNA.start:miRNA.stop])
         curr_genes = [gene[2] for gene in curr_genes]
 
-        # Get the miRNAs that overalp:
+        # Get the miRNAs that overlap:
         for curr_gene_obj in curr_genes:
             curr_gene = curr_gene_obj.id.split('.')[0]
 
@@ -65,42 +65,36 @@ def mask_miRNA_positions(Sequences, GeneAnnotation):
 
             # Set for each field the sequences to zeros
             for curr_key in keys:
-                if curr_key in Sequences:
-                    if curr_key in Sequences[curr_gene]:
-                        for rep in list(Sequences[curr_gene][curr_key].keys()):
-                            if curr_key == 'Variants':
-                                # Convert the Variants to array
-                                curr_seq = csr_matrix((Sequences[curr_gene]['Variants'][rep]['data'][:], Sequences[curr_gene]['Variants'][rep]['indices'][:],
-                                    Sequences[curr_gene]['Variants'][rep]['indptr'][:]), shape=Sequences[curr_gene]['Variants'][rep]['shape'][:])
+                if curr_key in Sequences[curr_gene]:
+                    for seq in list(Sequences[curr_gene][curr_key].values()):
+                        if curr_key == 'Variants':
+                            # Convert the Variants to array
+                            curr_seq = csr_matrix(
+                                (seq['data'][:], seq['indices'][:], seq['indptr'][:]),
+                                shape=seq['shape'][:])
 
-                                ix_slice = np.logical_and(curr_start <= curr_seq.indices, curr_seq.indices < curr_stop)
-                                Sequences[curr_gene]['Variants'][rep]['data'][ix_slice] = 0
-                            else:
-                                curr_seq = Sequences[curr_gene][curr_key][rep][:, :]
-                                curr_seq[:, curr_start: curr_stop] = 0
-                                Sequences[curr_gene][curr_key][rep][:, :] = curr_seq
-
-    return Sequences
+                            ix_slice = np.logical_and(curr_start <= curr_seq.indices, curr_seq.indices < curr_stop)
+                            seq['data'][ix_slice] = 0
+                        else:
+                            seq[:, curr_start: curr_stop] = 0
 
 
-def mark_overlapping_positions(Sequences, GeneAnnotation):
-    """
-    This function takes the sequences and
-    the gene annotation and adds to Sequences a track that indicates the overlaping regions
-    """
-
+def mask_overlapping_positions(Sequences, GeneAnnotation):
+    """Generate an overlapping regions track."""
     # Add fields to Sequence structure:
     for gene in list(Sequences.keys()):
         Sequences[gene].create_group('mask')
         rep = list(Sequences[gene]['Coverage'].keys())[0]
         if rep == '0':
-            Sequences[gene]['mask'].create_dataset(rep, data=np.zeros(Sequences[gene]['Coverage'][rep][()].shape), compression="gzip", compression_opts=9, chunks=Sequences[gene]['Coverage'][rep][()].shape, dtype='i8')
+            Sequences[gene]['mask'].create_dataset(
+                rep,
+                data=np.zeros(Sequences[gene]['Coverage'][rep][()].shape),
+                compression="gzip", compression_opts=9,
+                chunks=Sequences[gene]['Coverage'][rep][()].shape, dtype='i8')
 
     # Create a dictionary that stores the genes in the Gene annnotation
-    gene_dict = {}
-
-    for gene in GeneAnnotation.features_of_type('gene'):
-        gene_dict[gene.id.split('.')[0]] = gene
+    genes = [gene for gene in GeneAnnotation.features_of_type('gene')]
+    gene_dict = {gene.id.split('.')[0]: gene for gene in genes}
 
     # Get Chromosomes:
     genes_chr_dict = defaultdict(list)
@@ -114,26 +108,21 @@ def mark_overlapping_positions(Sequences, GeneAnnotation):
         for gene in genes_chr_dict[chr]:
             interval_chr_dict[chr][gene.start:gene.stop] = gene
 
-    genes = [gene for gene in GeneAnnotation.features_of_type('gene')]
-
     # Iterate over the genes in the Sequences:
     for gene in genes:
-        if not (gene.id.split('.')[0] in Sequences):
-            continue
-        curr_chr = gene.chrom
-        curr_genes = sorted(interval_chr_dict[curr_chr][gene.start:gene.stop])
-        curr_genes = [curr_gene[2] for curr_gene in curr_genes]
-        curr_genes.remove(gene)
-        # Get the genes that overalp:
-        for curr_gene_obj in curr_genes:
-            curr_gene = curr_gene_obj.id.split('.')[0]
+        if gene.id.split('.')[0] in Sequences:
+            curr_chr = gene.chrom
+            curr_genes = sorted(interval_chr_dict[curr_chr][gene.start:gene.stop])
+            curr_genes = [curr_gene[2] for curr_gene in curr_genes]
+            curr_genes.remove(gene)
+            # Get the genes that overalp:
+            for curr_gene_obj in curr_genes:
+                curr_gene = curr_gene_obj.id.split('.')[0]
 
-            # Get position of overlapping gene relative to the host gene
-            ovrlp_start = max(0, gene_dict[curr_gene].start - gene.start)
-            ovrlp_stop = min(gene.stop - gene.start, gene_dict[curr_gene].stop - gene.start)
+                # Get position of overlapping gene relative to the host gene
+                ovrlp_start = max(0, gene_dict[curr_gene].start - gene.start)
+                ovrlp_stop = min(gene.stop - gene.start, gene_dict[curr_gene].stop - gene.start)
 
-            # Set for each field the sequences to zeros
-            rep = list(Sequences[gene.id.split('.')[0]]['Coverage'].keys())[0]
-            Sequences[gene.id.split('.')[0]]['mask'][rep][0, ovrlp_start:ovrlp_stop] = True
-
-    return Sequences
+                # Set for each field the sequences to zeros
+                rep = list(Sequences[gene.id.split('.')[0]]['Coverage'].keys())[0]
+                Sequences[gene.id.split('.')[0]]['mask'][rep][0, ovrlp_start:ovrlp_stop] = True
