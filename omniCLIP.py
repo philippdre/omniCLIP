@@ -622,7 +622,7 @@ if __name__ == '__main__':
     parser_run_omniCLIP_reqNamed.add_argument('--bg-dat', action='store', dest='bg_dat', help='Path to the parsed background .dat file', required=True)
     parser_run_omniCLIP_reqNamed.add_argument('--clip-dat', action='store', dest='clip_dat', help='Path to the parsed CLIP .dat file', required=True)
     parser_run_omniCLIP_reqNamed.add_argument('--out-dir', action='store', dest='out_dir', help='Output directory for results')
-    parser_run_omniCLIP_reqNamed.add_argument('--annot', action='store', dest='gene_anno_file', help='File where gene annotation is stored')
+    parser_run_omniCLIP_reqNamed.add_argument('--db-file', action='store', dest='gene_anno_file', help='File where gene annotation is stored')
     # Optional args for the run_omniCLIP command
     parser_run_omniCLIP.add_argument('--bg-type', action='store', dest='bg_type', help='Background type', choices=['None', 'Coverage', 'Coverage_bck'], default='Coverage_bck')
     parser_run_omniCLIP.add_argument('--max-it', action='store', dest='max_it', help='Maximal number of iterations', type=int, default=20)
