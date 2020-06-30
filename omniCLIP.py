@@ -615,7 +615,7 @@ if __name__ == '__main__':
     parser_parsingCLIP_reqNamed.add_argument('--genome-dir', action='store', dest='genome_dir', help='Directory where fasta files are stored')
     # Optional args for the parsingCLIP command
     parser_parsingCLIP.add_argument('--mask-miRNA', action='store_true', dest='mask_miRNA', help='Mask miRNA positions', default=False)
-    parser_parsingCLIP.add_argument('--mask-ovrlp', action='store_true', dest='mask_ovrlp', help='Ignore overlapping gene regions for diagnostic event model fitting', default=True)
+    parser_parsingCLIP.add_argument('--mask-ovrlp', action='store_true', dest='mask_ovrlp', help='Ignore overlapping gene regions for diagnostic event model fitting', default=False)
 
     # Create the parser for the run_omniCLIP command
     parser_run_omniCLIP = subparsers.add_parser('run_omniCLIP', help='run_omniCLIP help', description="running the main omniCLIP program.")
@@ -651,7 +651,7 @@ if __name__ == '__main__':
     parser_run_omniCLIP.add_argument('--tmp-dir', action='store', dest='tmp_dir', help='Output directory for temporary results', default=None)
     parser_run_omniCLIP.add_argument('--verbosity', action='store', dest='verbosity', help='Verbosity: 0 (default) gives information of current state of site prediction, 1 gives aditional output on runtime and meomry consupmtiona and 2 shows selected internal variables', type=int, default=0)
     # TODO : need to implement this in the Sequence file
-    parser_run_omniCLIP.add_argument('--mask-ovrlp', action='store_true', dest='mask_ovrlp', help='Ignore overlapping gene regions for diagnostic event model fitting', default=True)
+    parser_run_omniCLIP.add_argument('--mask-ovrlp', action='store_true', dest='mask_ovrlp', help='Ignore overlapping gene regions for diagnostic event model fitting', default=False)
 
     # Parsing the arguments if only sites should be predicted
     args = parser.parse_args()
