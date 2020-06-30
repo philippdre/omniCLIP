@@ -876,7 +876,7 @@ def ParallelGetMostLikelyPathForGene(data):
             if EmissionParameters['LastIter']:
                 EmmisionProbGene[State, :] -= EmissionParameters['fg_pen']
     if RandomNoise:
-        EmmisionProbGene = np.logaddexp(EmmisionProbGene, np.random.uniform(np.min(EmmisionProbGene[np.isfinite(EmmisionProbGene)]) - 4, np.min(EmmisionProbGene[np.isfinite(EmmisionProbGene)]) - 0.1, EmmisionProbGene.shape)) #Add some random noise
+        EmmisionProbGene = np.logaddexp(EmmisionProbGene, np.random.uniform(np.min(EmmisionProbGene[np.isfinite(EmmisionProbGene)]) - 4, np.min(EmmisionProbGene[np.isfinite(EmmisionProbGene)]) - 0.1, EmmisionProbGene.shape)) # Add some random noise
 
     # Get the transition probabilities
     if TransitionTypeFirst == 'nonhomo':
