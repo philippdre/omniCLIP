@@ -95,7 +95,7 @@ def Parallel_estimate_mixture_params(EmissionParameters, curr_counts_orig, curr_
         curr_counts = curr_counts[:, np.sum(curr_counts, axis=0) > 10]
 
     tracks_per_rep = EmissionParameters['Diag_event_params']['alpha'][curr_state].shape[0]
-    NrOfReplicates = curr_counts.shape[0] / tracks_per_rep
+    NrOfReplicates = curr_counts.shape[0] // tracks_per_rep
 
     if len(curr_counts.shape) == 1:
         curr_counts = np.expand_dims(curr_counts, axis=1)

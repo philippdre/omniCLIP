@@ -28,7 +28,7 @@ def ComputeStateProbForGeneMD_unif(*args):
 
     tracks_per_rep = alpha.shape[0]
 
-    NrOfReplicates = Counts.shape[0] / tracks_per_rep
+    NrOfReplicates = Counts.shape[0] // tracks_per_rep
 
     Prob = np.zeros((Counts.shape[1]))
 
@@ -62,7 +62,7 @@ def ComputeStateProbForGeneMD_unif_rep(*args):
     Counts, alpha, State, EmissionParameters = args
 
     tracks_per_rep = alpha.shape[0]
-    NrOfReplicates = Counts.shape[0] / tracks_per_rep
+    NrOfReplicates = Counts.shape[0] // tracks_per_rep
 
     Prob = np.zeros((Counts.shape[1]))
 
@@ -95,7 +95,7 @@ def MDK_f_joint_vect_unif(x, *args):
     Counts, NrOfCounts, EmissionParameters = args
     # Prepare the return variable
     LogLikelihood = 0.0
-    NrOfReplicates = Counts.shape[0] / alpha.shape[0]
+    NrOfReplicates = Counts.shape[0] // alpha.shape[0]
     tracks_per_rep = x.shape[0]
 
     RatioLikelihood = multdirichletVect.log_pdf_vect_rep(Counts, alpha, tracks_per_rep, NrOfReplicates)
@@ -115,10 +115,10 @@ def MD_f_joint_vect_unif(x, *args):
     LogLikelihood = 0.0
 
     tracks_per_rep = x.shape[0]
-    NrOfReplicates = Counts.shape[0] / tracks_per_rep
+    NrOfReplicates = Counts.shape[0] // tracks_per_rep
 
     RatioLikelihood = multdirichletVect.log_pdf_vect(Counts[0:tracks_per_rep, :], alpha)
-    for i in range(1, int(NrOfReplicates)):
+    for i in range(1, NrOfReplicates):
         RatioLikelihood += multdirichletVect.log_pdf_vect(Counts[i * tracks_per_rep:(i + 1) * tracks_per_rep, :], alpha)
     CurrLogLikelihood = RatioLikelihood * np.float64(NrOfCounts)
     LogLikelihood += np.sum(CurrLogLikelihood[np.isinf(CurrLogLikelihood) == 0])
@@ -130,7 +130,7 @@ def MD_f_prime_joint_vect_unif(x, *args):
     Counts, NrOfCounts, EmissionParameters = args
 
     tracks_per_rep = x.shape[0]
-    NrOfReplicates = Counts.shape[0] / tracks_per_rep
+    NrOfReplicates = Counts.shape[0] // tracks_per_rep
 
     # Prepare the return variable
     LogLikelihood = np.zeros_like(x, dtype=np.float)
@@ -140,7 +140,7 @@ def MD_f_prime_joint_vect_unif(x, *args):
     curr_alpha = x
 
     DBase = NrOfReplicates * psi(np.sum(curr_alpha)) - psi(np.sum(curr_k, axis=0) + np.sum(curr_alpha))
-    for rep in range(1, int(NrOfReplicates)):
+    for rep in range(1, NrOfReplicates):
         curr_k = Counts[rep * tracks_per_rep:(rep + 1) * tracks_per_rep, :]
         DBase -= psi(np.sum(curr_k, axis=0) + np.sum(curr_alpha))
 
@@ -154,7 +154,7 @@ def MD_f_prime_joint_vect_unif(x, *args):
         else:
             D[ix_zero] = psi(curr_alpha[J] + curr_k[ix_zero]) - psi(curr_alpha[J])
 
-        for rep in range(1, int(NrOfReplicates)):
+        for rep in range(1, NrOfReplicates):
             curr_k = Counts[rep * tracks_per_rep + J, :]
             ix_zero = curr_k == 0
             if np.isscalar(D):

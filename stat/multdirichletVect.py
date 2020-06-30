@@ -66,7 +66,7 @@ def log_pdf_vect_rep(Counts, alpha, tracks_per_rep, NrOfReplicates):
     #Compute the 'collapsed' counts per diagnostic events
     k = Counts[0 : tracks_per_rep, :].copy()
     k, Ks = expand_k(k)
-    for rep in range(1, int(NrOfReplicates)):
+    for rep in range(1, NrOfReplicates):
         new_k, Ks = expand_k(Counts[rep * tracks_per_rep:(rep + 1) * tracks_per_rep, :])
         k += new_k
 
@@ -74,7 +74,7 @@ def log_pdf_vect_rep(Counts, alpha, tracks_per_rep, NrOfReplicates):
     Pos = np.sum(gammaln(k + np.tile(alpha, (1, Ks))), axis=0) + np.tile(gammaln(np.sum(alpha)), (1, Ks))
     Neg = np.tile(np.sum(gammaln(alpha)), (1, Ks)) + gammaln(np.sum(np.tile(alpha, (1, Ks)) + k, axis=0))
 
-    for rep in range(int(NrOfReplicates)):
+    for rep in range(NrOfReplicates):
         k = Counts[rep * tracks_per_rep:(rep + 1) * tracks_per_rep, :].copy()
         k, Ks = expand_k(k)
         Pos += gammaln(np.sum(k, axis=0) + 1)
