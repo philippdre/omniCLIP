@@ -519,7 +519,7 @@ def process_gene_for_glm_mat(data):
 
     gene_mat = coo_matrix(
         (np.hstack(curr_data), (np.hstack(curr_rows), np.hstack(curr_cols))),
-        shape=shape
+        shape=shape)
 
     weights = np.hstack(curr_weights)
     y = np.hstack(curr_y)
