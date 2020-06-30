@@ -202,6 +202,7 @@ def run_omniCLIP(args):
     EmissionParameters['Verbosity'] = args.verbosity
     EmissionParameters['NbProc'] = args.nb_proc
     EmissionParameters['Subsample'] = args.subs
+    EmissionParameters['mask_ovrlp'] = args.mask_ovrlp
 
     EmissionParameters['FilterSNPs'] = args.filter_snps
     EmissionParameters['SnpRatio'] = args.snps_thresh
@@ -649,6 +650,8 @@ if __name__ == '__main__':
     parser_run_omniCLIP.add_argument('--save-tmp', action='store_true', dest='safe_tmp', help='Safe temporary results', default=False)
     parser_run_omniCLIP.add_argument('--tmp-dir', action='store', dest='tmp_dir', help='Output directory for temporary results', default=None)
     parser_run_omniCLIP.add_argument('--verbosity', action='store', dest='verbosity', help='Verbosity: 0 (default) gives information of current state of site prediction, 1 gives aditional output on runtime and meomry consupmtiona and 2 shows selected internal variables', type=int, default=0)
+    # TODO : need to implement this in the Sequence file
+    parser_run_omniCLIP.add_argument('--mask-ovrlp', action='store_true', dest='mask_ovrlp', help='Ignore overlapping gene regions for diagnostic event model fitting', default=True)
 
     # Parsing the arguments if only sites should be predicted
     args = parser.parse_args()
