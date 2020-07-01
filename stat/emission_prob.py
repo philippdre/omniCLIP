@@ -25,10 +25,11 @@ import h5py
 import itertools
 import multiprocessing
 import numpy as np
-import resource
 import scipy as sp
 import sparse_glm
 import time
+
+from utils import get_mem_usage
 
 
 def NB_parameter_estimation(mean, var):
@@ -59,9 +60,9 @@ def estimate_expression_param(expr_data, verbosity=1):
     t = time.time()
 
     # 3) Compute sufficient statistics
-    if verbosity > 0:
-        print('Estimating expression parameters: before GLM matrix construction')
-        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    get_mem_usage(
+        verbosity,
+        msg='Estimating expression parameters: before GLM matrix construction')
 
     try:
         Sequences.close()
@@ -78,17 +79,15 @@ def estimate_expression_param(expr_data, verbosity=1):
     A, w, Y, rep = construct_glm_matrix(EmissionParameters, Sequences, Background, Paths)
 
     print('Estimating expression parameters: GLM matrix constrution')
-    if verbosity > 0:
-        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-        print('Done: Elapsed time: ' + str(time.time() - t))
+    get_mem_usage(verbosity, t=t)
 
     # Make sure that matrix A is in the right format
     if not sp.sparse.isspmatrix_csc(A):
         A = csc_matrix(A)
 
-    if verbosity > 0:
-        print('Estimating expression parameters: before GLM matrix')
-        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    get_mem_usage(
+        verbosity,
+        msg='Estimating expression parameters: before GLM matrix')
 
     # Create the offset for the library size
     offset = np.zeros_like(rep)
@@ -103,21 +102,19 @@ def estimate_expression_param(expr_data, verbosity=1):
     t = time.time()
 
     print('Estimating expression parameters: before fitting')
-    if verbosity > 0:
-        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    get_mem_usage(verbosity)
 
     start_params, disp = fit_glm(A, w, Y, offset, sample_size, disp, start_params, norm_class=EmissionParameters['norm_class'])
 
-    if verbosity > 0:
-        print('Estimating expression parameters: after fitting')
-        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    get_mem_usage(
+        verbosity,
+        msg='Estimating expression parameters: after fitting')
 
     del A, w, Y, offset
 
-    if verbosity > 0:
-        print('Estimating expression parameters: after cleanup')
-        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-        print('Done: Elapsed time: ' + str(time.time() - t))
+    get_mem_usage(
+        verbosity, t=t,
+        msg='Estimating expression parameters: after cleanup')
 
     # 5) Process the output
     EmissionParameters['ExpressionParameters'] = [start_params, disp]

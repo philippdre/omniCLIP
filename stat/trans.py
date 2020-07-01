@@ -28,9 +28,11 @@ from sklearn.linear_model import SGDClassifier
 import numpy as np
 import pdb
 import random
-import resource
 import time
 import tools
+
+from utils import get_mem_usage
+
 
 
 def PredictTransistions(Counts, TransitionParameters, NrOfStates, Type='multi', verbosity=1):
@@ -89,16 +91,14 @@ def PredictTransistionsSimple(Counts, TransitionParameters, NrOfStates, verbosit
 def FitTransistionParameters(Sequences, Background, TransitionParameters, CurrPath, C, Type='multi', verbosity=1):
     """Determine the optimal parameters of the logistic regression for predicting the TransitionParameters."""
     print('Fitting transition parameters')
-    if verbosity > 0:
-        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    get_mem_usage(verbosity)
 
     NewTransitionParametersLogReg = FitTransistionParametersSimple(
         Sequences, Background,
         TransitionParameters, CurrPath, C,
         verbosity=verbosity)
 
-    if verbosity > 0:
-        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    get_mem_usage(verbosity)
 
     return NewTransitionParametersLogReg
 
@@ -123,9 +123,8 @@ def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, 
     SampleOther = []
     print("Learning transition model")
     print("Iterating over genes")
-    if verbosity > 0:
-        print('Fitting transition parameters: I')
-        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    get_mem_usage(verbosity, msg='Fitting transition parameters: I')
+
     for i, gene in enumerate(genes):
         if i % 1000 == 0:
             sys.stdout.write('.')
@@ -164,9 +163,7 @@ def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, 
                         SampleOther.append(CovMatIx)
         del Sequences_per_gene, CovMat
 
-    if verbosity > 0:
-        print('Fitting transition parameters: II')
-        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    get_mem_usage(verbosity, msg='Fitting transition parameters: II')
 
     len_same = np.sum([Mat.shape[1] for Mat in SampleSame])
     len_other = np.sum([Mat.shape[1] for Mat in SampleOther])
@@ -177,9 +174,8 @@ def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, 
     # Create Y
     Y = np.hstack((np.ones((1, len_same), dtype=np.int), np.zeros((1, len_other), dtype=np.int)))[0, :].T
     classes = np.unique(Y)
-    if verbosity > 0:
-        print('Fitting transition parameters: III')
-        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+
+    get_mem_usage(verbosity, msg='Fitting transition parameters: III')
     n_iter = max(5, np.ceil(10**6 / Y.shape[0]))
 
     NewTransitionParametersLogReg = SGDClassifier(loss="log", max_iter=n_iter)
@@ -189,12 +185,8 @@ def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, 
         for batch_ix in np.array_split(ix_shuffle, 50):
             NewTransitionParametersLogReg.partial_fit(X[batch_ix, :], Y[batch_ix], classes=classes)
 
-    if verbosity > 0:
-        print('Fitting transition parameters: IV')
-        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
     del Ix1, Ix2,  Ix, X, Y, Xs, Ys
-    if verbosity > 0:
-        print('Done: Elapsed time: ' + str(time.time() - t))
+    get_mem_usage(verbosity, t=t, msg='Fitting transition parameters: IV')
 
     return NewTransitionParametersLogReg
 

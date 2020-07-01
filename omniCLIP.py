@@ -33,7 +33,6 @@ import mixture_tools
 import numpy as np
 import os
 import random
-import resource
 import shutil
 import tempfile
 import time
@@ -42,7 +41,7 @@ import trans
 
 import CreateGeneAnnotDB
 import ParsingPositions
-
+from utils import get_mem_usage
 
 def run_omniCLIP(args):
     # Get the args
@@ -84,8 +83,7 @@ def run_omniCLIP(args):
     warnings.filterwarnings('error')
 
     # Load the reads
-    if verbosity > 0:
-        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    get_mem_usage(verbosity)
     print('Loading reads')
 
     EmissionParameters = {}
@@ -142,9 +140,8 @@ def run_omniCLIP(args):
         del Background[gene]
 
     del all_genes, genes_to_del, genes_to_keep
-    if verbosity > 0:
-        print('Done: Elapsed time: ' + str(time.time() - t))
-        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    msg = 'Done: Elapsed time: ' + str(time.time() - t)
+    get_mem_usage(verbosity, t=t, msg=msg)
 
     # Initializing parameters
     print('Initialising the parameters')
@@ -279,8 +276,8 @@ def run_omniCLIP(args):
         out_file_base += '_no_diag'
     OutFile = os.path.join(out_path, out_file_base + '.txt')
     # Determine which state has higher weight in fg.
-    if verbosity > 0:
-        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    get_mem_usage(verbosity)
+
     fg_state, bg_state = emission_prob.get_fg_and_bck_state(EmissionParameters, final_pred=True)
     if EmissionParameters['fg_pen'] > 0.0:
         print('Recomputing paths')
@@ -319,25 +316,22 @@ def PerformIteration(Sequences, Background, IterParameters, NrOfStates, First, N
         Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
         Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
 
-        if verbosity > 0:
-            print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+        get_mem_usage(verbosity)
 
     # Perform EM to compute the new emission parameters
     print('Fitting emission parameters')
-    if verbosity > 0:
-        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    get_mem_usage(verbosity)
 
     NewEmissionParameters = FitEmissionParameters(Sequences, Background, NewPaths, EmissionParameters, First, verbosity=verbosity)
     if First:
         First = 0
-    if verbosity > 0:
-        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    get_mem_usage(verbosity)
+
     # Fit the transition matrix parameters
     NewTransitionParameters = TransitionParameters
     C = 1
     print('Fitting transition parameters')
-    if verbosity > 0:
-        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    get_mem_usage(verbosity)
 
     try:
         Sequences.close()
@@ -352,13 +346,12 @@ def PerformIteration(Sequences, Background, IterParameters, NrOfStates, First, N
 
     TransistionPredictors = trans.FitTransistionParameters(Sequences, Background, TransitionParameters, NewPaths, C, TransitionType, verbosity=verbosity)
     NewTransitionParameters[1] = TransistionPredictors
-    if verbosity > 0:
-        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    get_mem_usage(verbosity)
+
     NewIterParameters = [NewEmissionParameters, NewTransitionParameters]
 
     print('Computing most likely path')
-    if verbosity > 0:
-        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    get_mem_usage(verbosity)
 
     gc.collect()
     NewPaths, LogLike = tools.ParallelGetMostLikelyPath(NewPaths, Sequences, Background, EmissionParameters, TransitionParameters, 'nonhomo', verbosity=verbosity)
@@ -366,8 +359,7 @@ def PerformIteration(Sequences, Background, IterParameters, NrOfStates, First, N
     Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
 
     CurrLogLikelihood = LogLike
-    if verbosity > 0:
-        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    get_mem_usage(verbosity)
     if verbosity > 1:
         print('LogLik:')
         print(CurrLogLikelihood)
@@ -421,15 +413,13 @@ def FitEmissionParameters(Sequences, Background, NewPaths, OldEmissionParameters
             new_pars = np.vstack((new_pars[:(nr_of_genes), :], np.mean(new_pars[:(nr_of_genes), :]), new_pars[(nr_of_genes):, :]))
             NewEmissionParameters['ExpressionParameters'][0] = new_pars
     print('Estimating expression parameters')
-    if verbosity > 0:
-        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    get_mem_usage(verbosity)
 
     bg_type = NewEmissionParameters['BckType']
     expr_data = (NewEmissionParameters, Sequences, Background, NewPaths, sample_size, bg_type)
     NewEmissionParameters = emission_prob.estimate_expression_param(expr_data, verbosity=verbosity)
 
-    if verbosity > 0:
-        print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    get_mem_usage(verbosity)
 
     if NewEmissionParameters['BckType'] != 'None':
         if 'Pseudo' in Sequences:
@@ -441,23 +431,20 @@ def FitEmissionParameters(Sequences, Background, NewPaths, OldEmissionParameters
     if NewEmissionParameters['skip_diag_event_mdl'] is False:
         # Compute parameters for the ratios
         print('Computing sufficient statistic for fitting md')
-        if verbosity > 0:
-            print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+        get_mem_usage(verbosity)
+
         SuffStat = tools.GetSuffStat(Sequences, Background, NewPaths, NrOfStates, Type='Conv', EmissionParameters=NewEmissionParameters, verbosity=verbosity)
 
         # Vectorize SuffStat
         Counts, NrOfCounts = tools.ConvertSuffStatToArrays(SuffStat)
 
         del SuffStat
-        if verbosity > 0:
-            print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+        get_mem_usage(verbosity)
         if NewEmissionParameters['Subsample']:
             Counts, NrOfCounts = tools.subsample_suff_stat(Counts, NrOfCounts)
 
         print('Fitting md distribution')
-        if verbosity > 0:
-            print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-
+        get_mem_usage(verbosity)
         if NewEmissionParameters['diag_bg']:
             print("Adjusting background")
             SuffStatBck = tools.GetSuffStatBck(Sequences, Background, NewPaths, NrOfStates, Type='Conv', EmissionParameters=NewEmissionParameters, verbosity=verbosity)
@@ -477,8 +464,7 @@ def FitEmissionParameters(Sequences, Background, NewPaths, OldEmissionParameters
             del SuffStatBck
 
         NewEmissionParameters = mixture_tools.em(Counts, NrOfCounts, NewEmissionParameters, x_0=OldAlpha, First=First, verbosity=verbosity)
-        if verbosity > 0:
-            print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+        get_mem_usage(verbosity)
         del Counts, NrOfCounts
 
     if 'Pseudo' in Sequences:
