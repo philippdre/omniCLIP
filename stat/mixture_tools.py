@@ -28,21 +28,18 @@ import numpy as np
 
 
 def em(counts, nr_of_counts, EmissionParameters, x_0=None, First=False, max_nr_iter=15, tol=0.0001, rand_sample_size=10, verbosity=1):
-    """
-    This function performs the EMlagorithm
-    """
-
+    """Perform the EM algorithm."""
     template_state = 3
     fg_state, bg_state = emission_prob.get_fg_and_bck_state(EmissionParameters, final_pred=True)
     check = False
 
     OldEmissionParameters = deepcopy(EmissionParameters)
     for curr_state in list(counts.keys()):
-        #Only compute the the emission probabilities once
+        # Only compute the the emission probabilities once
         if EmissionParameters['diag_bg']:
             if curr_state != fg_state:
                 if True:
-                    if check == True:
+                    if check is True:
                         print('Using template state ' + str(curr_state))
                         EmissionParameters['Diag_event_params']['mix_comp'][curr_state] = deepcopy(EmissionParameters['Diag_event_params']['mix_comp'][template_state])
                         EmissionParameters['Diag_event_params']['alpha'][curr_state] = deepcopy(EmissionParameters['Diag_event_params']['alpha'][template_state])
@@ -70,12 +67,8 @@ def em(counts, nr_of_counts, EmissionParameters, x_0=None, First=False, max_nr_i
 
 
 def Parallel_estimate_mixture_params(EmissionParameters, curr_counts_orig, curr_nr_of_counts_orig, curr_state, rand_sample_size, max_nr_iter, nr_of_iter=20, stop_crit=1.0, nr_of_init=10, verbosity=1):
-    """
-    This function estimates thedirichlet multinomial mixture parameters
-    """
-
-    #1) Copy old parameters and use it as initialisation for the first iteration
-
+    """Estimate the dirichlet multinomial mixture parameters."""
+    # 1) Copy old parameters and use it as initialisation for the first iteration
     alphas_list = []
     mixtures_list = []
     lls_list = []
@@ -89,8 +82,8 @@ def Parallel_estimate_mixture_params(EmissionParameters, curr_counts_orig, curr_
         curr_nr_of_counts = curr_nr_of_counts[:, np.sum(curr_counts, axis=0) >0]
         curr_counts = curr_counts[:, np.sum(curr_counts, axis=0) >0]
 
-    #Test for fitting distributions only on diag events
-    if np.sum( np.sum(curr_counts, axis=0) > 10) > 10:
+    # Test for fitting distributions only on diag events
+    if np.sum(np.sum(curr_counts, axis=0) > 10) > 10:
         curr_nr_of_counts = curr_nr_of_counts[:, np.sum(curr_counts, axis=0) > 10]
         curr_counts = curr_counts[:, np.sum(curr_counts, axis=0) > 10]
 
@@ -100,7 +93,7 @@ def Parallel_estimate_mixture_params(EmissionParameters, curr_counts_orig, curr_
     if len(curr_counts.shape) == 1:
         curr_counts = np.expand_dims(curr_counts, axis=1)
 
-    #Save old lls mixtures and alphas
+    # Save old lls mixtures and alphas
     mixtures = deepcopy(EmissionParameters['Diag_event_params']['mix_comp'][curr_state])
 
     scored_counts = score_counts(curr_counts, curr_state, EmissionParameters)
@@ -125,28 +118,24 @@ def Parallel_estimate_mixture_params(EmissionParameters, curr_counts_orig, curr_
         print("Collecting results")
         results = [res for res in results]
 
-
     alphas_list += [res[0] for res in results]
     mixtures_list += [res[1] for res in results]
     lls_list += [res[2] for res in results]
 
-    #select which alpha had the highest ll
+    # Select which alpha had the highest ll
     max_ll_pos = np.argmax(np.array(lls_list))
 
-    #pdb.set_trace()
     alpha = alphas_list[max_ll_pos]
     mixtures = mixtures_list[max_ll_pos]
     return alpha, mixtures
 
 
 def Parallel_estimate_single_mixture_params(args):
-    """
-    This function estimates thedirichlet multinomial mixture parameters
-    """
+    """Estimate thedirichlet multinomial mixture parameters."""
 
     stop_crit, rand_sample_size, max_nr_iter, curr_init, EmissionParameters, curr_state, curr_counts, curr_nr_of_counts = args
-    #compute the curr mixture, ll and alpha
-    #initialiste the parameters
+    # Compute the curr mixture, ll and alpha
+    # Initialiste the parameters
     old_ll = 0
     ll = -10
 
@@ -162,9 +151,9 @@ def Parallel_estimate_single_mixture_params(args):
         mixtures = np.random.uniform(low=0.0001, high=1.0, size=mixtures.shape)
         mixtures /= np.sum(mixtures)
     if EmissionParameters['Diag_event_params']['nr_mix_comp'] == 1:
-        #Case that only one mixture component is given
+        # Case that only one mixture component is given
         EmissionParameters['Diag_event_params']['alpha'][curr_state][:, 0] = diag_event_model.estimate_multinomial_parameters(curr_counts, curr_nr_of_counts, EmissionParameters, OldAlpha[:])
-        #compute ll
+        # Compute ll
         scored_counts = score_counts(curr_counts, curr_state, EmissionParameters)
         scored_counts += np.tile(np.log(mixtures[:, np.newaxis]), (1, scored_counts.shape[1]))
         ll = np.sum(np.sum(logsumexp(scored_counts, axis=0) + np.log(curr_nr_of_counts)))
@@ -180,7 +169,7 @@ def Parallel_estimate_single_mixture_params(args):
             scored_counts = score_counts(curr_counts, curr_state, EmissionParameters)
             scored_counts += np.tile(np.log(mixtures[:, np.newaxis]), (1, scored_counts.shape[1]))
             # 2) Compute the mixture components
-            #compute the normalisation factor
+            # Compute the normalisation factor
             normalised_likelihood = logsumexp(scored_counts, axis=0)
 
             old_ll = ll
@@ -199,11 +188,11 @@ def Parallel_estimate_single_mixture_params(args):
             curr_weights = np.exp(normalised_scores)
             curr_weights = (curr_weights == np.tile(np.max(curr_weights, axis=0), (curr_weights.shape[0], 1))) *1.0
 
-            zero_mix = np.sum(curr_weights,axis=1) == 0
+            zero_mix = np.sum(curr_weights, axis=1) == 0
             zero_ix = np.where(zero_mix)[0].tolist()
 
             EmissionParameters['Diag_event_params']['mix_comp'][curr_state] = mixtures
-            #Get number of positions that are used. (In case there are fewer entries that rand_sample_size in counts)
+            # Get number of positions that are used. (In case there are fewer entries that rand_sample_size in counts)
             rand_size = min(rand_sample_size, curr_counts.shape[1])
             for i in zero_ix:
                 random_ix = np.random.choice(curr_counts.shape[1], rand_size, p=(curr_nr_of_counts[0, :] / np.float(np.sum(curr_nr_of_counts[0, :]))))
@@ -235,7 +224,7 @@ def Parallel_estimate_single_mixture_params(args):
                     OldAlpha[:, curr_mix_comp] = curr_alpha
 
             if (len(zero_ix) > 0) and (iter_nr + 2 < max_nr_iter):
-                #Treat the case where some mixtures have prob zero
+                # Treat the case where some mixtures have prob zero
                 mixtures[zero_ix] = np.mean(mixtures)
                 mixtures /= np.sum(mixtures)
                 EmissionParameters['Diag_event_params']['mix_comp'][curr_state] = deepcopy(mixtures)
@@ -249,15 +238,13 @@ def Parallel_estimate_single_mixture_params(args):
 
 
 def score_counts(counts, state, EmissionParameters):
-    """
-    This function scores the the coutns for each mixture component
-    """
+    """Scores the counts for each mixture component."""
 
     nr_mixture_components = EmissionParameters['Diag_event_params']['nr_mix_comp']
-    #Initialize the return array
+    # Initialize the return array
     scored_counts = np.zeros((nr_mixture_components, counts.shape[1]))
 
-    #Compute for each state the log-likelihood of the counts
+    # Compute for each state the log-likelihood of the counts
     for mix_comp in range(nr_mixture_components):
         scored_counts[mix_comp, :] = diag_event_model.pred_log_lik(counts, state, EmissionParameters, single_mix=mix_comp)
         scored_counts[mix_comp, :] += np.log(EmissionParameters['Diag_event_params']['mix_comp'][state][mix_comp])

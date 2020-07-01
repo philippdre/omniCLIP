@@ -107,7 +107,6 @@ def MDK_f_joint_vect_unif(x, *args):
 
 def MD_f_joint_vect_unif(x, *args):
     """Compute the likelihood of the parameters."""
-    print('In MD_f_joint_vect_unif')
     alpha = x
     Counts, NrOfCounts, EmissionParameters = args
 

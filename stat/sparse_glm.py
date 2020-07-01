@@ -29,7 +29,6 @@ from statsmodels.genmod.generalized_linear_model import *
 from statsmodels.tools.sm_exceptions import PerfectSeparationError
 import pickle
 import numpy as np
-import pdb
 import scipy
 import statsmodels
 import statsmodels.api as sm
@@ -76,8 +75,7 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
     def fit(self, start_params=None, maxiter=100, method='IRLS', tol=1e-8,
             scale=None, cov_type='nonrobust', cov_kwds=None, use_t=None,
             full_output=True, disp=False, max_start_irls=3, data_weights = None, **kwargs):
-        """
-        Fits a generalized linear model for a given family.
+        """Fits a generalized linear model for a given family.
 
         parameters
         ----------
@@ -124,7 +122,6 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
         -----
         This method does not take any extra undocumented ``kwargs``.
         """
-
         endog = self.endog
         self.df_resid = self.endog.shape[0] - self.exog.shape[1]
 
@@ -139,9 +136,9 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
             self.data_weights = self.data_weights * np.ones((endog.shape[0]))
         self.scaletype = scale
         if isinstance(self.family, families.Binomial):
-        # this checks what kind of data is given for Binomial.
-        # family will need a reference to endog if this is to be removed from
-        # preprocessing
+            # This checks what kind of data is given for Binomial.
+            # Family will need a reference to endog if this is to be removed
+            # from preprocessing
             self.endog = self.family.initialize(self.endog)
 
         # Construct a combined offset/exposure term.  Note that
@@ -154,29 +151,30 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
         self._offset_exposure = offset_exposure
 
         if method.lower() == "irls_sparse":
-            return self._fit_irls_sparse(start_params=start_params, maxiter=maxiter,
-                                  tol=tol, scale=scale, cov_type=cov_type,
-                                  cov_kwds=cov_kwds, use_t=use_t, **kwargs)
+            return self._fit_irls_sparse(
+                start_params=start_params, maxiter=maxiter,
+                tol=tol, scale=scale, cov_type=cov_type,
+                cov_kwds=cov_kwds, use_t=use_t, **kwargs)
         else:
-            return self._fit_gradient(start_params=start_params,
-                                      method=method,
-                                      maxiter=maxiter,
-                                      tol=tol, scale=scale,
-                                      full_output=full_output,
-                                      disp=disp, cov_type=cov_type,
-                                      cov_kwds=cov_kwds, use_t=use_t,
-                                      max_start_irls=max_start_irls,
-                                      **kwargs)
+            return self._fit_gradient(
+                start_params=start_params,
+                method=method,
+                maxiter=maxiter,
+                tol=tol, scale=scale,
+                full_output=full_output,
+                disp=disp, cov_type=cov_type,
+                cov_kwds=cov_kwds, use_t=use_t,
+                max_start_irls=max_start_irls,
+                **kwargs)
 
+    def _fit_irls_sparse(
+            self, start_params=None, maxiter=50, tol=1e-3, scale=None,
+            cov_type='nonrobust', cov_kwds=None, use_t=None, **kwargs):
+        """Fit a GLM using IRLS.
 
-    def _fit_irls_sparse(self, start_params=None, maxiter=50, tol=1e-3,
-                  scale=None, cov_type='nonrobust', cov_kwds=None,
-                  use_t=None, **kwargs):
-        """
-        Fits a generalized linear model for a given family using
+        Fit a generalized linear mode (GLM) for a given family using
         iteratively reweighted least squares (IRLS).
         """
-
         if not scipy.sparse.issparse(self.exog):
             raise ValueError("Matrix not sparse")
 
@@ -187,16 +185,16 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
             mu = self.family.starting_mu(self.endog)
             lin_pred = self.family.predict(mu)
         else:
-            #This is a hack for a faster warm start
+            # This is a hack for a faster warm start
             start_params[start_params > 1e2] = 1e2
             start_params[start_params < -1e2] = -1e2
             lin_pred = wlsexog.dot(start_params) + self._offset_exposure
             mu = self.family.fitted(lin_pred)
 
-        dev = self.family.deviance(self.endog[self.endog[:,0]>0,:], mu[self.endog[:,0]>0,:])
+        dev = self.family.deviance(self.endog[self.endog[:, 0] > 0, :], mu[self.endog[:, 0] > 0, :])
         if np.isnan(dev):
             if not (start_params is None):
-                #This is a hack for a faster warm start
+                # This is a hack for a faster warm start
                 start_params[start_params > 1e1] = 1e1
                 start_params[start_params < -1e1] = -1e1
                 lin_pred = wlsexog.dot(start_params) + self._offset_exposure
@@ -230,7 +228,7 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
                         - self._offset_exposure)
             W = scipy.sparse.diags(self.weights[:, 0], 0)
 
-            #Compute x for current interation
+            # Compute x for current interation
             temp_mat = wlsexog.transpose().dot(W)
             lu = sla.splu(csc_matrix(temp_mat.dot(wlsexog)))
             wls_results = lu.solve(temp_mat.dot(wlsendog))
@@ -256,7 +254,6 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
         history['iteration'] = iteration + 1
 
         return [wls_results, history]
-
 
     def _check_inputs(self, family, offset, exposure, endog):
         # Default family is Gaussian

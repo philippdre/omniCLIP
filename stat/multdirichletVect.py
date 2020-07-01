@@ -17,18 +17,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-
 from scipy.special import gammaln
 import numpy as np
-import pdb
 
 
 def log_pdf_vect(k, alpha):
-    """
-    This function computes the log pdf for an array of counts
-    """
-
-    #First check whether the input is one dimnesional and set parameters acordingly
+    """Compute the log pdf for an array of counts."""
+    # First check whether the input is one dimensional and set parameters accordingly
     alpha = np.expand_dims(alpha, axis=1)
     if len(k.shape) == 1:
         Ks = 1
@@ -43,10 +38,7 @@ def log_pdf_vect(k, alpha):
 
 
 def expand_k(k):
-    """
-    Thid function adds one dimension to k if k is only a 1-dim  array
-    """
-
+    """Add one dimension to k if k is only a 1-dim  array."""
     if len(k.shape) == 1:
         Ks = 1
         k = np.expand_dims(k, axis=1)
@@ -56,21 +48,18 @@ def expand_k(k):
 
 
 def log_pdf_vect_rep(Counts, alpha, tracks_per_rep, NrOfReplicates):
-    """
-    This function computes the log pdf for an array of counts
-    """
-
-    #First check whether the input is one dimnesional and set parameters acordingly
+    """Compute the log pdf for an array of counts."""
+    # First check whether the input is one dimensional and set parameters accordingly
     alpha = np.expand_dims(alpha, axis=1)
 
-    #Compute the 'collapsed' counts per diagnostic events
-    k = Counts[0 : tracks_per_rep, :].copy()
+    # Compute the 'collapsed' counts per diagnostic events
+    k = Counts[0:tracks_per_rep, :].copy()
     k, Ks = expand_k(k)
     for rep in range(1, NrOfReplicates):
         new_k, Ks = expand_k(Counts[rep * tracks_per_rep:(rep + 1) * tracks_per_rep, :])
         k += new_k
 
-    #Compute the factors that are independent of the replicates
+    # Compute the factors that are independent of the replicates
     Pos = np.sum(gammaln(k + np.tile(alpha, (1, Ks))), axis=0) + np.tile(gammaln(np.sum(alpha)), (1, Ks))
     Neg = np.tile(np.sum(gammaln(alpha)), (1, Ks)) + gammaln(np.sum(np.tile(alpha, (1, Ks)) + k, axis=0))
 
@@ -86,10 +75,7 @@ def log_pdf_vect_rep(Counts, alpha, tracks_per_rep, NrOfReplicates):
 
 
 def TwoBinomlog_pdf_vect(k1, k2, alpha):
-    """
-    This is the pdf for an array of counts for the case when two multinomial distributions are observed
-    """
-
+    """PDF for an array of counts with two multinomial distributions."""
     alpha = np.expand_dims(alpha, axis=1)
     if len(k1.shape) == 1:
         Ks = 1
@@ -98,7 +84,7 @@ def TwoBinomlog_pdf_vect(k1, k2, alpha):
     else:
         Ks = k1.shape[1]
     k = k1 + k2
-    Pos = gammaln(np.sum(k1, axis=0) + 1) + gammaln(np.sum(k2, axis=0) + 1) + np.tile(gammaln(np.sum(alpha)),(1,Ks)) + np.sum(gammaln(np.tile(alpha, (1, Ks)) + k), axis=0)
+    Pos = gammaln(np.sum(k1, axis=0) + 1) + gammaln(np.sum(k2, axis=0) + 1) + np.tile(gammaln(np.sum(alpha)), (1, Ks)) + np.sum(gammaln(np.tile(alpha, (1, Ks)) + k), axis=0)
     Neg = np.sum(gammaln(k1 + 1), axis=0) + np.sum(gammaln(k2 + 1), axis=0) + gammaln(np.sum(np.tile(alpha, (1, Ks)) + k, axis=0)) + np.tile(np.sum(gammaln(alpha)), (1, Ks))
     log = Pos - Neg
     return log
