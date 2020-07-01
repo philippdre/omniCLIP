@@ -33,7 +33,7 @@ import time
 import tools
 
 
-def PredictTransistions(Counts, TransitionParameters, NrOfStates, Type = 'multi', verbosity=1):
+def PredictTransistions(Counts, TransitionParameters, NrOfStates, Type='multi', verbosity=1):
     """
     This function predicts the transition probabilities for a gene given the transition parameters
     """
@@ -51,11 +51,11 @@ def PredictTransistionsSimple(Counts, TransitionParameters, NrOfStates, verbosit
     TransitionParametersLogReg = TransitionParameters[1]
     TransistionProb = np.ones((NrOfStates, NrOfStates, Counts.shape[1])) * np.log((1 / np.float64(NrOfStates)))
 
-    #Genererate the features
+    # Genererate the features
     CovMat = GenerateFeatures(np.array(list(range(Counts.shape[1] - 1))), Counts)
 
     ix_nonzero = np.sum(CovMat, axis=0) > 0
-    #Ceate the probailities
+    # Create the probabilities
     TempProb = TransitionParametersLogReg.predict_log_proba(CovMat.T).T
 
     NormFactor = np.ones((TempProb.shape[1]))
@@ -66,18 +66,18 @@ def PredictTransistionsSimple(Counts, TransitionParameters, NrOfStates, verbosit
             else:
                 TransistionProb[NextState, CurrentState, 1:] = TempProb[0, :]
 
-        #Normalize the transition probabilities
+        # Normalize the transition probabilities
 
         if CurrentState == 0:
-            #only compute the normalizeing factore once as compuation is expensive
+            # Only compute the normalizeing factore once as compuation is expensive
 
             if np.sum(ix_nonzero) > 0:
-                #nonzero entries
-                NormFactor[ix_nonzero] = logsumexp(TransistionProb[:, CurrentState, 1:][:,ix_nonzero], axis = 0)
+                # Nonzero entries
+                NormFactor[ix_nonzero] = logsumexp(TransistionProb[:, CurrentState, 1:][:, ix_nonzero], axis=0)
             if np.sum(ix_nonzero == 0) > 0:
-                #zero entries
+                # Zero entries
                 first_zero_pos = np.where(ix_nonzero == 0)[0][0]
-                NormFactor[ix_nonzero == 0] = logsumexp(TransistionProb[:, CurrentState, 1:][:, first_zero_pos], axis = 0)
+                NormFactor[ix_nonzero == 0] = logsumexp(TransistionProb[:, CurrentState, 1:][:, first_zero_pos], axis=0)
 
         for NextState in range(NrOfStates):
             TransistionProb[NextState, CurrentState, 1:] -= NormFactor
@@ -86,16 +86,17 @@ def PredictTransistionsSimple(Counts, TransitionParameters, NrOfStates, verbosit
     return TransistionProb
 
 
-def FitTransistionParameters(Sequences, Background, TransitionParameters, CurrPath, C, Type = 'multi', verbosity=1):
-    """
-    This function determines the optimal parameters of the logistic regression for predicting the TransitionParameters
-    """
-
+def FitTransistionParameters(Sequences, Background, TransitionParameters, CurrPath, C, Type='multi', verbosity=1):
+    """Determine the optimal parameters of the logistic regression for predicting the TransitionParameters."""
     print('Fitting transition parameters')
     if verbosity > 0:
         print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
-    NewTransitionParametersLogReg = FitTransistionParametersSimple(Sequences, Background, TransitionParameters, CurrPath, C, verbosity=verbosity)
+    NewTransitionParametersLogReg = FitTransistionParametersSimple(
+        Sequences, Background,
+        TransitionParameters, CurrPath, C,
+        verbosity=verbosity)
+
     if verbosity > 0:
         print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
@@ -103,15 +104,13 @@ def FitTransistionParameters(Sequences, Background, TransitionParameters, CurrPa
 
 
 def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, CurrPath, C, verbosity=1):
-    """
-    This function determines the optimal parameters of the logistic regression for predicting the TransitionParameters
-    """
-
-    #Generate features from the CurrPaths and the Information in the coverage
+    """Determine the optimal parameters of the logistic regression for predicting the TransitionParameters."""
+    # Generate features from the CurrPaths and the Information in the coverage
     TransitionMatrix = TransitionParameters[0]
     NewTransitionParametersLogReg = {}
     t = time.time()
-    #Iterate over the possible transitions
+
+    # Iterate over the possible transitions
     assert (TransitionMatrix.shape[0] > 1), 'Only two states are currently allowed'
 
     genes = list(CurrPath.keys())
@@ -131,24 +130,24 @@ def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, 
         if i % 1000 == 0:
             sys.stdout.write('.')
             sys.stdout.flush()
-        #Get data
+        # Get data
         Sequences_per_gene = tools.PreloadSequencesForGene(Sequences, gene)
-        CovMat = tools.StackData(Sequences_per_gene, add = 'all')
+        CovMat = tools.StackData(Sequences_per_gene, add='all')
         CovMat[CovMat < 0] = 0
         nr_of_samples = CovMat.shape[0]
         for CurrState in range(NrOfStates):
             for NextState in range(NrOfStates):
-                #Positions where the path is in the current state
+                # Positions where the path is in the current state
                 Ix1 = CurrPath[gene][:-1] == CurrState
-                #Positions where the subsequent position path is in the "next" state
+                # Positions where the subsequent position path is in the "next" state
                 Ix2 = CurrPath[gene][1:] == NextState
-                #Positions where the path changes from the current state to the other state
+                # Positions where the path changes from the current state to the other state
                 Ix = np.where(Ix1 * Ix2)[0]
 
-                if np.sum(np.sum(np.isnan(CovMat)))> 0:
+                if np.sum(np.sum(np.isnan(CovMat))) > 0:
                     pdb.set_trace()
                 CovMatIx = GenerateFeatures(Ix, CovMat)
-                if np.sum(np.sum(np.isnan(CovMatIx)))> 0 or np.sum(np.sum(np.isinf(CovMatIx)))> 0:
+                if np.sum(np.sum(np.isnan(CovMatIx))) > 0 or np.sum(np.sum(np.isinf(CovMatIx))) > 0:
                     pdb.set_trace()
 
                 if CurrState == NextState:
@@ -172,24 +171,23 @@ def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, 
     len_same = np.sum([Mat.shape[1] for Mat in SampleSame])
     len_other = np.sum([Mat.shape[1] for Mat in SampleOther])
 
-    X = np.concatenate(SampleSame + SampleOther, axis =1).T
+    X = np.concatenate(SampleSame + SampleOther, axis=1).T
     del SampleSame, SampleOther
 
-    #Create Y
-    Y = np.hstack((np.ones((1, len_same), dtype=np.int), np.zeros((1, len_other), dtype=np.int)))[0,:].T
+    # Create Y
+    Y = np.hstack((np.ones((1, len_same), dtype=np.int), np.zeros((1, len_other), dtype=np.int)))[0, :].T
     classes = np.unique(Y)
     if verbosity > 0:
         print('Fitting transition parameters: III')
         print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
     n_iter = max(5, np.ceil(10**6 / Y.shape[0]))
 
-
-    NewTransitionParametersLogReg = SGDClassifier(loss="log", max_iter = n_iter)
+    NewTransitionParametersLogReg = SGDClassifier(loss="log", max_iter=n_iter)
     ix_shuffle = np.arange(X.shape[0])
     for n in range(n_iter):
         np.random.shuffle(ix_shuffle)
         for batch_ix in np.array_split(ix_shuffle, 50):
-            NewTransitionParametersLogReg.partial_fit(X[batch_ix,:], Y[batch_ix], classes=classes)
+            NewTransitionParametersLogReg.partial_fit(X[batch_ix, :], Y[batch_ix], classes=classes)
 
     if verbosity > 0:
         print('Fitting transition parameters: IV')
@@ -202,9 +200,6 @@ def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, 
 
 
 def GenerateFeatures(Ix, CovMat):
-    """
-    This funnction generates, for a set of positions, the features for the logistic regression from the Coverage matrix
-    """
-
+    """Generate the coverage matrix features for the logistic regression."""
     FeatureMatrix = np.log(1 + CovMat[:, Ix])
     return FeatureMatrix
