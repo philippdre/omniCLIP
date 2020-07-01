@@ -26,7 +26,6 @@ from scipy.sparse import *
 from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
 from sklearn.linear_model import SGDClassifier
 import numpy as np
-import pdb
 import random
 import time
 import tools
@@ -143,11 +142,7 @@ def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, 
                 # Positions where the path changes from the current state to the other state
                 Ix = np.where(Ix1 * Ix2)[0]
 
-                if np.sum(np.sum(np.isnan(CovMat))) > 0:
-                    pdb.set_trace()
                 CovMatIx = GenerateFeatures(Ix, CovMat)
-                if np.sum(np.sum(np.isnan(CovMatIx))) > 0 or np.sum(np.sum(np.isinf(CovMatIx))) > 0:
-                    pdb.set_trace()
 
                 if CurrState == NextState:
                     if CovMatIx.shape[1] == 0:
