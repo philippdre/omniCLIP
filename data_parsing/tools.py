@@ -394,7 +394,10 @@ def GeneratePred(Paths, Sequences, Background, IterParameters, GeneAnnotation, O
     Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
     Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
 
-    ScoredSites = GetSites(Paths, Sequences, Background, EmissionParameters, TransitionParameters, 'nonhomo', fg_state, merge_neighbouring_sites, minimal_site_length, seq_file=seq_file, bck_file=bck_file)
+    ScoredSites = GetSites(
+        Paths, Sequences, Background, EmissionParameters,
+        TransitionParameters, 'nonhomo', fg_state, merge_neighbouring_sites,
+        minimal_site_length, seq_file=seq_file, bck_file=bck_file)
 
     Sequences = h5py.File(seq_file, 'r')
     Background = h5py.File(bck_file, 'r')
@@ -435,7 +438,10 @@ def generate_bed(file, pv_cutoff=0.05):
     df.loc[df['Strand'] == -1, 'Strand'] = '-'
 
     # Keep only the columns that are relevant for the bed-file
-    df = df[['ChrName', 'Start', 'Stop', 'Gene', 'SiteScore', 'Strand' , 'ThickStart', 'ThickStop']].sort_values('SiteScore', ascending=False)
+    df = df[
+        ['ChrName', 'Start', 'Stop', 'Gene',
+         'SiteScore', 'Strand', 'ThickStart', 'ThickStop']
+    ].sort_values('SiteScore', ascending=False)
 
     # Write the output
     df.to_csv(file.replace('.txt', '.bed'), sep='\t', header=False, index=False)
@@ -443,15 +449,11 @@ def generate_bed(file, pv_cutoff=0.05):
 
 
 def GetSites(Paths, Sequences, Background, EmissionParameters, TransitionParameters, TransitionTypeFirst, fg_state, merge_neighbouring_sites, minimal_site_length, seq_file='', bck_file=''):
-    """
-    This function get the predicted sites
-    """
-    NrOfStates = EmissionParameters['NrOfStates']
-    TransitionType = EmissionParameters['TransitionType']
-    alpha = EmissionParameters['Diag_event_params']
-
+    """Get the predicted sites."""
     # Extract the paths
-    Sites = convert_paths_to_sites(Paths, fg_state, merge_neighbouring_sites, minimal_site_length)
+    Sites = convert_paths_to_sites(
+        Paths, fg_state,
+        merge_neighbouring_sites, minimal_site_length)
 
     np_proc = EmissionParameters['NbProc']
     nr_of_genes = len(list(Sequences.keys()))
@@ -471,7 +473,8 @@ def GetSites(Paths, Sequences, Background, EmissionParameters, TransitionParamet
     if np_proc == 1:
         ScoredSites = dict([GetSitesForGene(curr_slice) for curr_slice in data])
     else:
-        pool = multiprocessing.get_context("spawn").Pool(number_of_processes, maxtasksperchild=10)
+        pool = multiprocessing.get_context("spawn").Pool(
+            number_of_processes, maxtasksperchild=10)
         results = pool.imap(GetSitesForGene, data, chunksize=1)
         pool.close()
         pool.join()
@@ -484,10 +487,7 @@ def GetSites(Paths, Sequences, Background, EmissionParameters, TransitionParamet
 
 
 def GetSitesForGene(data):
-    """
-    This function determines for each gene the score of the sites
-    """
-
+    """Determine the score of the sites for each gene."""
     # Computing the probabilities for the current gene
     Sites, gene, nr_of_genes, gene_nr, seq_file, bck_file, EmissionParameters, TransitionParameters, TransitionTypeFirst, fg_state, merge_neighbouring_sites, minimal_site_length = data
 
@@ -609,10 +609,7 @@ def GetSitesForGene(data):
 
 
 def convert_paths_to_sites(Paths, fg_state, merge_neighbouring_sites, minimal_site_length):
-    """
-    This function takes the paths and computes the site predictions (defined by the state fg_state)
-    """
-
+    """Compute the site predictions using the paths."""
     sites = defaultdict(list)
 
     # Iterate over the paths
@@ -627,15 +624,16 @@ def convert_paths_to_sites(Paths, fg_state, merge_neighbouring_sites, minimal_si
 
 
 def ComputeStatsForSite(CountsSeq, CountsBck, Site, fg_state, nr_of_genes, gene_nr, EmissionParameters):
-    """
-    Get the score for a Site
-    """
-
+    """Get the score for a Site."""
     Start = Site[0]
     Stop = Site[1]
 
-    mean_mat_fg, var_mat_fg = emission_prob.get_expected_mean_and_var(CountsSeq[:, Start:(Stop + 1)], fg_state, nr_of_genes, gene_nr, EmissionParameters, curr_type = 'fg')
-    mean_mat_bg, var_mat_bg = emission_prob.get_expected_mean_and_var(CountsBck[:, Start:(Stop + 1)], fg_state, nr_of_genes, gene_nr, EmissionParameters, curr_type = 'bg')
+    mean_mat_fg, var_mat_fg = emission_prob.get_expected_mean_and_var(
+        CountsSeq[:, Start:(Stop + 1)], fg_state, nr_of_genes,
+        gene_nr, EmissionParameters, curr_type='fg')
+    mean_mat_bg, var_mat_bg = emission_prob.get_expected_mean_and_var(
+        CountsBck[:, Start:(Stop + 1)], fg_state, nr_of_genes,
+        gene_nr, EmissionParameters, curr_type='bg')
 
     mean_mat_fg = np.sum(np.sum(mean_mat_fg, axis=0))
     var_mat_fg = np.sum(np.sum(var_mat_fg, axis=0))
@@ -644,15 +642,11 @@ def ComputeStatsForSite(CountsSeq, CountsBck, Site, fg_state, nr_of_genes, gene_
     counts_fg = np.sum(np.sum(CountsSeq[:, Start:(Stop + 1)], axis=0))
     counts_bg = np.sum(np.sum(CountsBck[:, Start:(Stop + 1)], axis=0))
 
-
     return mean_mat_fg, var_mat_fg, mean_mat_bg, var_mat_bg, counts_fg, counts_bg
 
 
 def get_max_position(Score, Site, fg_state, strand):
-    """
-    Get the site where the score is maximal
-    """
-
+    """Get the site where the score is maximal."""
     Start = Site[0]
     Stop = Site[1]
     ix_bg = list(range(Score.shape[0]))
@@ -679,10 +673,7 @@ def get_max_position(Score, Site, fg_state, strand):
 
 
 def EvaluateSite(Score, Site, fg_state):
-    """
-    Get the score for a Site
-    """
-
+    """Get the score for a Site."""
     Start = Site[0]
     Stop = Site[1]
     ix_bg = list(range(Score.shape[0]))
@@ -700,10 +691,7 @@ def EvaluateSite(Score, Site, fg_state):
 
 
 def WriteResults(Sequences, Background, ScoredSites, OutFile, GeneAnnotation):
-    """
-    This function writes the sites into a result file
-    """
-
+    """Write the sites into a result file."""
     # Get the gene annotation
     Iter = GeneAnnotation.features_of_type('gene')
     Genes = []
@@ -734,21 +722,19 @@ def WriteResults(Sequences, Background, ScoredSites, OutFile, GeneAnnotation):
 
 
 def GetGenomicCoord(gene, Coord):
-
+    """Return formatted gene coordinates."""
     return gene.start + Coord
 
 
 def estimate_library_size(Sequences):
-    """
-    This function estimates the library size of all samples
-    """
-
+    """Estimate the library size of all samples."""
     lib_size_dict = defaultdict(list)
     lib_size_red = defaultdict(int)
     # Get the gene expressions
     for gene in list(Sequences.keys()):
         for key in list(Sequences[gene]['Coverage'].keys()):
-            lib_size_dict[key].append(Sequences[gene]['Coverage'][key][()].sum())
+            lib_size_dict[key].append(
+                Sequences[gene]['Coverage'][key][()].sum())
 
     # Compute the (weighted) median of non zero genes
     for key in lib_size_dict:
@@ -806,10 +792,7 @@ def ParallelGetMostLikelyPath(MostLikelyPaths, Sequences, Background, EmissionPa
 
 
 def ParallelGetMostLikelyPathForGene(data):
-    """
-    This function computes the most likely path for a gene
-    """
-
+    """Compute the most likely path for a gene."""
     gene, nr_of_genes, gene_nr, EmissionParameters, TransitionParameters, TransitionTypeFirst, RandomNoise = data
 
     # Turn the Sequence and Bacground objects into dictionaries again such that the subsequent methods for using these do not need to be modified
@@ -901,23 +884,25 @@ def ParallelGetMostLikelyPathForGene(data):
 
 
 def subsample_suff_stat(Counts, NrOfCounts, subsample_size=250000):
-    """
-    This function  creates a subsample of the counts
-    """
-
+    """Create a subsample of the counts."""
     # Iterate over the keys
     for key in Counts:
         # Determine the new sample
         if NrOfCounts[key].shape[0] == 0:
-            # Try to rescue parameter fitting by adding some data from other regions for fitting
+            # Try to rescue parameter fitting by adding some data from other
+            # regions for fitting.
             for temp_key in Counts:
                 if NrOfCounts[temp_key].shape[0] > 10:
-                    NrOfCounts[key] = np.ones((1,10))
-                    ix = np.random.randint(NrOfCounts[temp_key].shape[0], size=10)
+                    NrOfCounts[key] = np.ones((1, 10))
+                    ix = np.random.randint(
+                        NrOfCounts[temp_key].shape[0], size=10)
                     Counts[key] = Counts[temp_key][:, ix]
                     break
 
-        new_counts = np.random.multinomial(min(subsample_size, np.sum(NrOfCounts[key][0, :])), NrOfCounts[key][0, :]/np.float64(np.sum(NrOfCounts[key][0,:])), size=1)
+        new_counts = np.random.multinomial(
+            min(subsample_size, np.sum(NrOfCounts[key][0, :])),
+            NrOfCounts[key][0, :]/np.float64(np.sum(NrOfCounts[key][0, :])),
+            size=1)
 
         # Check that not more sample than orignialy existing were present
         ix = new_counts > NrOfCounts[key]

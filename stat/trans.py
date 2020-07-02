@@ -20,18 +20,13 @@
 
 import sys
 sys.path.append('../data_parsing/')
-sys.path.append('../data_parsing/')
 from scipy.special import logsumexp
-from scipy.sparse import *
-from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
 from sklearn.linear_model import SGDClassifier
 import numpy as np
 import random
 import time
 import tools
-
 from utils import get_mem_usage
-
 
 
 def PredictTransistions(Counts, TransitionParameters, NrOfStates, Type='multi', verbosity=1):
