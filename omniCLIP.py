@@ -28,7 +28,6 @@ import emission_prob
 import gc
 import gffutils
 import h5py
-import LoadReads
 import mixture_tools
 import numpy as np
 import os
@@ -39,6 +38,7 @@ import time
 import tools
 import trans
 
+import LoadReads
 import CreateGeneAnnotDB
 import ParsingPositions
 from utils import get_mem_usage
@@ -333,14 +333,7 @@ def PerformIteration(Sequences, Background, IterParameters, NrOfStates, First, N
     print('Fitting transition parameters')
     get_mem_usage(verbosity)
 
-    try:
-        Sequences.close()
-    except:
-        pass
-    try:
-        Background.close()
-    except:
-        pass
+    LoadReads.close_data_handles()
     Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
     Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
 
@@ -383,13 +376,11 @@ def FitEmissionParameters(Sequences, Background, NewPaths, OldEmissionParameters
 
     # Check if one of the states is not used and add pseudo gene to prevent singularities during distribution fitting
     if np.sum(PriorMatrix == 0) > 0:
-        Sequences.close()
-        Background.close()
+        LoadReads.close_data_handles()
         Sequences = h5py.File(NewEmissionParameters['DataOutFile_seq'], 'r+')
         Background = h5py.File(NewEmissionParameters['DataOutFile_bck'], 'r+')
         Sequences, Background, NewPaths, pseudo_gene_names = add_pseudo_gene(Sequences, Background, NewPaths, PriorMatrix)
-        Sequences.close()
-        Background.close()
+        LoadReads.close_data_handles()
         print('Adds pseudo gene to prevent singular matrix during GLM fitting')
 
     CorrectedPriorMatrix = np.copy(PriorMatrix)

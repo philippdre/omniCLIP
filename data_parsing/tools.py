@@ -40,6 +40,8 @@ import time
 import trans
 import viterbi
 
+import LoadReads
+
 
 def GetModelIx(Sequences, Type='all', snps_thresh=0.4, snps_min_cov=10, Background=None):
     """
@@ -181,14 +183,7 @@ def GetSuffStat(Sequences, Background, Paths, NrOfStates, Type, ResetNotUsedStat
     for CurrState in range(NrOfStates):
         SuffStat[CurrState] = defaultdict(int)
 
-    try:
-        Sequences.close()
-    except:
-        pass
-    try:
-        Background.close()
-    except:
-        pass
+    LoadReads.close_data_handles()
     Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
     Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
 
@@ -267,14 +262,7 @@ def GetSuffStatBck(Sequences, Background, Paths, NrOfStates, Type, ResetNotUsedS
 
     SuffStatBck[fg_state] = defaultdict(int)
 
-    try:
-        Sequences.close()
-    except:
-        pass
-    try:
-        Background.close()
-    except:
-        pass
+    LoadReads.close_data_handles()
     Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
     Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
 
@@ -383,14 +371,7 @@ def GeneratePred(Paths, Sequences, Background, IterParameters, GeneAnnotation, O
 
     # Predict the sites
     print('Score peaks')
-    try:
-        Sequences.close()
-    except:
-        pass
-    try:
-        Background.close()
-    except:
-        pass
+    LoadReads.close_data_handles()
     Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
     Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
 
@@ -468,8 +449,7 @@ def GetSites(Paths, Sequences, Background, EmissionParameters, TransitionParamet
 
     number_of_processes = np_proc
 
-    Sequences.close()
-    Background.close()
+    LoadReads.close_data_handles()
     if np_proc == 1:
         ScoredSites = dict([GetSitesForGene(curr_slice) for curr_slice in data])
     else:
@@ -602,8 +582,7 @@ def GetSitesForGene(data):
             continue
         sites.append(site)
 
-    Sequences.close()
-    Background.close()
+    LoadReads.close_data_handles()
 
     return gene, sites
 
@@ -766,8 +745,7 @@ def ParallelGetMostLikelyPath(MostLikelyPaths, Sequences, Background, EmissionPa
 
     number_of_processes = np_proc
 
-    Sequences.close()  # Close the files befre forking them.
-    Background.close()
+    LoadReads.close_data_handles()
 
     if np_proc == 1:
         results = [ParallelGetMostLikelyPathForGene(curr_slice) for curr_slice in data]
@@ -877,8 +855,7 @@ def ParallelGetMostLikelyPathForGene(data):
     CurrPath = np.int8(CurrPath)
 
     del TransistionProbabilities, EmmisionProbGene, CurrStackSum, CurrStackVar, CurrStackSumBck, Ix
-    Sequences.close()
-    Background.close()
+    LoadReads.close_data_handles()
 
     return [gene, CurrPath, Currloglik]
 

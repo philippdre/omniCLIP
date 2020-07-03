@@ -17,7 +17,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-
+import sys
+sys.path.append('./data_parsing/')
 from scipy import special
 from scipy.sparse import csc_matrix, coo_matrix
 from scipy.stats import nbinom
@@ -29,6 +30,7 @@ import scipy as sp
 import sparse_glm
 import time
 
+import LoadReads
 from utils import get_mem_usage
 
 
@@ -64,15 +66,7 @@ def estimate_expression_param(expr_data, verbosity=1):
         verbosity,
         msg='Estimating expression parameters: before GLM matrix construction')
 
-    try:
-        Sequences.close()
-    except:
-        pass
-    try:
-        Background.close()
-    except:
-        pass
-
+    LoadReads.close_data_handles()
     Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
     Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
 
