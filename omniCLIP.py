@@ -127,12 +127,15 @@ def run_omniCLIP(args):
     all_genes = list(Sequences.keys())
     for i, gene in enumerate(Sequences.keys()):
         curr_cov = sum([Sequences[gene]['Coverage'][rep][()].sum() for rep in list(Sequences[gene]['Coverage'].keys())])
+        max_cov = np.max([Sequences[gene]['Coverage'][rep][()].max() for rep in list(Sequences[gene]['Coverage'].keys())])
 
         if curr_cov <= 1000:  # Change ME
             continue
 
+        if max_cov < 5:
+            print(max_cov)
         genes_to_keep.append(gene)
-
+    print('Genes to keep ', len(genes_to_keep))
     genes_to_del = list(set(all_genes).difference(set(genes_to_keep)))
 
     for gene in genes_to_del:
@@ -288,7 +291,7 @@ def run_omniCLIP(args):
         Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
         Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
 
-    tools.GeneratePred(Paths, Sequences, Background, IterParameters, GeneAnnotation, OutFile, fg_state, bg_state, seq_file=EmissionParameters['DataOutFile_seq'], bck_file=EmissionParameters['DataOutFile_bck'], pv_cutoff=pv_cutoff, verbosity=EmissionParameters['Verbosity'])
+    tools.GeneratePred(Paths, Sequences, Background, IterParameters, GeneAnnotation, OutFile, fg_state, bg_state, pv_cutoff=pv_cutoff, verbosity=EmissionParameters['Verbosity'])
     print('Done')
 
     # Remove the temporary files
@@ -333,7 +336,7 @@ def PerformIteration(Sequences, Background, IterParameters, NrOfStates, First, N
     print('Fitting transition parameters')
     get_mem_usage(verbosity)
 
-    LoadReads.close_data_handles()
+    LoadReads.close_data_handles(handles=[Sequences, Background])
     Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
     Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
 
@@ -376,11 +379,11 @@ def FitEmissionParameters(Sequences, Background, NewPaths, OldEmissionParameters
 
     # Check if one of the states is not used and add pseudo gene to prevent singularities during distribution fitting
     if np.sum(PriorMatrix == 0) > 0:
-        LoadReads.close_data_handles()
+        LoadReads.close_data_handles(handles=[Sequences, Background])
         Sequences = h5py.File(NewEmissionParameters['DataOutFile_seq'], 'r+')
         Background = h5py.File(NewEmissionParameters['DataOutFile_bck'], 'r+')
         Sequences, Background, NewPaths, pseudo_gene_names = add_pseudo_gene(Sequences, Background, NewPaths, PriorMatrix)
-        LoadReads.close_data_handles()
+        LoadReads.close_data_handles(handles=[Sequences, Background])
         print('Adds pseudo gene to prevent singular matrix during GLM fitting')
 
     CorrectedPriorMatrix = np.copy(PriorMatrix)

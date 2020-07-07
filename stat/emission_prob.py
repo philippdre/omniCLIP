@@ -66,7 +66,7 @@ def estimate_expression_param(expr_data, verbosity=1):
         verbosity,
         msg='Estimating expression parameters: before GLM matrix construction')
 
-    LoadReads.close_data_handles()
+    LoadReads.close_data_handles(handles=[Sequences, Background])
     Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
     Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
 

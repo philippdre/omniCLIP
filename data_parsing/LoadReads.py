@@ -17,12 +17,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import sys
-sys.path.append('./Analysis/')
-sys.path.append('./CFG/')
-sys.path.append('./DataParsing/')
-sys.path.append('./Model/')
-sys.path.append('./Utils/')
+
 from Bio import SeqIO
 from collections import defaultdict
 from scipy.sparse import csr_matrix
@@ -32,7 +27,6 @@ import h5py
 import numpy as np
 import os
 import pysam
-import gc
 
 
 def get_data_handle(file_path, write=False):
@@ -43,13 +37,14 @@ def get_data_handle(file_path, write=False):
         return h5py.File(file_path, 'r')
 
 
-def close_data_handles():
+def close_data_handles(handle=False, handles=False):
     """Close all opened H5PY file handles."""
     # tables.file._open_files.close_all()
-    for obj in gc.get_objects():   # Browse through ALL objects
-        if isinstance(obj, h5py.File):   # Just HDF5 files
-            if obj.__bool__():
-                obj.close()
+    if handle:
+        handle.close()
+    if handles:
+        for _handle in handles:
+            _handle.close()
 
 
 def load_data(bam_files, genome_dir, gene_annotation, out_file, Collapse=False, OnlyCoverage=False, select_chrom=None, store_gene_seq=False, mask_flank_variants=3, max_mm=2, ign_out_rds=False, rev_strand=None):

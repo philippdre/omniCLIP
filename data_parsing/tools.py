@@ -183,7 +183,7 @@ def GetSuffStat(Sequences, Background, Paths, NrOfStates, Type, ResetNotUsedStat
     for CurrState in range(NrOfStates):
         SuffStat[CurrState] = defaultdict(int)
 
-    LoadReads.close_data_handles()
+    LoadReads.close_data_handles(handles=[Sequences, Background])
     Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
     Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
 
@@ -262,7 +262,7 @@ def GetSuffStatBck(Sequences, Background, Paths, NrOfStates, Type, ResetNotUsedS
 
     SuffStatBck[fg_state] = defaultdict(int)
 
-    LoadReads.close_data_handles()
+    LoadReads.close_data_handles(handles=[Sequences, Background])
     Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
     Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
 
@@ -358,7 +358,7 @@ def repl_track_nr(ex_list, offset):
     return new_list
 
 
-def GeneratePred(Paths, Sequences, Background, IterParameters, GeneAnnotation, OutFile, fg_state=1, noise_state=0, seq_file='', bck_file='', pv_cutoff=0.05, verbosity=1):
+def GeneratePred(Paths, Sequences, Background, IterParameters, GeneAnnotation, OutFile, fg_state=1, noise_state=0, pv_cutoff=0.05, verbosity=1):
     """
     This function writes the predictions
     """
@@ -371,17 +371,18 @@ def GeneratePred(Paths, Sequences, Background, IterParameters, GeneAnnotation, O
 
     # Predict the sites
     print('Score peaks')
-    LoadReads.close_data_handles()
+    LoadReads.close_data_handles(handles=[Sequences, Background])
     Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
     Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
 
     ScoredSites = GetSites(
         Paths, Sequences, Background, EmissionParameters,
         TransitionParameters, 'nonhomo', fg_state, merge_neighbouring_sites,
-        minimal_site_length, seq_file=seq_file, bck_file=bck_file)
+        minimal_site_length, seq_file=EmissionParameters['DataOutFile_seq'],
+        bck_file=EmissionParameters['DataOutFile_bck'])
 
-    Sequences = h5py.File(seq_file, 'r')
-    Background = h5py.File(bck_file, 'r')
+    Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
+    Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
 
     print('Write peaks')
     # Write the results
@@ -449,7 +450,7 @@ def GetSites(Paths, Sequences, Background, EmissionParameters, TransitionParamet
 
     number_of_processes = np_proc
 
-    LoadReads.close_data_handles()
+    LoadReads.close_data_handles(handles=[Sequences, Background])
     if np_proc == 1:
         ScoredSites = dict([GetSitesForGene(curr_slice) for curr_slice in data])
     else:
@@ -582,7 +583,7 @@ def GetSitesForGene(data):
             continue
         sites.append(site)
 
-    LoadReads.close_data_handles()
+    LoadReads.close_data_handles(handles=[Sequences, Background])
 
     return gene, sites
 
@@ -745,7 +746,7 @@ def ParallelGetMostLikelyPath(MostLikelyPaths, Sequences, Background, EmissionPa
 
     number_of_processes = np_proc
 
-    LoadReads.close_data_handles()
+    LoadReads.close_data_handles(handles=[Sequences, Background])
 
     if np_proc == 1:
         results = [ParallelGetMostLikelyPathForGene(curr_slice) for curr_slice in data]
@@ -855,7 +856,7 @@ def ParallelGetMostLikelyPathForGene(data):
     CurrPath = np.int8(CurrPath)
 
     del TransistionProbabilities, EmmisionProbGene, CurrStackSum, CurrStackVar, CurrStackSumBck, Ix
-    LoadReads.close_data_handles()
+    LoadReads.close_data_handles(handles=[Sequences, Background])
 
     return [gene, CurrPath, Currloglik]
 
