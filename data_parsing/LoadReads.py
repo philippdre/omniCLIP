@@ -47,7 +47,7 @@ def close_data_handles(handle=False, handles=False):
             _handle.close()
 
 
-def load_data(bam_files, genome_dir, gene_annotation, out_file, Collapse=False, OnlyCoverage=False, select_chrom=None, store_gene_seq=False, mask_flank_variants=3, max_mm=2, ign_out_rds=False, rev_strand=None):
+def load_data(bam_files, genome_dir, gene_annotation, out_file, Collapse=False, OnlyCoverage=False, select_chrom=None, mask_flank_variants=3, max_mm=2, ign_out_rds=False, rev_strand=None):
     """Read the data from the bam-files."""
     GeneConversionEvents = h5py.File(out_file, 'w')
 
@@ -105,9 +105,14 @@ def load_data(bam_files, genome_dir, gene_annotation, out_file, Collapse=False, 
                     if not OnlyCoverage:
                         CovType += ['variants', 'read-ends']
 
-                    ret_arrays = GetCoverageFromBam.GetRawCoverageFromRegion(SamReader, CurrChr, Start, Stop, Collapse = Collapse, CovType = CovType, Genome = '', legacy = False, mask_flank_variants=mask_flank_variants, max_mm=max_mm, ign_out_rds=ign_out_rds, gene_strand=Strand, rev_strand=rev_strand)
+                    ret_arrays = GetCoverageFromBam.GetRawCoverageFromRegion(
+                        SamReader, CurrChr, Start, Stop, Collapse=Collapse,
+                        CovType=CovType, Genome='', legacy=False,
+                        mask_flank_variants=mask_flank_variants,
+                        max_mm=max_mm, ign_out_rds=ign_out_rds,
+                        gene_strand=Strand, rev_strand=rev_strand)
+
                     Coverage = ret_arrays['coverage']
-                    # Coverage = GetCoverageFromBam.GetRawCoverageFromRegion(SamReader, CurrChr, Start, Stop, Collapse = Collapse, CovType = 'coverage', Genome = '', legacy = False, mask_flank_variants=mask_flank_variants, max_mm=max_mm, ign_out_rds=ign_out_rds, gene_strand=Strand, rev_strand=rev_strand)
                     if new_gene_name not in GeneConversionEvents:
                         GeneConversionEvents.create_group(new_gene_name)
                     if 'SummedCoverage' not in GeneConversionEvents[new_gene_name]:
@@ -134,8 +139,6 @@ def load_data(bam_files, genome_dir, gene_annotation, out_file, Collapse=False, 
                             GeneConversionEvents.create_group(new_gene_name)
 
                         if 'Coverage' not in GeneConversionEvents[new_gene_name]:
-                            if store_gene_seq and (str(i) == '0'):
-                                GeneConversionEvents[new_gene_name].create_group('GeneSeq')
                             GeneConversionEvents[new_gene_name].create_group('Variants')
                             GeneConversionEvents[new_gene_name].create_group('Coverage')
                             GeneConversionEvents[new_gene_name].create_group('Read-ends')
@@ -150,9 +153,6 @@ def load_data(bam_files, genome_dir, gene_annotation, out_file, Collapse=False, 
                         Variants = Variants_sparse.toarray()
                         del non_zer_var, ij
 
-                        if store_gene_seq:
-                            GeneConversionEvents[new_gene_name]['GeneSeq'].create_dataset(str(i), data=GeneSeq, compression="gzip", compression_opts=9, )#, chunks=GeneSeq.shape)
-                        # GeneConversionEvents[new_gene_name]['Variants'].create_dataset(str(i), data=Variants, compression="gzip", compression_opts=9)#, chunks=Variants.shape)
                         GeneConversionEvents[new_gene_name]['Variants'].create_group(str(i))
                         GeneConversionEvents[new_gene_name]['Variants'][str(i)].create_dataset('data', data=Variants_sparse.data)
                         GeneConversionEvents[new_gene_name]['Variants'][str(i)].create_dataset('indptr', data=Variants_sparse.indptr)

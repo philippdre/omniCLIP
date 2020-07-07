@@ -153,15 +153,6 @@ def run_omniCLIP(args):
     else:
         NrOfStates = 3
 
-    # Remove the gene sequence from the Sequences and Background when not needed. Currently this is always the case:
-    for gene in list(Sequences.keys()):
-        if 'GeneSeq' in Sequences[gene]:
-            del Sequences[gene]['GeneSeq']
-
-    for gene in list(Background.keys()):
-        if 'GeneSeq' in Background[gene]:
-            del Background[gene]['GeneSeq']
-
     TransMat = np.ones((NrOfStates, NrOfStates)) + np.eye(NrOfStates)
     TransMat = TransMat / np.sum(np.sum(TransMat))
     TransitionParameters = [TransMat, []]
