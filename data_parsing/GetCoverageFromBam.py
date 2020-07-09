@@ -19,14 +19,19 @@
 
 import numpy as np
 import re
+import warnings
 
 
-def GetRawCoverageFromRegion(SamReader, Chr, Start, Stop, Collapse=False, CovType='coverage', Genome='', legacy=True, mask_flank_variants=3, max_mm=2, ign_out_rds=False, rev_strand=None, gene_strand=0):
+def GetRawCoverageFromRegion(
+        SamReader, Chr, Start, Stop, Collapse=False, CovType='coverage',
+        Genome='', legacy=True, mask_flank_variants=3, max_mm=2,
+        rev_strand=None, ign_out_rds=False, gene_strand=0):
+    """Extract coverage from a BAM-file.
+
+    This function gets from a BAM-file the coverage and returns it as a sparse
+    vector for each chromosome and strand.
     """
-    This function gets from a BAM-file the coverage and returns it as a sparse vector for each chromosome and strand
-    """
-
-    # Initate nucleotide lookup
+    # Initiate nucleotide lookup
     NuclDict = {'A': 0, 'C': 1, 'G': 2, 'T': 3, 'D': 4}
 
     # Prepare regular expression
@@ -36,16 +41,11 @@ def GetRawCoverageFromRegion(SamReader, Chr, Start, Stop, Collapse=False, CovTyp
     RegionLength = Stop - Start
 
     # Initialise the length vectors
+    ret_arrays = dict()
+    ret_arrays['variants'] = np.zeros((5, RegionLength), dtype=np.int32)
+    ret_arrays['read-ends'] = np.zeros((2, RegionLength), dtype=np.int32)
+    ret_arrays['coverage'] = np.zeros((1, RegionLength), dtype=np.int32)
 
-    CovType = ['coverage', 'variants', 'read-ends']
-
-    CurrChrCoverage_cov = np.zeros((1, RegionLength), dtype=np.int32)  # return array for coverage
-    CurrChrCoverage_var = np.zeros((5, RegionLength), dtype=np.int32)  # return array for variants
-    CurrChrCoverage_read_end = np.zeros((2, RegionLength), dtype=np.int32)  # return array for read-ends
-
-    process_var = 'variants' in CovType
-    process_read_end = 'read-ends' in CovType
-    process_cov = 'coverage' in CovType
     # Modify gene_strand if the reads are coming from the reverse strand
     if rev_strand is not None:
         if rev_strand == 0:
@@ -54,10 +54,16 @@ def GetRawCoverageFromRegion(SamReader, Chr, Start, Stop, Collapse=False, CovTyp
     # Iterate over Reads
     iter = SamReader.fetch(Chr, Start, Stop)
     for CurrRead in iter:
-        CurrReadstart = CurrRead.pos - Start
+        # Check for mismatches
+        if CurrRead.get_tag('NM') > max_mm:
+            continue
 
+        # Check for position whithin gene boundaries
+        CurrReadstart = CurrRead.pos - Start
         if ign_out_rds:
-            LastPos = CurrReadstart + sum([e[1] for e in CurrRead.cigar if e[0] != 4]) - 1
+            LastPos = (CurrReadstart
+                       + sum([e[1] for e in CurrRead.cigar if e[0] != 4])
+                       - 1)
 
             if (CurrReadstart < 0) or (LastPos > Stop - Start):
                 continue
@@ -88,13 +94,10 @@ def GetRawCoverageFromRegion(SamReader, Chr, Start, Stop, Collapse=False, CovTyp
                     if ((CurrRead.flag & 16) == 0):
                         continue
 
-        if CurrRead.get_tag('NM') > max_mm:
-            continue
         # Compute relative positions of read
         CurrReadstart = CurrRead.pos - Start
         FirstPos = CurrReadstart
-        cigar_str = CurrRead.cigar
-        LastPos = FirstPos + sum([e[1] for e in cigar_str if e[0] != 4])
+        LastPos = FirstPos + sum([e[1] for e in CurrRead.cigar if e[0] != 4])
         # Check ho many reads the current read represents (Collapsing)
         if Collapse:
             Mult = CurrRead.qname.split('-')
@@ -104,64 +107,72 @@ def GetRawCoverageFromRegion(SamReader, Chr, Start, Stop, Collapse=False, CovTyp
         else:
             Mult = 1
 
-        if process_var:
+        # Processing for variants
+        if 'variants' in CovType:
             GlobalVariantPos = GetVariantsFromRead(CurrRead, r)
             # Transform letters into numbers, A - 0, C - 1, G - 2, T - 3
             for e in GlobalVariantPos:
+                if e[1] == 'N':
+                    continue
                 # Check if variant falls into flanks
-                if (e[0] - Start < FirstPos + mask_flank_variants) or (e[0] - Start > LastPos - 1 - mask_flank_variants):
+                if (e[0] - Start) < (FirstPos + mask_flank_variants):
+                    continue
+                elif (e[0] - Start) > (LastPos - 1 - mask_flank_variants):
                     continue
                 # Check whether the variant lies outside of the gene
                 if e[0] - Start < 0 or e[0] - Start >= RegionLength:
                     continue
-                if e[1] == 'N':
-                    continue
                 # Process the variant
-                CurrChrCoverage_var[NuclDict[e[1]], e[0] - Start] += Mult
-        if process_read_end:
+                ret_arrays['variants'][NuclDict[e[1]], e[0] - Start] += Mult
+
+        # Processing for read extremities
+        if 'read-ends' in CovType:
             if CurrRead.flag & 1:
-                # Check if the read is paired end. If yes chose the outer ends as ends
+                # Check if the read is paired end.
+                # If yes chose the outer ends as ends.
                 if FirstPos >= 0:
                     if ((CurrRead.flag & 128) > 0) & ((CurrRead.flag & 32) > 0):
-                        CurrChrCoverage_read_end[0, CurrReadstart] += Mult
+                        ret_arrays['read-ends'][0, CurrReadstart] += Mult
                     if ((CurrRead.flag & 64) > 0) & ((CurrRead.flag & 32) > 0):
-                        CurrChrCoverage_read_end[1, CurrReadstart] += Mult
+                        ret_arrays['read-ends'][1, CurrReadstart] += Mult
                 if LastPos < RegionLength:
                     if ((CurrRead.flag & 16) > 0) & ((CurrRead.flag & 64) > 0):
-                        CurrChrCoverage_read_end[1, LastPos - 1] += Mult
+                        ret_arrays['read-ends'][1, LastPos - 1] += Mult
                     if ((CurrRead.flag & 16) > 0) & ((CurrRead.flag & 128) > 0):
-                        CurrChrCoverage_read_end[0, LastPos - 1] += Mult
+                        ret_arrays['read-ends'][0, LastPos - 1] += Mult
             else:
                 if FirstPos >= 0:
                     if ((CurrRead.flag & 16) > 0):
-                        CurrChrCoverage_read_end[1, CurrReadstart] += Mult
+                        ret_arrays['read-ends'][1, CurrReadstart] += Mult
                     else:
-                        CurrChrCoverage_read_end[0, CurrReadstart] += Mult
+                        ret_arrays['read-ends'][0, CurrReadstart] += Mult
                 if LastPos < RegionLength:
                     if ((CurrRead.flag & 16) > 0):
-                        CurrChrCoverage_read_end[0, LastPos - 1] += Mult
+                        ret_arrays['read-ends'][0, LastPos - 1] += Mult
                     else:
-                        CurrChrCoverage_read_end[1, LastPos] += Mult
-        if process_cov:
-            for Entry in cigar_str:
-                # Check which type to get the coverage for
-                if Entry[0] == 0:
-                    CurrChrCoverage_cov[0, max(0, CurrReadstart): min(RegionLength, max(0, CurrReadstart + Entry[1]))] += Mult
-                if Entry[0] != 4:
-                    CurrReadstart += Entry[1]
-    ret_arrays = {'coverage': CurrChrCoverage_cov, 'variants': CurrChrCoverage_var, 'read-ends': CurrChrCoverage_read_end}
+                        ret_arrays['read-ends'][1, LastPos] += Mult
+
+        # Processing for coverage
+        for cig in CurrRead.cigar:
+            # Check which type to get the coverage for
+            if cig[0] == 0:
+                _start = max(0, CurrReadstart)
+                _end = min(RegionLength, max(0, CurrReadstart + cig[1]))
+                ret_arrays['coverage'][0, _start:_end] += Mult
+            if cig[0] != 4:
+                CurrReadstart += cig[1]
 
     return ret_arrays
 
 
 def GetVariantsFromRead(CurrRead, r):
-    """
-    This function takes a pysam read and returns based on the MD Tag the Variants and their absolute positions
-    """
+    """Parse variants from read.
 
+    Takes a pySAM read and returns variants based on the MD Tag the Variants
+    and their absolute positions.
+    """
     # Get the sequence
     Seq = CurrRead.seq
-    Tag = ''
 
     # Get the MD tag
     Tag = CurrRead.get_tag('MD')
@@ -173,62 +184,84 @@ def GetVariantsFromRead(CurrRead, r):
 
     # Convert the groups to a list of local positions and nucleotides
     TempPos = 0
-    PosList = []
+    Pos = []
     for i in range(0, len(SplitTag)):
         if SplitTag[i].isdigit():
-            TempPos += int(SplitTag[i])  # Increase Counter by the number of positions where there is no mismatch
+            # Increase the counter by the number of positions where there is no
+            # mismatch
+            TempPos += int(SplitTag[i])
         else:
             if SplitTag[i][0] == '^':  # Check if it is a deletion
                 continue
             else:
                 for l in range(len(SplitTag[i])):
-                    PosList.append([TempPos, Seq[TempPos]])
+                    Pos.append([TempPos, Seq[TempPos]])
                     TempPos += 1
 
-    # Convert the local positions from PosList to global positions.
-    ReadPos = 0
+    # Convert the local positions from Pos to global positions.
     CurrGlobalPos = CurrRead.pos
     GlobalPos = []
 
-    # iterate over the segements of the cigar string
-    for Entry in CurrRead.cigar:
-        # Split the positions in PosList into the ones faling into the current CIGAR segement and the rest
-        if Entry[0] == 0:  # Sequence match
-            CurrSeg = [e for e in PosList if e[0] < Entry[1]]
-            PosList = [[e[0] - Entry[1], e[1]] for e in PosList if e[0] >= Entry[1]]
+    # Iterate over the segments of the cigar string
+    for cig in CurrRead.cigar:
+        # Split the positions in Pos into the ones faling into the current
+        # CIGAR segement and the rest
+
+        # Sequence match
+        if cig[0] == 0:
+            CurrSeg = [e for e in Pos if e[0] < cig[1]]
+            Pos = [[e[0] - cig[1], e[1]] for e in Pos if e[0] >= cig[1]]
             for e in CurrSeg:
                 GlobalPos.append([CurrGlobalPos + e[0], e[1]])
-            CurrGlobalPos += Entry[1]
-        elif Entry[0] == 1:  # Insertion to the reference
+            CurrGlobalPos += cig[1]
+
+        # Insertion to the reference
+        elif cig[0] == 1:
             continue
-        elif Entry[0] == 2:  # Deletion from the reference
-            for temp_pos in range(Entry[1]):
+
+        # Deletion from the reference
+        elif cig[0] == 2:
+            for temp_pos in range(cig[1]):
                 GlobalPos.append([CurrGlobalPos + temp_pos, 'D'])
-            CurrGlobalPos += Entry[1]
+            CurrGlobalPos += cig[1]
             continue
-        elif Entry[0] == 3:  # Skipped region from the reference
-            CurrGlobalPos += Entry[1]
-        elif Entry[0] == 4:  # Soft clipping (clipped sequences present in SEQ)
+
+        # Skipped region from the reference
+        elif cig[0] == 3:
+            CurrGlobalPos += cig[1]
+
+        # Soft clipping (clipped sequences present in SEQ)
+        elif cig[0] == 4:
             continue
-        elif Entry[0] == 5:  # Hard clipping (clipped sequences NOT present in SEQ)
+
+        # Hard clipping (clipped sequences NOT present in SEQ)
+        elif cig[0] == 5:
             continue
-            CurrGlobalPos += Entry[1]
-        elif Entry[0] == 6:  # Padding (silent deletion from padded reference)
+            CurrGlobalPos += cig[1]
+
+        # Padding (silent deletion from padded reference)
+        elif cig[0] == 6:
             continue
-        elif Entry[0] == 7:  # Sequence match
-            CurrSeg = [e for e in PosList if e[0] < Entry[1]]
-            PosList = [[e[0] - Entry[1], e[1]] for e in PosList if e[0] >= Entry[1]]
+
+        # Sequence match
+        elif cig[0] == 7:
+            CurrSeg = [e for e in Pos if e[0] < cig[1]]
+            Pos = [[e[0] - cig[1], e[1]] for e in Pos if e[0] >= cig[1]]
             for e in CurrSeg:
                 GlobalPos.append([CurrGlobalPos + e[0], e[1]])
-            CurrGlobalPos += Entry[1]
-        elif Entry[0] == 8:  # Sequence mismatch
-            CurrSeg = [e for e in PosList if e[0] < Entry[1]]
-            PosList = [[e[0] - Entry[1], e[1]] for e in PosList if e[0] >= Entry[1]]
+            CurrGlobalPos += cig[1]
+
+        # Sequence mismatch
+        elif cig[0] == 8:
+            CurrSeg = [e for e in Pos if e[0] < cig[1]]
+            Pos = [[e[0] - cig[1], e[1]] for e in Pos if e[0] >= cig[1]]
             for e in CurrSeg:
                 GlobalPos.append([CurrGlobalPos + e[0], e[1]])
-            CurrGlobalPos += Entry[1]
+            CurrGlobalPos += cig[1]
+
         else:
-            warnings.warn("Encountered unhandled CIGAR character in read " + CurrRead.qname)
-            CurrGlobalPos += Entry[1]
+            warnings.warn("Encountered unhandled CIGAR character in read "
+                          + CurrRead.qname)
+            CurrGlobalPos += cig[1]
 
     return GlobalPos
