@@ -495,14 +495,10 @@ def add_pseudo_gene(Sequences, Background, NewPaths, PriorMatrix):
 
 def generateDB(args):
     """Given a GFF file, launches to CreateDB function."""
-    # Verifications on the file paths
-    if args.gff_file[-4:] != '.gff':
-        raise sys.exit('Wrong file format. The annotation should be provided as a .gff file')
-    if args.db_file[-7:] != ".gff.db":
-        raise sys.exit('Wrong file format. The output DB should be a .gff.db file')
+    # TODO : HERE implemente list of features for GFF
 
     # Creating the DB
-    CreateGeneAnnotDB.CreateDB(args.gff_file, args.db_file)
+    CreateGeneAnnotDB.CreateDB(args.gff_file, args.db_file, args.gene_features)
 
 
 def parsingBG(args):
@@ -558,6 +554,8 @@ if __name__ == '__main__':
     parser_generateDB_reqNamed = parser_generateDB.add_argument_group('required arguments')
     parser_generateDB_reqNamed.add_argument('--gff-file', dest='gff_file', help='Path to the .GFF annotation file', required=True)
     parser_generateDB_reqNamed.add_argument('--db-file', dest='db_file', help='Path to the output .GFF.DB file', required=True)
+    # Optional args for the generateDB command
+    parser_generateDB.add_argument('--gene_features', nargs='+', dest='gene_features', help='Features in the annotation file to be considered as genes', required=False)
 
     # Shared optional arguments from parsingBG and parsingCLIP command
     parent_parsing = argparse.ArgumentParser(add_help=False)
