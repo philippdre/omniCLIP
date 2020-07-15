@@ -498,10 +498,11 @@ def mark_overlapping_positions(Sequences, GeneAnnotation):
             Sequences[gene]['mask'].create_dataset(rep, data=np.zeros(Sequences[gene]['Coverage'][rep][()].shape), compression="gzip", compression_opts=9, chunks=Sequences[gene]['Coverage'][rep][()].shape, dtype='i8')
 
     #Create a dictionary that stores the genes in the Gene annnotation
-    gene_dict = {}
+    genes = [
+        gene for gene in GeneAnnotation.features_of_type('gene')
+        if '_PAR_Y' not in gene.id]
 
-    for gene in  GeneAnnotation.features_of_type('gene'):
-        gene_dict[gene.id.split('.')[0]] = gene
+    gene_dict = {gene.id.split('.')[0]: gene for gene in genes}
 
     #Get Chromosomes:
     genes_chr_dict = defaultdict(list)
@@ -515,7 +516,6 @@ def mark_overlapping_positions(Sequences, GeneAnnotation):
         for gene in genes_chr_dict[chr]:
             interval_chr_dict[chr][gene.start : gene.stop] = gene
     
-    genes = [gene for gene in GeneAnnotation.features_of_type('gene')]
 
     #Iterate over the genes in the Sequences:
     for gene in genes:
