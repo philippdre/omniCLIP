@@ -494,11 +494,21 @@ def add_pseudo_gene(Sequences, Background, NewPaths, PriorMatrix):
 
 
 def generateDB(args):
-    """Given a GFF file, launches to CreateDB function."""
-    # TODO : HERE implemente list of features for GFF
+    """Given a GFF file, launches to CreateDB function.
+
+    By default, omniCLIP only considers entries with a 'gene' feature. To
+    include other features, as needed when using an Ensembl GFF3 for example,
+    one needs to specify them at the command line.
+
+    Example : --gene-features=gene,ncRNA
+    """
+    if args.gene_features is None:
+        gene_features = ['gene']
+    else:
+        gene_features = args.gene_features[0].split(',')
 
     # Creating the DB
-    CreateGeneAnnotDB.CreateDB(args.gff_file, args.db_file, args.gene_features)
+    CreateGeneAnnotDB.CreateDB(args.gff_file, args.db_file, gene_features)
 
 
 def parsingBG(args):

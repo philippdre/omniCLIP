@@ -23,7 +23,7 @@ import gffutils
 id_spec = {'gene': ['gene_id', 'geneID', 'ID=gene:']}
 
 
-def CreateDB(FileNameGFF, FileNameDB, gene_features=['gene']):
+def CreateDB(FileNameGFF, FileNameDB, gene_features):
     """Create a GFF database using GFFUtils."""
     # Read the annotation file
     with open(FileNameGFF, 'r') as f:
@@ -31,7 +31,8 @@ def CreateDB(FileNameGFF, FileNameDB, gene_features=['gene']):
 
     # Keep only lines describing genes as features
     genes = '\n'.join([
-        line for line in lines
+        '\t'.join(line.split('\t')[:2] + ['gene'] + line.split('\t')[3:])
+        for line in lines
         if (line[0] != '#' and line.split('\t')[2] in gene_features)])
 
     # Create the DB
