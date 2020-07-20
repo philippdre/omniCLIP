@@ -110,39 +110,15 @@ def run_omniCLIP(args):
     shutil.copy(f_name_read_bg, f_name_read_bg_tmp)
 
     # Open the temporary read files
-    Sequences = h5py.File(f_name_read_fg_tmp, 'r+')
-    Background = h5py.File(f_name_read_bg_tmp, 'r+')
-
     EmissionParameters['DataOutFile_seq'] = f_name_read_fg_tmp
     EmissionParameters['DataOutFile_bck'] = f_name_read_bg_tmp
+    Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r+')
+    Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r+')
 
     # Estimate the library size
     EmissionParameters['BckLibrarySize'] = tools.estimate_library_size(Background)
     EmissionParameters['LibrarySize'] = tools.estimate_library_size(Sequences)
 
-    # Removing genes without any reads in the CLIP data
-    print("Removing genes without CLIP coverage")
-
-    genes_to_keep = []
-    all_genes = list(Sequences.keys())
-    for i, gene in enumerate(Sequences.keys()):
-        curr_cov = sum([Sequences[gene]['Coverage'][rep][()].sum() for rep in list(Sequences[gene]['Coverage'].keys())])
-        max_cov = np.max([Sequences[gene]['Coverage'][rep][()].max() for rep in list(Sequences[gene]['Coverage'].keys())])
-
-        if curr_cov <= 1000:  # Change ME
-            continue
-
-        if max_cov < 5:
-            print(max_cov)
-        genes_to_keep.append(gene)
-    print('Genes to keep ', len(genes_to_keep))
-    genes_to_del = list(set(all_genes).difference(set(genes_to_keep)))
-
-    for gene in genes_to_del:
-        del Sequences[gene]
-        del Background[gene]
-
-    del all_genes, genes_to_del, genes_to_keep
     msg = 'Done: Elapsed time: ' + str(time.time() - t)
     get_mem_usage(verbosity, t=t, msg=msg)
 
@@ -540,7 +516,10 @@ def parsingCLIP(args):
         mask_flank_variants=args.mask_flank_variants,
         max_mm=args.max_mm,
         ign_out_rds=args.ign_out_rds,
-        rev_strand=args.rev_strand
+        rev_strand=args.rev_strand,
+        CLIP_exp=True,
+        min_coverage=args.min_coverage,
+        min_peak=args.min_peak
     )
 
     Sequences = LoadReads.get_data_handle(args.out_file, write=True)
@@ -595,6 +574,8 @@ if __name__ == '__main__':
     # Optional args for the parsingCLIP command
     parser_parsingCLIP.add_argument('--mask-miRNA', action='store_true', dest='mask_miRNA', help='Mask miRNA positions', default=False)
     parser_parsingCLIP.add_argument('--mask-ovrlp', action='store_true', dest='mask_ovrlp', help='Ignore overlapping gene regions for diagnostic event model fitting', default=False)
+    parser_parsingCLIP.add_argument('--min-coverage', action='store_true', dest='min_coverage', help='Minimum summed coverage on a whole gene to be considered in the analysis', default=100)
+    parser_parsingCLIP.add_argument('--min-peak', action='store_true', dest='min_peak', help='Minimum maximum peak heigth on a gene to be considered in the analysis', default=5)
 
     # Create the parser for the run_omniCLIP command
     parser_run_omniCLIP = subparsers.add_parser('run_omniCLIP', help='run_omniCLIP help', description="running the main omniCLIP program.")

@@ -174,6 +174,8 @@ def construct_glm_matrix(EmissionParameters, Sequences, Background, Paths, bg_ty
         # Process the background
         if np_proc == 1:
             for gene_nr, gene in enumerate(Sequences):
+                if gene == 'ENSG00000000971':
+                    print('HEHERERERERER')
                 for rep, curr_rep in enumerate(replicates_bck):
                     if bg_type == 'Const':
                         gene_rep_background = Background[gene][curr_rep][()]
