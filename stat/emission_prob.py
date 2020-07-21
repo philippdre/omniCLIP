@@ -52,7 +52,7 @@ def estimate_expression_param(expr_data, verbosity=1):
 
     # 1) Get the library size
     print('Start estimation of expression parameters')
-    bg_type = EmissionParameters['BckType']
+    bg_type = EmissionParameters['bg_type']
     lib_size = EmissionParameters['LibrarySize']
     bck_lib_size = EmissionParameters['BckLibrarySize']
     start_params = EmissionParameters['ExpressionParameters'][0]
@@ -68,8 +68,8 @@ def estimate_expression_param(expr_data, verbosity=1):
         msg='Estimating expression parameters: before GLM matrix construction')
 
     LoadReads.close_data_handles(handles=[Sequences, Background])
-    Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
-    Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
+    Sequences = h5py.File(EmissionParameters['dat_file_clip'], 'r')
+    Background = h5py.File(EmissionParameters['dat_file_bg'], 'r')
 
     A, w, Y, rep = construct_glm_matrix(
         EmissionParameters, Sequences, Background, Paths)
@@ -125,7 +125,7 @@ def construct_glm_matrix(EmissionParameters, Sequences, Background, Paths,
                          bg_type=None):
     """Construct the GLM matrix."""
     # Determine shape of the matrix
-    bg_type = EmissionParameters['BckType']
+    bg_type = EmissionParameters['bg_type']
     nr_of_bck_rep = EmissionParameters['NrOfBckReplicates']
     nr_of_rep = EmissionParameters['NrOfReplicates']
     NrOfStates = EmissionParameters['NrOfStates']
@@ -138,21 +138,18 @@ def construct_glm_matrix(EmissionParameters, Sequences, Background, Paths,
     genes = list(Sequences.keys())
     nr_of_genes = len(genes)
 
-    np_proc = EmissionParameters['NbProc']
-    number_of_processes = np_proc
-
     fg_state, bg_state = get_fg_and_bck_state(EmissionParameters)
     # Create a dictionary of unique rows for each gene
     # Check if parallel processing is activated
     replicates_fg = list(Sequences[genes[0]]['Coverage'].keys())
-    if np_proc == 1:
+    if EmissionParameters['nb_proc'] == 1:
         for gene_nr, gene in enumerate(Sequences):
             for rep, curr_rep in enumerate(replicates_fg):
                 # Create the sparse matrix blocks for each replicate
                 curr_data = (
                     Paths[gene], Sequences[gene]['Coverage'][curr_rep][()],
                     gene, gene_nr, rep, NrOfStates, nr_of_genes, bg_type,
-                    fg_state, bg_state, EmissionParameters['Verbosity'])
+                    fg_state, bg_state, EmissionParameters['verbosity'])
 
                 (gene_mat, weights,
                  y, reps, new_pos) = process_gene_for_glm_mat(curr_data)
@@ -164,12 +161,12 @@ def construct_glm_matrix(EmissionParameters, Sequences, Background, Paths,
                 curr_reps.append(reps)
     else:
         # Create a function that groups together the values such that an iterator can be defined
-        verb = EmissionParameters['Verbosity']
+        verb = EmissionParameters['verbosity']
         f = lambda gene_nr, gene, rep,  Paths=Paths, Sequences=Sequences, NrOfStates=NrOfStates, nr_of_genes=nr_of_genes, bg_type=bg_type, fg_state=fg_state, bg_state=bg_state, verb=verb: (Paths[gene], Sequences[gene]['Coverage'][str(rep)][()], gene, gene_nr, rep, NrOfStates, nr_of_genes, bg_type, fg_state, bg_state, verb)
         # Create an iterator for the data
         list_gen = [(a, b, c) for (a, b), c in itertools.product(zip(itertools.count(), genes), list(range(nr_of_rep)))]
         data = itertools.starmap(f, list_gen)
-        pool = multiprocessing.get_context("spawn").Pool(number_of_processes, maxtasksperchild=100)
+        pool = multiprocessing.get_context("spawn").Pool(EmissionParameters['nb_proc'], maxtasksperchild=100)
         results = pool.imap(process_gene_for_glm_mat, data, chunksize=1)
         pool.close()
         pool.join()
@@ -184,7 +181,7 @@ def construct_glm_matrix(EmissionParameters, Sequences, Background, Paths,
     if not bg_type == 'None':
         replicates_bck = list(Background[list(Background.keys())[0]]['Coverage'].keys())
         # Process the background
-        if np_proc == 1:
+        if EmissionParameters['nb_proc'] == 1:
             for gene_nr, gene in enumerate(Sequences):
                 for rep, curr_rep in enumerate(replicates_bck):
                     if bg_type == 'Const':
@@ -625,7 +622,7 @@ def get_expected_mean_and_var(CurrStackSum, State, nr_of_genes, gene_nr,
     nr_of_states = EmissionParameters['NrOfStates']
     # Create the log mean matrix for each rep
 
-    bg_type = EmissionParameters['BckType']
+    bg_type = EmissionParameters['bg_type']
     if curr_type == 'fg':
         lib_size = EmissionParameters['LibrarySize']
         nr_of_rep = EmissionParameters['NrOfReplicates']
@@ -641,7 +638,7 @@ def get_expected_mean_and_var(CurrStackSum, State, nr_of_genes, gene_nr,
         start_params = (start_params)
         if start_params[gene_nr, 0] - abs(start_params[nr_of_genes, 0]) < start_params[nr_of_genes + 1, 0]:
             start_params[gene_nr, 0] = abs(start_params[nr_of_genes, 0]) + start_params[nr_of_genes + 1, 0] + 0.01
-            if EmissionParameters['Verbosity']:
+            if EmissionParameters['verbosity']:
                 print('Adjusted start params')
 
     # Check whether the current data is foreground data
@@ -774,7 +771,7 @@ def get_fg_and_bck_state(EmissionParameters, final_pred=False):
             fg_state = 0
             bg_state = 1
         else:
-            bg_type = EmissionParameters['BckType']
+            bg_type = EmissionParameters['bg_type']
             if bg_type == 'Coverage_bck':
                 if EmissionParameters['ExpressionParameters'][0][-2] > 0:
                     fg_state = 1

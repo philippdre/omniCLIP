@@ -32,8 +32,6 @@ import mixture_tools
 import numpy as np
 import os
 import random
-import shutil
-import tempfile
 import time
 import tools
 import trans
@@ -41,38 +39,33 @@ import trans
 import LoadReads
 import CreateGeneAnnotDB
 import ParsingPositions
+import ParsingArgs
 from utils import get_mem_usage
 
+
 def run_omniCLIP(args):
-    # Get the args
-    args = parser.parse_args()
+    """Run omniCLIP function."""
+    # Parsing the arguments
+    EmissionParameters = ParsingArgs.parsing_argparse(args)
 
-    verbosity = args.verbosity
+    # Creating temp copies of Sequence and Background
+    ParsingArgs.dup_seqfiles(EmissionParameters)
 
-    if verbosity > 1:
+    # Parsing arguments dependents of Sequence and Background
+    EmissionParameters = ParsingArgs.parsing_files(args, EmissionParameters)
+
+    if EmissionParameters['verbosity'] > 1:
         print(args)
 
-    bg_type = args.bg_type
-
-    if args.out_dir is None:
-        out_path = os.getcwd()
-    else:
-        out_path = args.out_dir
-
-    MaxIter = args.max_it
-    # process the parameters
-
-    if not (bg_type == 'Coverage' or bg_type == 'Coverage_bck'):
-        print('Bg-type: ' + bg_type + ' has not been implemented yet')
+    # Process the parameters
+    if not (EmissionParameters['bg_type'] == 'Coverage' or EmissionParameters['bg_type'] == 'Coverage_bck'):
+        print('Bg-type: ' + EmissionParameters['bg_type'] + ' has not been implemented yet')
         return
 
     # Set seed for the random number generators
     if args.rnd_seed is not None:
         random.seed(args.rnd_seed)
         print('setting seed')
-
-    # Set the p-value cutoff for the bed-file creation
-    pv_cutoff = args.pv_cutoff
 
     # Load the gene annotation
     print('Loading gene annotation')
@@ -83,101 +76,17 @@ def run_omniCLIP(args):
     warnings.filterwarnings('error')
 
     # Load the reads
-    get_mem_usage(verbosity)
-    print('Loading reads')
-
-    EmissionParameters = {}
-    EmissionParameters['glm_weight'] = args.glm_weight
-    EmissionParameters['skip_diag_event_mdl'] = args.skip_diag_event_mdl
-    EmissionParameters['ign_out_rds'] = args.ign_out_rds
-    EmissionParameters['DataOutFile_seq'] = args.clip_dat
-    EmissionParameters['DataOutFile_bck'] = args.bg_dat
-    EmissionParameters['tmp_dir'] = args.tmp_dir
+    get_mem_usage(EmissionParameters['verbosity'])
     t = time.time()
-
-    f_name_read_fg = EmissionParameters['DataOutFile_seq']
-    f_name_read_bg = EmissionParameters['DataOutFile_bck']
-
-    # Create temporary read-files that can be modified by the masking operations
-    if EmissionParameters['tmp_dir'] is None:
-        f_name_read_fg_tmp = EmissionParameters['DataOutFile_seq'] + '.tmp'
-        f_name_read_bg_tmp = EmissionParameters['DataOutFile_bck'] + '.tmp'
-    else:
-        f_name_read_fg_tmp = os.path.join(EmissionParameters['tmp_dir'], next(tempfile._get_candidate_names()) + '.dat')
-        f_name_read_bg_tmp = os.path.join(EmissionParameters['tmp_dir'], next(tempfile._get_candidate_names()) + '.dat')
-
-    shutil.copy(f_name_read_fg, f_name_read_fg_tmp)
-    shutil.copy(f_name_read_bg, f_name_read_bg_tmp)
-
-    # Open the temporary read files
-    EmissionParameters['DataOutFile_seq'] = f_name_read_fg_tmp
-    EmissionParameters['DataOutFile_bck'] = f_name_read_bg_tmp
-    Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r+')
-    Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r+')
-
-    # Estimate the library size
-    EmissionParameters['BckLibrarySize'] = tools.estimate_library_size(Background)
-    EmissionParameters['LibrarySize'] = tools.estimate_library_size(Sequences)
+    Sequences = h5py.File(EmissionParameters['dat_file_clip'], 'r+')
+    Background = h5py.File(EmissionParameters['dat_file_bg'], 'r+')
 
     msg = 'Done: Elapsed time: ' + str(time.time() - t)
-    get_mem_usage(verbosity, t=t, msg=msg)
+    get_mem_usage(EmissionParameters['verbosity'], t=t, msg=msg)
 
     # Initializing parameters
     print('Initialising the parameters')
-    if bg_type == 'Coverage_bck':
-        NrOfStates = 4
-    else:
-        NrOfStates = 3
-
-    TransMat = np.ones((NrOfStates, NrOfStates)) + np.eye(NrOfStates)
-    TransMat = TransMat / np.sum(np.sum(TransMat))
-    TransitionParameters = [TransMat, []]
-
-    gene = list(Sequences.keys())[0]
-
-    EmissionParameters['PriorMatrix'] = np.ones((NrOfStates, 1)) / float(NrOfStates)
-    EmissionParameters['diag_bg'] = args.diag_bg
-    EmissionParameters['emp_var'] = args.emp_var
-    EmissionParameters['norm_class'] = args.norm_class
-
-    # Define flag for penalized path prediction
-    EmissionParameters['LastIter'] = False
-    EmissionParameters['fg_pen'] = args.fg_pen
-
-    EmissionParameters['Diag_event_params'] = {}
-    EmissionParameters['Diag_event_params']['nr_mix_comp'] = args.nr_mix_comp
-    EmissionParameters['Diag_event_params']['mix_comp'] = {}
-    for state in range(NrOfStates):
-        mixtures = np.random.uniform(0.0, 1.0, size=(args.nr_mix_comp))
-        EmissionParameters['Diag_event_params']['mix_comp'][state] = mixtures / np.sum(mixtures)
-
-    # Initialise the parameter vector alpha
-    alphashape = (Sequences[gene]['Variants']['0']['shape'][0] + Sequences[gene]['Coverage']['0'][()].shape[0] + Sequences[gene]['Read-ends']['0'][()].shape[0])
-    alpha = {}
-    for state in range(NrOfStates):
-        alpha[state] = np.random.uniform(0.9, 1.1, size=(alphashape, args.nr_mix_comp))
-
-    EmissionParameters['NrOfReplicates'] = len(Sequences[list(Sequences.keys())[0]]['Coverage'])
-    EmissionParameters['NrOfBckReplicates'] = len(Background[list(Background.keys())[0]]['Coverage'])
-
-    EmissionParameters['Diag_event_params']['alpha'] = alpha
-    EmissionParameters['Diag_event_type'] = args.diag_event_mod
-    EmissionParameters['NrOfStates'] = NrOfStates
-    EmissionParameters['ExpressionParameters'] = [None, None]
-    EmissionParameters['BckType'] = bg_type
-    EmissionParameters['TransitionType'] = 'binary'
-    EmissionParameters['Verbosity'] = args.verbosity
-    EmissionParameters['NbProc'] = args.nb_proc
-    EmissionParameters['Subsample'] = args.subs
-    EmissionParameters['mask_ovrlp'] = args.mask_ovrlp
-
-    EmissionParameters['FilterSNPs'] = args.filter_snps
-    EmissionParameters['SnpRatio'] = args.snps_thresh
-    EmissionParameters['SnpAbs'] = args.snps_min_cov
-    EmissionParameters['ign_diag'] = args.ign_diag
-    if EmissionParameters['ign_out_rds']:
-        EmissionParameters['ign_diag'] = EmissionParameters['ign_out_rds']
-    EmissionParameters['ign_GLM'] = args.ign_GLM
+    TransitionParameters = [EmissionParameters['TransMat'], []]
 
     # Transistion parameters
     IterParameters = [EmissionParameters, TransitionParameters]
@@ -190,8 +99,8 @@ def run_omniCLIP(args):
     CurrIter = 0
     LoglikelihodList = []
     First = 1
-    IterSaveFile = os.path.join(out_path, 'IterSaveFile.dat')
-    IterSaveFileHist = os.path.join(out_path, 'IterSaveFileHist.dat')
+    IterSaveFile = os.path.join(EmissionParameters['out_dir'], 'IterSaveFile.dat')
+    IterSaveFileHist = os.path.join(EmissionParameters['out_dir'], 'IterSaveFileHist.dat')
     IterHist = []
     Paths = {}
     iter_cond = True
@@ -199,12 +108,12 @@ def run_omniCLIP(args):
     while iter_cond:
         print("\n")
         print("Iteration: " + str(CurrIter))
-        if EmissionParameters['Verbosity'] > 1:
+        if EmissionParameters['verbosity'] > 1:
             print(IterParameters[0])
 
         OldLogLikelihood = CurrLogLikelihood
 
-        CurrLogLikelihood, IterParameters, First, Paths = PerformIteration(Sequences, Background, IterParameters, NrOfStates, First, Paths, verbosity=EmissionParameters['Verbosity'])
+        CurrLogLikelihood, IterParameters, First, Paths = PerformIteration(Sequences, Background, IterParameters, EmissionParameters['NrOfStates'], First, Paths, verbosity=EmissionParameters['verbosity'])
         gc.collect()
 
         if True:
@@ -216,21 +125,21 @@ def run_omniCLIP(args):
             pickle.dump(IterHist, open(IterSaveFileHist,'wb'))
             del IterHist
 
-        if verbosity > 1:
+        if EmissionParameters['verbosity'] > 1:
             print("Log-likelihood: " + str(CurrLogLikelihood))
         LoglikelihodList.append(CurrLogLikelihood)
 
-        if verbosity > 1:
+        if EmissionParameters['verbosity'] > 1:
             print(LoglikelihodList)
         CurrIter += 1
 
-        if CurrIter >= MaxIter:
+        if CurrIter >= EmissionParameters['max_it']:
             print('Maximal number of iterations reached')
 
-        if CurrIter < max(3, MaxIter):
+        if CurrIter < max(3, EmissionParameters['max_it']):
             iter_cond = True
         else:
-            iter_cond = (CurrIter < MaxIter) and ((abs(CurrLogLikelihood - OldLogLikelihood)/max(abs(CurrLogLikelihood), abs(OldLogLikelihood))) > 0.01) and (abs(CurrLogLikelihood - OldLogLikelihood) > args.tol_lg_lik)
+            iter_cond = (CurrIter < EmissionParameters['max_it']) and ((abs(CurrLogLikelihood - OldLogLikelihood)/max(abs(CurrLogLikelihood), abs(OldLogLikelihood))) > 0.01) and (abs(CurrLogLikelihood - OldLogLikelihood) > args.tol_lg_lik)
 
     # Return the fitted parameters
     print('Finished parameter fitting')
@@ -244,28 +153,31 @@ def run_omniCLIP(args):
         out_file_base += '_no_glm'
     if EmissionParameters['ign_diag']:
         out_file_base += '_no_diag'
-    OutFile = os.path.join(out_path, out_file_base + '.txt')
+    OutFile = os.path.join(EmissionParameters['out_dir'], out_file_base + '.txt')
     # Determine which state has higher weight in fg.
-    get_mem_usage(verbosity)
+    get_mem_usage(EmissionParameters['verbosity'])
 
     fg_state, bg_state = emission_prob.get_fg_and_bck_state(EmissionParameters, final_pred=True)
     if EmissionParameters['fg_pen'] > 0.0:
         print('Recomputing paths')
         EmissionParameters['LastIter'] = True
-        Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
-        Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
-        Paths, LogLike = tools.ParallelGetMostLikelyPath(Paths, Sequences, Background, EmissionParameters, TransitionParameters, 'nonhomo', verbosity=EmissionParameters['Verbosity'])
-        Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
-        Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
+        Sequences = h5py.File(EmissionParameters['dat_file_clip'], 'r')
+        Background = h5py.File(EmissionParameters['dat_file_bg'], 'r')
+        Paths, LogLike = tools.ParallelGetMostLikelyPath(Paths, Sequences, Background, EmissionParameters, TransitionParameters, 'nonhomo', verbosity=EmissionParameters['verbosity'])
+        Sequences = h5py.File(EmissionParameters['dat_file_clip'], 'r')
+        Background = h5py.File(EmissionParameters['dat_file_bg'], 'r')
 
-    tools.GeneratePred(Paths, Sequences, Background, IterParameters, GeneAnnotation, OutFile, fg_state, bg_state, pv_cutoff=pv_cutoff, verbosity=EmissionParameters['Verbosity'])
+    tools.GeneratePred(
+        Paths, Sequences, Background, IterParameters, GeneAnnotation, OutFile,
+        fg_state, bg_state, pv_cutoff=EmissionParameters['pv_cutoff'],
+        verbosity=EmissionParameters['verbosity'])
     print('Done')
 
     # Remove the temporary files
     if not (EmissionParameters['tmp_dir'] is None):
         print('removing temporary files')
-        os.remove(EmissionParameters['DataOutFile_seq'])
-        os.remove(EmissionParameters['DataOutFile_bck'])
+        os.remove(EmissionParameters['dat_file_clip'])
+        os.remove(EmissionParameters['dat_file_bg'])
 
     return
 
@@ -283,8 +195,8 @@ def PerformIteration(Sequences, Background, IterParameters, NrOfStates, First, N
     # if (not EmissionParameters['restart_from_file']) and First:
     if First:
         NewPaths, LogLike = tools.ParallelGetMostLikelyPath(NewPaths, Sequences, Background, EmissionParameters, TransitionParameters, 'homo', RandomNoise = True, verbosity=verbosity)
-        Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
-        Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
+        Sequences = h5py.File(EmissionParameters['dat_file_clip'], 'r')
+        Background = h5py.File(EmissionParameters['dat_file_bg'], 'r')
 
         get_mem_usage(verbosity)
 
@@ -304,8 +216,8 @@ def PerformIteration(Sequences, Background, IterParameters, NrOfStates, First, N
     get_mem_usage(verbosity)
 
     LoadReads.close_data_handles(handles=[Sequences, Background])
-    Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
-    Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
+    Sequences = h5py.File(EmissionParameters['dat_file_clip'], 'r')
+    Background = h5py.File(EmissionParameters['dat_file_bg'], 'r')
 
     TransistionPredictors = trans.FitTransistionParameters(Sequences, Background, TransitionParameters, NewPaths, C, TransitionType, verbosity=verbosity)
     NewTransitionParameters[1] = TransistionPredictors
@@ -318,8 +230,8 @@ def PerformIteration(Sequences, Background, IterParameters, NrOfStates, First, N
 
     gc.collect()
     NewPaths, LogLike = tools.ParallelGetMostLikelyPath(NewPaths, Sequences, Background, EmissionParameters, TransitionParameters, 'nonhomo', verbosity=verbosity)
-    Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
-    Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
+    Sequences = h5py.File(EmissionParameters['dat_file_clip'], 'r')
+    Background = h5py.File(EmissionParameters['dat_file_bg'], 'r')
 
     CurrLogLikelihood = LogLike
     get_mem_usage(verbosity)
@@ -347,8 +259,8 @@ def FitEmissionParameters(Sequences, Background, NewPaths, OldEmissionParameters
     # Check if one of the states is not used and add pseudo gene to prevent singularities during distribution fitting
     if np.sum(PriorMatrix == 0) > 0:
         LoadReads.close_data_handles(handles=[Sequences, Background])
-        Sequences = h5py.File(NewEmissionParameters['DataOutFile_seq'], 'r+')
-        Background = h5py.File(NewEmissionParameters['DataOutFile_bck'], 'r+')
+        Sequences = h5py.File(NewEmissionParameters['dat_file_clip'], 'r+')
+        Background = h5py.File(NewEmissionParameters['dat_file_bg'], 'r+')
         Sequences, Background, NewPaths, pseudo_gene_names = add_pseudo_gene(Sequences, Background, NewPaths, PriorMatrix)
         LoadReads.close_data_handles(handles=[Sequences, Background])
         print('Adds pseudo gene to prevent singular matrix during GLM fitting')
@@ -367,7 +279,7 @@ def FitEmissionParameters(Sequences, Background, NewPaths, OldEmissionParameters
     # Compute parameters for the expression
     sample_size = 10000
 
-    if NewEmissionParameters['BckType'] != 'None':
+    if NewEmissionParameters['bg_type'] != 'None':
         if 'Pseudo' in Sequences:
             nr_of_genes = len(list(Sequences.keys()))
             new_pars = NewEmissionParameters['ExpressionParameters'][0]
@@ -376,13 +288,13 @@ def FitEmissionParameters(Sequences, Background, NewPaths, OldEmissionParameters
     print('Estimating expression parameters')
     get_mem_usage(verbosity)
 
-    bg_type = NewEmissionParameters['BckType']
+    bg_type = NewEmissionParameters['bg_type']
     expr_data = (NewEmissionParameters, Sequences, Background, NewPaths, sample_size, bg_type)
     NewEmissionParameters = emission_prob.estimate_expression_param(expr_data, verbosity=verbosity)
 
     get_mem_usage(verbosity)
 
-    if NewEmissionParameters['BckType'] != 'None':
+    if NewEmissionParameters['bg_type'] != 'None':
         if 'Pseudo' in Sequences:
             nr_of_genes = len(list(Sequences.keys()))
             new_pars = NewEmissionParameters['ExpressionParameters'][0]
@@ -401,7 +313,7 @@ def FitEmissionParameters(Sequences, Background, NewPaths, OldEmissionParameters
 
         del SuffStat
         get_mem_usage(verbosity)
-        if NewEmissionParameters['Subsample']:
+        if NewEmissionParameters['subs']:
             Counts, NrOfCounts = tools.subsample_suff_stat(Counts, NrOfCounts)
 
         print('Fitting md distribution')
@@ -412,7 +324,7 @@ def FitEmissionParameters(Sequences, Background, NewPaths, OldEmissionParameters
             # Vectorize SuffStat
             CountsBck, NrOfCountsBck = tools.ConvertSuffStatToArrays(SuffStatBck)
 
-            if NewEmissionParameters['Subsample']:
+            if NewEmissionParameters['subs']:
                 CountsBck, NrOfCountsBck = tools.subsample_suff_stat(CountsBck, NrOfCountsBck)
 
             # Overwrite counts in other bins
@@ -580,8 +492,8 @@ if __name__ == '__main__':
     # Create the parser for the run_omniCLIP command
     parser_run_omniCLIP = subparsers.add_parser('run_omniCLIP', help='run_omniCLIP help', description="running the main omniCLIP program.")
     parser_run_omniCLIP_reqNamed = parser_run_omniCLIP.add_argument_group('required arguments')
-    parser_run_omniCLIP_reqNamed.add_argument('--bg-dat', action='store', dest='bg_dat', help='Path to the parsed background .dat file', required=True)
-    parser_run_omniCLIP_reqNamed.add_argument('--clip-dat', action='store', dest='clip_dat', help='Path to the parsed CLIP .dat file', required=True)
+    parser_run_omniCLIP_reqNamed.add_argument('--bg-dat', action='store', dest='dat_file_bg', help='Path to the parsed background .dat file', required=True)
+    parser_run_omniCLIP_reqNamed.add_argument('--clip-dat', action='store', dest='dat_file_clip', help='Path to the parsed CLIP .dat file', required=True)
     parser_run_omniCLIP_reqNamed.add_argument('--out-dir', action='store', dest='out_dir', help='Output directory for results')
     parser_run_omniCLIP_reqNamed.add_argument('--db-file', action='store', dest='gene_anno_file', help='File where gene annotation is stored')
     # Optional args for the run_omniCLIP command
@@ -609,7 +521,7 @@ if __name__ == '__main__':
     parser_run_omniCLIP.add_argument('--nb-cores', action='store', dest='nb_proc', help='Number of cores o use', type=int, default=1)
     parser_run_omniCLIP.add_argument('--save-tmp', action='store_true', dest='safe_tmp', help='Safe temporary results', default=False)
     parser_run_omniCLIP.add_argument('--tmp-dir', action='store', dest='tmp_dir', help='Output directory for temporary results', default=None)
-    parser_run_omniCLIP.add_argument('--verbosity', action='store', dest='verbosity', help='Verbosity: 0 (default) gives information of current state of site prediction, 1 gives aditional output on runtime and meomry consupmtiona and 2 shows selected internal variables', type=int, default=0)
+    parser_run_omniCLIP.add_argument('--verbosity', action='store', dest='verbosity', help='verbosity: 0 (default) gives information of current state of site prediction, 1 gives aditional output on runtime and meomry consupmtiona and 2 shows selected internal variables', type=int, default=0)
     # TODO : need to implement this in the Sequence file
     parser_run_omniCLIP.add_argument('--mask-ovrlp', action='store_true', dest='mask_ovrlp', help='Ignore overlapping gene regions for diagnostic event model fitting', default=False)
 

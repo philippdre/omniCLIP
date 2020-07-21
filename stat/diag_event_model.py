@@ -29,9 +29,9 @@ def pred_log_lik(counts, state, EmissionParameters, single_mix=None):
     alpha = params['alpha'][state]
 
     # Selecting the appropratie function
-    if EmissionParameters['Diag_event_type'] == 'DirchMult':
+    if EmissionParameters['diag_event_mod'] == 'DirchMult':
         fitFun = FBProb.ComputeStateProbForGeneMD_unif
-    elif EmissionParameters['Diag_event_type'] == 'DirchMultK':
+    elif EmissionParameters['diag_event_mod'] == 'DirchMultK':
         fitFun = FBProb.ComputeStateProbForGeneMD_unif_rep
     else:
         return None
@@ -70,11 +70,11 @@ def estimate_multinomial_parameters(Counts, NrOfCounts,
         Counts = np.expand_dims(Counts, axis=1)
     args_TC = (Counts, NrOfCounts, EmissionParameters)
     Bounds = tuple([(1e-100, None) for i in range(0, len(x_0))])
-    disp = 1 if EmissionParameters['Verbosity'] > 0 else 0
+    disp = 1 if EmissionParameters['verbosity'] > 0 else 0
 
-    if EmissionParameters['Diag_event_type'] == 'DirchMult':
+    if EmissionParameters['diag_event_mod'] == 'DirchMult':
         fitFun = FBProb.MD_f_joint_vect_unif
-    elif EmissionParameters['Diag_event_type'] == 'DirchMultK':
+    elif EmissionParameters['diag_event_mod'] == 'DirchMultK':
         fitFun = FBProb.MDK_f_joint_vect_unif
     else:
         return None

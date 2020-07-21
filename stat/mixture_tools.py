@@ -104,10 +104,9 @@ def Parallel_estimate_mixture_params(EmissionParameters, curr_counts_orig, curr_
     mixtures_list.append(deepcopy(EmissionParameters['Diag_event_params']['mix_comp'][curr_state]))
     lls_list.append(ll)
 
-    np_proc = EmissionParameters['NbProc']
     data = zip(itertools.repeat(stop_crit), itertools.repeat(rand_sample_size), itertools.repeat(max_nr_iter), list(range(nr_of_init)), itertools.repeat(EmissionParameters), itertools.repeat(curr_state), itertools.repeat(curr_counts), itertools.repeat(curr_nr_of_counts)   )
 
-    if np_proc == 1:
+    if EmissionParameters['nb_proc'] == 1:
         results = [Parallel_estimate_single_mixture_params(args) for args in data]
     else:
         print("Spawning processes")

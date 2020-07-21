@@ -184,8 +184,8 @@ def GetSuffStat(Sequences, Background, Paths, NrOfStates, Type, ResetNotUsedStat
         SuffStat[CurrState] = defaultdict(int)
 
     LoadReads.close_data_handles(handles=[Sequences, Background])
-    Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
-    Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
+    Sequences = h5py.File(EmissionParameters['dat_file_clip'], 'r')
+    Background = h5py.File(EmissionParameters['dat_file_bg'], 'r')
 
     # Fill the sufficent statistics variable
     for gene in list(Sequences.keys()):
@@ -200,9 +200,9 @@ def GetSuffStat(Sequences, Background, Paths, NrOfStates, Type, ResetNotUsedStat
         else:
             CurrStack = StackData(Sequences_per_gene, add='all')
 
-        if EmissionParameters['FilterSNPs']:
+        if EmissionParameters['filter_snps']:
             if Type == 'Conv':
-                Ix = GetModelIx(Sequences_per_gene, Type='no_snps_conv', snps_thresh=EmissionParameters['SnpRatio'], snps_min_cov=EmissionParameters['SnpAbs'], Background=Background_per_gene)
+                Ix = GetModelIx(Sequences_per_gene, Type='no_snps_conv', snps_thresh=EmissionParameters['snps_thresh'], snps_min_cov=EmissionParameters['snps_min_cov'], Background=Background_per_gene)
             else:
                 Ix = GetModelIx(Sequences_per_gene, Type)
         else:
@@ -263,8 +263,8 @@ def GetSuffStatBck(Sequences, Background, Paths, NrOfStates, Type, ResetNotUsedS
     SuffStatBck[fg_state] = defaultdict(int)
 
     LoadReads.close_data_handles(handles=[Sequences, Background])
-    Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
-    Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
+    Sequences = h5py.File(EmissionParameters['dat_file_clip'], 'r')
+    Background = h5py.File(EmissionParameters['dat_file_bg'], 'r')
 
     # Fill the sufficient statistics variable
     for gene in list(Sequences.keys()):
@@ -279,9 +279,9 @@ def GetSuffStatBck(Sequences, Background, Paths, NrOfStates, Type, ResetNotUsedS
         else:
             CurrStack = StackData(Background_per_gene, add='all')
 
-        if EmissionParameters['FilterSNPs']:
+        if EmissionParameters['filter_snps']:
             if Type == 'Conv':
-                Ix = GetModelIx(Background_per_gene, Type='no_snps_conv', snps_thresh=EmissionParameters['SnpRatio'], snps_min_cov=EmissionParameters['SnpAbs'], Background=Background_per_gene)
+                Ix = GetModelIx(Background_per_gene, Type='no_snps_conv', snps_thresh=EmissionParameters['snps_thresh'], snps_min_cov=EmissionParameters['snps_min_cov'], Background=Background_per_gene)
             else:
                 Ix = GetModelIx(Background_per_gene, Type)
         else:
@@ -372,17 +372,17 @@ def GeneratePred(Paths, Sequences, Background, IterParameters, GeneAnnotation, O
     # Predict the sites
     print('Score peaks')
     LoadReads.close_data_handles(handles=[Sequences, Background])
-    Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
-    Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
+    Sequences = h5py.File(EmissionParameters['dat_file_clip'], 'r')
+    Background = h5py.File(EmissionParameters['dat_file_bg'], 'r')
 
     ScoredSites = GetSites(
         Paths, Sequences, Background, EmissionParameters,
         TransitionParameters, 'nonhomo', fg_state, merge_neighbouring_sites,
-        minimal_site_length, seq_file=EmissionParameters['DataOutFile_seq'],
-        bck_file=EmissionParameters['DataOutFile_bck'])
+        minimal_site_length, seq_file=EmissionParameters['dat_file_clip'],
+        bck_file=EmissionParameters['dat_file_bg'])
 
-    Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
-    Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
+    Sequences = h5py.File(EmissionParameters['dat_file_clip'], 'r')
+    Background = h5py.File(EmissionParameters['dat_file_bg'], 'r')
 
     print('Write peaks')
     # Write the results
@@ -437,7 +437,6 @@ def GetSites(Paths, Sequences, Background, EmissionParameters, TransitionParamet
         Paths, fg_state,
         merge_neighbouring_sites, minimal_site_length)
 
-    np_proc = EmissionParameters['NbProc']
     nr_of_genes = len(list(Sequences.keys()))
     gene_nr_dict = {}
     for i, curr_gene in enumerate(Sequences.keys()):
@@ -448,14 +447,12 @@ def GetSites(Paths, Sequences, Background, EmissionParameters, TransitionParamet
 
     data = map(f, sites_keys)
 
-    number_of_processes = np_proc
-
     LoadReads.close_data_handles(handles=[Sequences, Background])
-    if np_proc == 1:
+    if EmissionParameters['nb_proc'] == 1:
         ScoredSites = dict([GetSitesForGene(curr_slice) for curr_slice in data])
     else:
         pool = multiprocessing.get_context("spawn").Pool(
-            number_of_processes, maxtasksperchild=10)
+            EmissionParameters['nb_proc'], maxtasksperchild=10)
         results = pool.imap(GetSitesForGene, data, chunksize=1)
         pool.close()
         pool.join()
@@ -481,8 +478,8 @@ def GetSitesForGene(data):
 
     Sites = dict([(gene, Sites)])
 
-    Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
-    Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
+    Sequences = h5py.File(EmissionParameters['dat_file_clip'], 'r')
+    Background = h5py.File(EmissionParameters['dat_file_bg'], 'r')
 
     Sequences_per_gene = PreloadSequencesForGene(Sequences, gene)
     Background_per_gene = PreloadSequencesForGene(Background, gene)
@@ -492,8 +489,8 @@ def GetSitesForGene(data):
     if np.sum(Ix) == 0:
         return gene, []
 
-    if EmissionParameters['FilterSNPs']:
-        Ix = GetModelIx(Sequences_per_gene, Type='no_snps_conv', snps_thresh=EmissionParameters['SnpRatio'], snps_min_cov=EmissionParameters['SnpAbs'], Background=Background_per_gene)
+    if EmissionParameters['filter_snps']:
+        Ix = GetModelIx(Sequences_per_gene, Type='no_snps_conv', snps_thresh=EmissionParameters['snps_thresh'], snps_min_cov=EmissionParameters['snps_min_cov'], Background=Background_per_gene)
     else:
         Ix = GetModelIx(Sequences_per_gene, Type='Conv')
 
@@ -528,9 +525,9 @@ def GetSitesForGene(data):
 
     for State in range(NrOfStates):
         EmmisionProbGene[State, ix_sites] = np.log(weight1) + emission_prob.predict_expression_log_likelihood_for_gene(CurrStackSum[:, ix_sites], State, nr_of_genes, gene_nr, EmissionParameters)
-        if EmissionParameters['BckType'] == 'Coverage':
+        if EmissionParameters['bg_type'] == 'Coverage':
             EmmisionProbGene[State, ix_sites] += np.log(weight1) + emission_prob.predict_expression_log_likelihood_for_gene(CurrStackSumBck[:, ix_sites], State, nr_of_genes, gene_nr, EmissionParameters, 'bg')
-        if EmissionParameters['BckType'] == 'Coverage_bck':
+        if EmissionParameters['bg_type'] == 'Coverage_bck':
             EmmisionProbGene[State, ix_sites] += np.log(weight1) + emission_prob.predict_expression_log_likelihood_for_gene(CurrStackSumBck[:, ix_sites], State, nr_of_genes, gene_nr, EmissionParameters, 'bg')
         EmmisionProbGeneDir[State, Ix] = np.log(weight2) + diag_event_model.pred_log_lik(CurrStackVar[:, Ix], State, EmissionParameters)
         EmmisionProbGene[State, Ix] += np.log(weight2) + EmmisionProbGeneDir[State, Ix]
@@ -733,7 +730,6 @@ def ParallelGetMostLikelyPath(MostLikelyPaths, Sequences, Background, EmissionPa
 
     for gene in list(MostLikelyPaths.keys()):
         del MostLikelyPaths[gene]
-    np_proc = EmissionParameters['NbProc']
     nr_of_genes = len(list(Sequences.keys()))
     gene_nr_dict = {}
     for i, curr_gene in enumerate(Sequences.keys()):
@@ -744,15 +740,13 @@ def ParallelGetMostLikelyPath(MostLikelyPaths, Sequences, Background, EmissionPa
 
     data = zip(list(Sequences.keys()), itertools.repeat(nr_of_genes), list(gene_nr_dict.values()), itertools.repeat(EmissionParameters), itertools.repeat(TransitionParameters), itertools.repeat(TransitionTypeFirst), itertools.repeat(RandomNoise))
 
-    number_of_processes = np_proc
-
     LoadReads.close_data_handles(handles=[Sequences, Background])
 
-    if np_proc == 1:
+    if EmissionParameters['nb_proc'] == 1:
         results = [ParallelGetMostLikelyPathForGene(curr_slice) for curr_slice in data]
     else:
         print("Spawning processes")
-        pool = multiprocessing.get_context("spawn").Pool(number_of_processes, maxtasksperchild=5)
+        pool = multiprocessing.get_context("spawn").Pool(EmissionParameters['nb_proc'], maxtasksperchild=5)
         results = pool.imap(ParallelGetMostLikelyPathForGene, data, chunksize)
         pool.close()
         pool.join()
@@ -775,8 +769,8 @@ def ParallelGetMostLikelyPathForGene(data):
     gene, nr_of_genes, gene_nr, EmissionParameters, TransitionParameters, TransitionTypeFirst, RandomNoise = data
 
     # Turn the Sequence and Bacground objects into dictionaries again such that the subsequent methods for using these do not need to be modified
-    Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
-    Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
+    Sequences = h5py.File(EmissionParameters['dat_file_clip'], 'r')
+    Background = h5py.File(EmissionParameters['dat_file_bg'], 'r')
 
     # Parse the parameters
     alpha = EmissionParameters['Diag_event_params']
@@ -798,8 +792,8 @@ def ParallelGetMostLikelyPathForGene(data):
         CurrPath = 2 * np.ones((0, Ix.shape[0]), dtype=np.int)
         return [gene, CurrPath, 0]
 
-    if EmissionParameters['FilterSNPs']:
-        Ix = GetModelIx(Sequences_per_gene, Type='no_snps_conv', snps_thresh=EmissionParameters['SnpRatio'], snps_min_cov=EmissionParameters['SnpAbs'], Background=Background_per_gene)
+    if EmissionParameters['filter_snps']:
+        Ix = GetModelIx(Sequences_per_gene, Type='no_snps_conv', snps_thresh=EmissionParameters['snps_thresh'], snps_min_cov=EmissionParameters['snps_min_cov'], Background=Background_per_gene)
     else:
         Ix = GetModelIx(Sequences_per_gene)
 
@@ -828,9 +822,9 @@ def ParallelGetMostLikelyPathForGene(data):
             if isinstance(EmissionParameters['ExpressionParameters'][0], np.ndarray):
                 #EmmisionProbGene[State, :] = FitBinoDirchEmmisionProbabilities.ComputeStateProbForGeneNB_unif(CurrStack, alpha, State, EmissionParameters)
                 EmmisionProbGene[State, :] = np.log(weight1) + emission_prob.predict_expression_log_likelihood_for_gene(CurrStackSum, State, nr_of_genes, gene_nr, EmissionParameters)
-                if EmissionParameters['BckType'] == 'Coverage':
+                if EmissionParameters['bg_type'] == 'Coverage':
                     EmmisionProbGene[State, :] += np.log(weight1) + emission_prob.predict_expression_log_likelihood_for_gene(CurrStackSumBck, State, nr_of_genes, gene_nr, EmissionParameters, 'bg')
-                if EmissionParameters['BckType'] == 'Coverage_bck':
+                if EmissionParameters['bg_type'] == 'Coverage_bck':
                     EmmisionProbGene[State, :] += np.log(weight1) + emission_prob.predict_expression_log_likelihood_for_gene(CurrStackSumBck, State, nr_of_genes, gene_nr, EmissionParameters, 'bg')
         if not EmissionParameters['ign_diag']:
             EmmisionProbGene[State, Ix] += np.log(weight2) + diag_event_model.pred_log_lik(CurrStackVar[:, Ix], State, EmissionParameters)
