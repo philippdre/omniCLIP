@@ -694,7 +694,7 @@ def WriteResults(Sequences, Background, ScoredSites, OutFile, GeneAnnotation):
            'counts_fg', 'counts_bg', 'pv', 'max_pos', 'dir_score']) + '\n'
     fid.write(Header)
     for gene in Genes:
-        gene_name = gene.id  # .split('.')[0]
+        gene_name = gene.id
         if gene_name not in ScoredSites:
             continue
         # Transform the Coordinates

@@ -34,7 +34,7 @@ def mask_miRNA_positions(Sequences, GeneAnnotation):
     gene_dict = {}
 
     for gene in GeneAnnotation.features_of_type('gene'):
-        gene_dict[gene.id.split('.')[0]] = gene
+        gene_dict[gene.id] = gene
 
     # Get Chromosomes:
     genes_chr_dict = defaultdict(list)
@@ -57,7 +57,7 @@ def mask_miRNA_positions(Sequences, GeneAnnotation):
 
         # Get the miRNAs that overlap:
         for curr_gene_obj in curr_genes:
-            curr_gene = curr_gene_obj.id.split('.')[0]
+            curr_gene = curr_gene_obj.id
 
             # Get position relative to the host gene
             curr_start = max(0, miRNA.start - gene_dict[curr_gene].start)
@@ -94,7 +94,7 @@ def mask_overlapping_positions(Sequences, GeneAnnotation):
 
     # Create a dictionary that stores the genes in the Gene annnotation
     genes = [gene for gene in GeneAnnotation.features_of_type('gene')]
-    gene_dict = {gene.id.split('.')[0]: gene for gene in genes}
+    gene_dict = {gene.id: gene for gene in genes}
 
     # Get Chromosomes:
     genes_chr_dict = defaultdict(list)
@@ -110,19 +110,19 @@ def mask_overlapping_positions(Sequences, GeneAnnotation):
 
     # Iterate over the genes in the Sequences:
     for gene in genes:
-        if gene.id.split('.')[0] in Sequences:
+        if gene.id in Sequences:
             curr_chr = gene.chrom
             curr_genes = sorted(interval_chr_dict[curr_chr][gene.start:gene.stop])
             curr_genes = [curr_gene[2] for curr_gene in curr_genes]
             curr_genes.remove(gene)
             # Get the genes that overalp:
             for curr_gene_obj in curr_genes:
-                curr_gene = curr_gene_obj.id.split('.')[0]
+                curr_gene = curr_gene_obj.id
 
                 # Get position of overlapping gene relative to the host gene
                 ovrlp_start = max(0, gene_dict[curr_gene].start - gene.start)
                 ovrlp_stop = min(gene.stop - gene.start, gene_dict[curr_gene].stop - gene.start)
 
                 # Set for each field the sequences to zeros
-                rep = list(Sequences[gene.id.split('.')[0]]['Coverage'].keys())[0]
-                Sequences[gene.id.split('.')[0]]['mask'][rep][0, ovrlp_start:ovrlp_stop] = True
+                rep = list(Sequences[gene.id]['Coverage'].keys())[0]
+                Sequences[gene.id]['mask'][rep][0, ovrlp_start:ovrlp_stop] = True

@@ -109,7 +109,7 @@ def load_data(bam_files, genome_dir, gene_annotation, out_file, Collapse=False,
         for gene in genes_chr_dict[CurrChr]:
             start = gene.start
             stop = gene.stop
-            gene_id = gene.id.split('.')[0]
+            gene_id = gene.id
             strand = 1 if gene.strand == '+' else -1
 
             # Collect data for the different BAM files
