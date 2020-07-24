@@ -110,7 +110,7 @@ def Parallel_estimate_mixture_params(EmissionParameters, curr_counts_orig, curr_
         results = [Parallel_estimate_single_mixture_params(args) for args in data]
     else:
         print("Spawning processes")
-        pool = multiprocessing.get_context("spawn").Pool(np_proc, maxtasksperchild=5)
+        pool = multiprocessing.get_context("spawn").Pool(EmissionParameters['nb_proc'], maxtasksperchild=5)
         results = pool.imap(Parallel_estimate_single_mixture_params, data, chunksize=1)
         pool.close()
         pool.join()

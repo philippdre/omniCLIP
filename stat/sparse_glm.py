@@ -25,17 +25,16 @@
 
 from scipy.sparse import csc_matrix, linalg as sla
 from statsmodels.genmod import families
-from statsmodels.genmod.generalized_linear_model import *
+from statsmodels.genmod.generalized_linear_model import GLM
 from statsmodels.tools.sm_exceptions import PerfectSeparationError
 import pickle
 import numpy as np
 import scipy
 import statsmodels
-import statsmodels.api as sm
-import statsmodels.base.model as base
-import statsmodels.base.wrapper as wrap
-import statsmodels.regression.linear_model as lm
-import statsmodels.regression.linear_model as lm
+# import statsmodels.api as sm
+# import statsmodels.base.model as base
+# import statsmodels.base.wrapper as wrap
+# import statsmodels.regression.linear_model as lm
 import time
 
 __all__ = ['GLM']
@@ -46,7 +45,8 @@ def _check_convergence(criterion, iteration, tol):
 
 
 class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
-    def __init__(self, endog, exog, family=None, offset=None, exposure=None, missing='none', data_weights = None, **kwargs):
+    def __init__(self, endog, exog, family=None, offset=None, exposure=None,
+                 missing='none', data_weights=None, **kwargs):
 
         if hasattr(family, 'safe_links'):
             if (family is not None) and not isinstance(family.link, tuple(family.safe_links)):
@@ -69,12 +69,11 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
             delattr(self, 'offset')
         if exposure is None:
             delattr(self, 'exposure')
-        #things to remove_data
-
 
     def fit(self, start_params=None, maxiter=100, method='IRLS', tol=1e-8,
             scale=None, cov_type='nonrobust', cov_kwds=None, use_t=None,
-            full_output=True, disp=False, max_start_irls=3, data_weights = None, **kwargs):
+            full_output=True, disp=False, max_start_irls=3, data_weights=None,
+            **kwargs):
         """Fits a generalized linear model for a given family.
 
         parameters

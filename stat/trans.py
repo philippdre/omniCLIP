@@ -29,26 +29,22 @@ import tools
 from utils import get_mem_usage
 
 
-def PredictTransistions(Counts, TransitionParameters, NrOfStates, Type='multi', verbosity=1):
-    """
-    This function predicts the transition probabilities for a gene given the transition parameters
-    """
-
-    TransistionProb = PredictTransistionsSimple(Counts, TransitionParameters, NrOfStates)
-
-    return TransistionProb
+def PredictTransistions(Counts, TransitionParameters, NrOfStates, Type='multi',
+                        verbosity=1):
+    """Predict the transition probabilities for a gene."""
+    return PredictTransistionsSimple(Counts, TransitionParameters, NrOfStates)
 
 
-def PredictTransistionsSimple(Counts, TransitionParameters, NrOfStates, verbosity=1):
-    """
-    This function predicts the transition probabilities for a gene given the transition parameters
-    """
-
+def PredictTransistionsSimple(Counts, TransitionParameters, NrOfStates,
+                              verbosity=1):
+    """Predict the transition probabilities for a gene."""
     TransitionParametersLogReg = TransitionParameters[1]
-    TransistionProb = np.ones((NrOfStates, NrOfStates, Counts.shape[1])) * np.log((1 / np.float64(NrOfStates)))
+    TransistionProb = (np.ones((NrOfStates, NrOfStates, Counts.shape[1]))
+                       * np.log((1 / np.float64(NrOfStates))))
 
     # Genererate the features
-    CovMat = GenerateFeatures(np.array(list(range(Counts.shape[1] - 1))), Counts)
+    CovMat = GenerateFeatures(
+        np.array(list(range(Counts.shape[1] - 1))), Counts)
 
     ix_nonzero = np.sum(CovMat, axis=0) > 0
     # Create the probabilities
@@ -65,15 +61,19 @@ def PredictTransistionsSimple(Counts, TransitionParameters, NrOfStates, verbosit
         # Normalize the transition probabilities
 
         if CurrentState == 0:
-            # Only compute the normalizeing factore once as compuation is expensive
-
+            # Only compute the normalizing factor once as compuation is
+            # expensive
             if np.sum(ix_nonzero) > 0:
                 # Nonzero entries
-                NormFactor[ix_nonzero] = logsumexp(TransistionProb[:, CurrentState, 1:][:, ix_nonzero], axis=0)
+                NormFactor[ix_nonzero] = logsumexp(
+                    TransistionProb[:, CurrentState, 1:][:, ix_nonzero],
+                    axis=0)
             if np.sum(ix_nonzero == 0) > 0:
                 # Zero entries
                 first_zero_pos = np.where(ix_nonzero == 0)[0][0]
-                NormFactor[ix_nonzero == 0] = logsumexp(TransistionProb[:, CurrentState, 1:][:, first_zero_pos], axis=0)
+                NormFactor[ix_nonzero == 0] = logsumexp(
+                    TransistionProb[:, CurrentState, 1:][:, first_zero_pos],
+                    axis=0)
 
         for NextState in range(NrOfStates):
             TransistionProb[NextState, CurrentState, 1:] -= NormFactor
@@ -82,8 +82,13 @@ def PredictTransistionsSimple(Counts, TransitionParameters, NrOfStates, verbosit
     return TransistionProb
 
 
-def FitTransistionParameters(Sequences, Background, TransitionParameters, CurrPath, C, Type='multi', verbosity=1):
-    """Determine the optimal parameters of the logistic regression for predicting the TransitionParameters."""
+def FitTransistionParameters(Sequences, Background, TransitionParameters,
+                             CurrPath, C, Type='multi', verbosity=1):
+    """Determine optimal logistic regression parameters.
+
+    Return the optimal parameters of the logistic regression for predicting
+    the TransitionParameters.
+    """
     print('Fitting transition parameters')
     get_mem_usage(verbosity)
 
@@ -97,8 +102,13 @@ def FitTransistionParameters(Sequences, Background, TransitionParameters, CurrPa
     return NewTransitionParametersLogReg
 
 
-def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, CurrPath, C, verbosity=1):
-    """Determine the optimal parameters of the logistic regression for predicting the TransitionParameters."""
+def FitTransistionParametersSimple(Sequences, Background, TransitionParameters,
+                                   CurrPath, C, verbosity=1):
+    """Determine optimal logistic regression parameters.
+
+    Return the optimal parameters of the logistic regression for predicting
+    the TransitionParameters.
+    """
     # Generate features from the CurrPaths and the Information in the coverage
     TransitionMatrix = TransitionParameters[0]
     NewTransitionParametersLogReg = {}
@@ -132,9 +142,11 @@ def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, 
             for NextState in range(NrOfStates):
                 # Positions where the path is in the current state
                 Ix1 = CurrPath[gene][:-1] == CurrState
-                # Positions where the subsequent position path is in the "next" state
+                # Positions where the subsequent position path is in the "next"
+                # state
                 Ix2 = CurrPath[gene][1:] == NextState
-                # Positions where the path changes from the current state to the other state
+                # Positions where the path changes from the current state to
+                # the other state
                 Ix = np.where(Ix1 * Ix2)[0]
 
                 CovMatIx = GenerateFeatures(Ix, CovMat)
@@ -162,7 +174,9 @@ def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, 
     del SampleSame, SampleOther
 
     # Create Y
-    Y = np.hstack((np.ones((1, len_same), dtype=np.int), np.zeros((1, len_other), dtype=np.int)))[0, :].T
+    Y = np.hstack(
+        (np.ones((1, len_same), dtype=np.int),
+         np.zeros((1, len_other), dtype=np.int)))[0, :].T
     classes = np.unique(Y)
 
     get_mem_usage(verbosity, msg='Fitting transition parameters: III')
@@ -173,7 +187,8 @@ def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, 
     for n in range(n_iter):
         np.random.shuffle(ix_shuffle)
         for batch_ix in np.array_split(ix_shuffle, 50):
-            NewTransitionParametersLogReg.partial_fit(X[batch_ix, :], Y[batch_ix], classes=classes)
+            NewTransitionParametersLogReg.partial_fit(
+                X[batch_ix, :], Y[batch_ix], classes=classes)
 
     del Ix1, Ix2,  Ix, X, Y, Xs, Ys
     get_mem_usage(verbosity, t=t, msg='Fitting transition parameters: IV')

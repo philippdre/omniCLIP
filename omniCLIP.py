@@ -430,8 +430,8 @@ def parsingCLIP(args):
         ign_out_rds=args.ign_out_rds,
         rev_strand=args.rev_strand,
         CLIP_exp=True,
-        min_coverage=args.min_coverage,
-        min_peak=args.min_peak
+        min_coverage=int(args.min_coverage),
+        min_peak=int(args.min_peak)
     )
 
     Sequences = LoadReads.get_data_handle(args.out_file, write=True)
@@ -486,8 +486,8 @@ if __name__ == '__main__':
     # Optional args for the parsingCLIP command
     parser_parsingCLIP.add_argument('--mask-miRNA', action='store_true', dest='mask_miRNA', help='Mask miRNA positions', default=False)
     parser_parsingCLIP.add_argument('--mask-ovrlp', action='store_true', dest='mask_ovrlp', help='Ignore overlapping gene regions for diagnostic event model fitting', default=False)
-    parser_parsingCLIP.add_argument('--min-coverage', action='store_true', dest='min_coverage', help='Minimum summed coverage on a whole gene to be considered in the analysis', default=100)
-    parser_parsingCLIP.add_argument('--min-peak', action='store_true', dest='min_peak', help='Minimum maximum peak heigth on a gene to be considered in the analysis', default=5)
+    parser_parsingCLIP.add_argument('--min-coverage', action='store', dest='min_coverage', help='Minimum summed coverage on a whole gene to be considered in the analysis', default=100)
+    parser_parsingCLIP.add_argument('--min-peak', action='store', dest='min_peak', help='Minimum maximum peak heigth on a gene to be considered in the analysis', default=5)
 
     # Create the parser for the run_omniCLIP command
     parser_run_omniCLIP = subparsers.add_parser('run_omniCLIP', help='run_omniCLIP help', description="running the main omniCLIP program.")

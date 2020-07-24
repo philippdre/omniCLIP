@@ -193,4 +193,4 @@ def load_data(bam_files, genome_dir, gene_annotation, out_file, Collapse=False,
                         str(i), data=ReadEnds[i], compression="gzip",
                         compression_opts=9)
 
-        SeqFile.close()
+    SeqFile.close()
