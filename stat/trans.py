@@ -187,7 +187,7 @@ def FitTransistionParametersSimple(Sequences, Background, TransitionParameters, 
     if verbosity > 0:
         print('Fitting transition parameters: III')
         print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-    n_iter = max(5, np.ceil(10**6 / Y.shape[0]))
+    n_iter = int(max(5, np.ceil(10**6 / Y.shape[0])))
     
 
     NewTransitionParametersLogReg = SGDClassifier(loss="log", max_iter = n_iter)
