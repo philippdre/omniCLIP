@@ -47,7 +47,7 @@ def NB_parameter_estimation(mean, var):
 
 def estimate_expression_param(expr_data, verbosity=1):
     """Estimate the parameters for the expression GLM."""
-    (EmissionParameters, Paths, sample_size, bg_type) = expr_data
+    (EmissionParameters, Paths, bg_type) = expr_data
 
     Sequences = h5py.File(EmissionParameters['dat_file_clip'], 'r')
     Background = h5py.File(EmissionParameters['dat_file_bg'], 'r')
@@ -99,7 +99,7 @@ def estimate_expression_param(expr_data, verbosity=1):
     get_mem_usage(verbosity)
 
     start_params, disp = fit_glm(
-        A, w, Y, offset, sample_size, disp, start_params,
+        A, w, Y, offset, disp, start_params,
         norm_class=EmissionParameters['norm_class'])
 
     get_mem_usage(
@@ -530,8 +530,8 @@ def process_gene_for_glm_mat(data):
     return gene_mat, weights, y, reps, new_pos
 
 
-def fit_glm(A, w, Y, offset, sample_size, disp=None, start_params=None,
-            norm_class=False, verbosity=1):
+def fit_glm(A, w, Y, offset, disp=None, start_params=None, norm_class=False,
+            verbosity=1):
     """Fit the GLM."""
     if disp is None:
         disp = 1.0

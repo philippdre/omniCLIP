@@ -23,7 +23,6 @@ sys.path.append('./data_parsing/')
 sys.path.append('./stat/')
 sys.path.append('./visualisation/')
 import argparse
-import pickle
 import emission_prob
 import gc
 import gffutils
@@ -31,7 +30,6 @@ import h5py
 import mixture_tools
 import numpy as np
 import os
-import random
 import time
 import tools
 import trans
@@ -53,19 +51,6 @@ def run_omniCLIP(args):
 
     # Parsing arguments dependents of Sequence and Background
     EmissionParameters = ParsingArgs.parsing_files(args, EmissionParameters)
-
-    if EmissionParameters['verbosity'] > 1:
-        print(args)
-
-    # Process the parameters
-    if not (EmissionParameters['bg_type'] == 'Coverage' or EmissionParameters['bg_type'] == 'Coverage_bck'):
-        print('Bg-type: ' + EmissionParameters['bg_type'] + ' has not been implemented yet')
-        return
-
-    # Set seed for the random number generators
-    if args.rnd_seed is not None:
-        random.seed(args.rnd_seed)
-        print('setting seed')
 
     # Load the gene annotation
     print('Loading gene annotation')
@@ -143,12 +128,10 @@ def run_omniCLIP(args):
     if not isinstance(EmissionParameters['ExpressionParameters'][0], np.ndarray):
         print('Emmision parameters have not been fit yet')
         return
-    out_file_base = 'pred'
-    if EmissionParameters['ign_GLM']:
-        out_file_base += '_no_glm'
-    if EmissionParameters['ign_diag']:
-        out_file_base += '_no_diag'
-    OutFile = os.path.join(EmissionParameters['out_dir'], out_file_base + '.txt')
+
+    OutFile = os.path.join(EmissionParameters['out_dir'],
+                           EmissionParameters['out_file_base'] + '.txt')
+
     # Determine which state has higher weight in fg.
     get_mem_usage(EmissionParameters['verbosity'])
 
@@ -175,10 +158,9 @@ def run_omniCLIP(args):
     print('Done')
 
     # Remove the temporary files
-    if not (EmissionParameters['tmp_dir'] is None):
-        print('removing temporary files')
-        os.remove(EmissionParameters['dat_file_clip'])
-        os.remove(EmissionParameters['dat_file_bg'])
+    print('Removing temporary files')
+    os.remove(EmissionParameters['dat_file_clip'])
+    os.remove(EmissionParameters['dat_file_bg'])
 
     return
 
@@ -278,7 +260,7 @@ def FitEmissionParameters(Sequences, Background, NewPaths,
         LoadReads.close_data_handles(handles=[Sequences, Background])
         Sequences = h5py.File(NewEmissionParameters['dat_file_clip'], 'r+')
         Background = h5py.File(NewEmissionParameters['dat_file_bg'], 'r+')
-        Sequences, Background, NewPaths, pseudo_gene_names = add_pseudo_gene(
+        Sequences, Background, NewPaths = add_pseudo_gene(
             Sequences, Background, NewPaths, PriorMatrix)
         print('Adds pseudo gene to prevent singular matrix during GLM fitting')
 
@@ -291,12 +273,10 @@ def FitEmissionParameters(Sequences, Background, NewPaths,
 
     # Add Pseudo gene to Sequences, Background and Paths
     if NewEmissionParameters['ExpressionParameters'][0] is not None:
-        Sequences, Background, NewPaths, pseudo_gene_names = add_pseudo_gene(
+        Sequences, Background, NewPaths = add_pseudo_gene(
             Sequences, Background, NewPaths, PriorMatrix)
 
     # Compute parameters for the expression
-    sample_size = 10000
-
     Sequences = h5py.File(NewEmissionParameters['dat_file_clip'], 'r')
     if (NewEmissionParameters['bg_type'] != 'None') and not First:
         if 'Pseudo' in list(Sequences.keys()):
@@ -311,8 +291,7 @@ def FitEmissionParameters(Sequences, Background, NewPaths,
     get_mem_usage(verbosity)
 
     bg_type = NewEmissionParameters['bg_type']
-    expr_data = (NewEmissionParameters,
-                 NewPaths, sample_size, bg_type)
+    expr_data = (NewEmissionParameters, NewPaths, bg_type)
 
     NewEmissionParameters = emission_prob.estimate_expression_param(
         expr_data, verbosity=verbosity)
@@ -392,22 +371,24 @@ def FitEmissionParameters(Sequences, Background, NewPaths,
 
 
 def add_pseudo_gene(Sequences, Background, NewPaths, PriorMatrix):
-    pseudo_gene_names = ['Pseudo']
+    """Add pseudo gene to Sequences and Background."""
     nr_of_genes_to_gen = np.sum(PriorMatrix == 0)
 
     # If no pseudo gen has tp be generated, continue
     if nr_of_genes_to_gen == 0:
-        return Sequences, Background, NewPaths, pseudo_gene_names
+        return Sequences, Background, NewPaths
 
     # If pseudo is already in Sequences, skip
     if 'Pseudo' in list(Sequences.keys()):
-        return Sequences, Background, NewPaths, pseudo_gene_names
+        return Sequences, Background, NewPaths
 
     # Generate pseudo genes
     # Get the gene lengths
-    gen_lens = [Sequences[gene]['Coverage']['0'][()].shape[1] for gene in Sequences]
+    gen_lens = [Sequences[gene]['Coverage']['0'][()].shape[1]
+                for gene in Sequences]
 
-    random_gen = np.random.choice(np.arange(len(gen_lens)), 1, p=np.array(gen_lens)/np.float(sum(gen_lens)))
+    random_gen = np.random.choice(np.arange(len(gen_lens)), 1,
+                                  p=np.array(gen_lens)/np.float(sum(gen_lens)))
 
     if len(random_gen) == 1:
         gene_name = list(Sequences.keys())[random_gen[0]]
@@ -419,11 +400,11 @@ def add_pseudo_gene(Sequences, Background, NewPaths, PriorMatrix):
 
     zero_states = [i for i in range(len(PriorMatrix))]
 
-    new_path = np.random.choice(zero_states, size=NewPaths[gene_name].shape, replace=True)
+    new_path = np.random.choice(zero_states, size=NewPaths[gene_name].shape,
+                                replace=True)
     NewPaths['Pseudo'] = new_path
 
-    pseudo_gene_names = ['Pseudo']
-    return Sequences, Background, NewPaths, pseudo_gene_names
+    return Sequences, Background, NewPaths
 
 
 def generateDB(args):

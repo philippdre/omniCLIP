@@ -19,6 +19,7 @@
 
 import numpy as np
 import os
+import random
 import shutil
 
 import LoadReads
@@ -38,6 +39,13 @@ def parsing_argparse(args):
 
     # Creating the params dictionary
     params = {arg: getattr(args, arg) for arg in named_args}
+
+    # Verifying the validity of the args
+    verifying_args(params)
+
+    # Printing args if verbosity
+    if params['verbosity'] > 1:
+        print(args)
 
     # Defining fixed-value params
     params['ExpressionParameters'] = [None, None]
@@ -72,6 +80,18 @@ def parsing_argparse(args):
         mixtures = np.random.uniform(0.0, 1.0, size=(args.nr_mix_comp))
         params['Diag_event_params']['mix_comp'][state] = (mixtures
                                                           / np.sum(mixtures))
+
+    # Conditional params - out file name
+    params['out_file_base'] = 'pred'
+    if params['ign_GLM']:
+        params['out_file_base'] += '_no_glm'
+    if params['ign_diag']:
+        params['out_file_base'] += '_no_diag'
+
+    # Optional params - Random seeding
+    if args.rnd_seed is not None:
+        random.seed(args.rnd_seed)
+        print('setting random seed')
 
     return params
 
@@ -124,3 +144,10 @@ def parsing_files(args, params):
             0.9, 1.1, size=(alphashape, args.nr_mix_comp))
 
     return params
+
+
+def verifying_args(params):
+    """Testing the arguments.
+
+    TODO: Implement more testing."""
+    pass
