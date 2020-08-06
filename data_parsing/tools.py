@@ -161,8 +161,8 @@ def PreloadSequencesForGene(Sequences, gene):
     return Sequences_per_gene
 
 
-def GetSuffStat(Sequences, Background, Paths, NrOfStates, Type,
-                ResetNotUsedStates=True, EmissionParameters=None, verbosity=1):
+def GetSuffStat(Paths, NrOfStates, Type, ResetNotUsedStates=True,
+                EmissionParameters=None, verbosity=1):
     """Compute for each CurrPath state a set of sufficient statistics."""
     # Initialize the sufficent statistics variable
     print("Getting suffcient statistic")
@@ -171,7 +171,6 @@ def GetSuffStat(Sequences, Background, Paths, NrOfStates, Type,
     for CurrState in range(NrOfStates):
         SuffStat[CurrState] = defaultdict(int)
 
-    LoadReads.close_data_handles(handles=[Sequences, Background])
     Sequences = h5py.File(EmissionParameters['dat_file_clip'], 'r')
     Background = h5py.File(EmissionParameters['dat_file_bg'], 'r')
 
@@ -240,9 +239,8 @@ def GetSuffStat(Sequences, Background, Paths, NrOfStates, Type,
     return SuffStat
 
 
-def GetSuffStatBck(Sequences, Background, Paths, NrOfStates, Type,
-                   ResetNotUsedStates=True, EmissionParameters=None,
-                   verbosity=1):
+def GetSuffStatBck(Paths, NrOfStates, Type, ResetNotUsedStates=True,
+                   EmissionParameters=None, verbosity=1):
     """Computes for each CurrPath state a set of sufficient statistics."""
     # Initialize the sufficent statistics variable
     print("Getting suffcient statistic")
@@ -254,7 +252,6 @@ def GetSuffStatBck(Sequences, Background, Paths, NrOfStates, Type,
 
     SuffStatBck[fg_state] = defaultdict(int)
 
-    LoadReads.close_data_handles(handles=[Sequences, Background])
     Sequences = h5py.File(EmissionParameters['dat_file_clip'], 'r')
     Background = h5py.File(EmissionParameters['dat_file_bg'], 'r')
 

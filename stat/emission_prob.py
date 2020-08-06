@@ -47,8 +47,10 @@ def NB_parameter_estimation(mean, var):
 
 def estimate_expression_param(expr_data, verbosity=1):
     """Estimate the parameters for the expression GLM."""
-    (EmissionParameters, Sequences, Background,
-     Paths, sample_size, bg_type) = expr_data
+    (EmissionParameters, Paths, sample_size, bg_type) = expr_data
+
+    Sequences = h5py.File(EmissionParameters['dat_file_clip'], 'r')
+    Background = h5py.File(EmissionParameters['dat_file_bg'], 'r')
 
     # 1) Get the library size
     print('Start estimation of expression parameters')
@@ -66,10 +68,6 @@ def estimate_expression_param(expr_data, verbosity=1):
     get_mem_usage(
         verbosity,
         msg='Estimating expression parameters: before GLM matrix construction')
-
-    LoadReads.close_data_handles(handles=[Sequences, Background])
-    Sequences = h5py.File(EmissionParameters['dat_file_clip'], 'r')
-    Background = h5py.File(EmissionParameters['dat_file_bg'], 'r')
 
     A, w, Y, rep = construct_glm_matrix(
         EmissionParameters, Sequences, Background, Paths)
@@ -180,7 +178,7 @@ def construct_glm_matrix(EmissionParameters, Sequences, Background, Paths,
 
     # Add row with pseudo counts
     if not bg_type == 'None':
-        replicates_bck = list(Background[list(Background.keys())[0]]['Coverage'].keys())
+        replicates_bck = list(Background[list(Sequences.keys())[0]]['Coverage'].keys())
         # Process the background
         if EmissionParameters['nb_proc'] == 1:
             for gene_nr, gene in enumerate(Sequences):
@@ -204,7 +202,7 @@ def construct_glm_matrix(EmissionParameters, Sequences, Background, Paths,
                 f = lambda gene_nr, gene, rep,  Paths=Paths, Background=Background, NrOfStates=NrOfStates, nr_of_genes=nr_of_genes, bg_type=bg_type, fg_state=fg_state, bg_state=bg_state: (Paths[gene], Background[gene]['Coverage'][str(rep)][()], gene, gene_nr, rep, NrOfStates, nr_of_genes, bg_type, fg_state, bg_state)
 
             # Create an iterator for the data
-            list_gen = [(a, b, c) for (a, b), c in itertools.product(zip(itertools.count(), list(Background.keys())), list(range(nr_of_bck_rep)))]
+            list_gen = [(a, b, c) for (a, b), c in itertools.product(zip(itertools.count(), list(Sequences.keys())), list(range(nr_of_bck_rep)))]
             data = itertools.starmap(f, list_gen)
             pool = multiprocessing.get_context("spawn").Pool(EmissionParameters['nb_proc'], maxtasksperchild=100)
             results = pool.imap(process_bck_gene_for_glm_mat, data, chunksize=1)

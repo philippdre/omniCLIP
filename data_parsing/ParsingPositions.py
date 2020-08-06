@@ -46,14 +46,17 @@ def mask_miRNA_positions(Sequences, GeneAnnotation):
     for chr in list(genes_chr_dict.keys()):
         interval_chr_dict[chr] = IntervalTree()
         for gene in genes_chr_dict[chr]:
-            interval_chr_dict[chr][gene.start:gene.stop] = gene
+            if gene in list(Sequences.keys()):
+                interval_chr_dict[chr][gene.start:gene.stop] = gene
 
     # Iterate over the genes in the Sequences:
-    miRNAs = [miRNA for miRNA in GeneAnnotation.features_of_type('gene') if miRNA.attributes.get('gene_type').count('miRNA') > 0]
+    miRNAs = [
+        miRNA for miRNA in GeneAnnotation.features_of_type('gene')
+        if miRNA.attributes.get('gene_type').count('miRNA') > 0]
     for miRNA in miRNAs:
         curr_chr = miRNA.chrom
-        curr_genes = sorted(interval_chr_dict[curr_chr][miRNA.start:miRNA.stop])
-        curr_genes = [gene[2] for gene in curr_genes]
+        curr_genes = [gene[2] for gene in sorted(
+            interval_chr_dict[curr_chr][miRNA.start:miRNA.stop])]
 
         # Get the miRNAs that overlap:
         for curr_gene_obj in curr_genes:
@@ -61,7 +64,9 @@ def mask_miRNA_positions(Sequences, GeneAnnotation):
 
             # Get position relative to the host gene
             curr_start = max(0, miRNA.start - gene_dict[curr_gene].start)
-            curr_stop = max(gene_dict[curr_gene].stop - gene_dict[curr_gene].start, miRNA.stop - gene_dict[curr_gene].start)
+            curr_stop = max(
+                gene_dict[curr_gene].stop - gene_dict[curr_gene].start,
+                miRNA.stop - gene_dict[curr_gene].start)
 
             # Set for each field the sequences to zeros
             for curr_key in keys:
@@ -70,10 +75,15 @@ def mask_miRNA_positions(Sequences, GeneAnnotation):
                         if curr_key == 'Variants':
                             # Convert the Variants to array
                             curr_seq = csr_matrix(
-                                (seq['data'][:], seq['indices'][:], seq['indptr'][:]),
+                                (seq['data'][:],
+                                 seq['indices'][:],
+                                 seq['indptr'][:]),
                                 shape=seq['shape'][:])
 
-                            ix_slice = np.logical_and(curr_start <= curr_seq.indices, curr_seq.indices < curr_stop)
+                            ix_slice = np.logical_and(
+                                curr_start <= curr_seq.indices,
+                                curr_seq.indices < curr_stop)
+
                             seq['data'][ix_slice] = 0
                         else:
                             seq[:, curr_start: curr_stop] = 0

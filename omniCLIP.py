@@ -99,9 +99,6 @@ def run_omniCLIP(args):
     CurrIter = 0
     LoglikelihodList = []
     First = 1
-    IterSaveFile = os.path.join(EmissionParameters['out_dir'], 'IterSaveFile.dat')
-    IterSaveFileHist = os.path.join(EmissionParameters['out_dir'], 'IterSaveFileHist.dat')
-    IterHist = []
     Paths = {}
     iter_cond = True
 
@@ -113,17 +110,12 @@ def run_omniCLIP(args):
 
         OldLogLikelihood = CurrLogLikelihood
 
-        CurrLogLikelihood, IterParameters, First, Paths = PerformIteration(Sequences, Background, IterParameters, EmissionParameters['NrOfStates'], First, Paths, verbosity=EmissionParameters['verbosity'])
-        gc.collect()
+        CurrLogLikelihood, IterParameters, First, Paths = PerformIteration(
+            Sequences, Background, IterParameters,
+            EmissionParameters['NrOfStates'], First, Paths,
+            verbosity=EmissionParameters['verbosity'])
 
-        if True:
-            pickle.dump([IterParameters, args], open(IterSaveFile,'wb'))
-        if args.safe_tmp:
-            if CurrIter > 0:
-                IterHist = pickle.load(open(IterSaveFileHist,'rb'))
-            IterHist.append([IterParameters, CurrLogLikelihood])
-            pickle.dump(IterHist, open(IterSaveFileHist,'wb'))
-            del IterHist
+        gc.collect()
 
         if EmissionParameters['verbosity'] > 1:
             print("Log-likelihood: " + str(CurrLogLikelihood))
@@ -139,7 +131,10 @@ def run_omniCLIP(args):
         if CurrIter < max(3, EmissionParameters['max_it']):
             iter_cond = True
         else:
-            iter_cond = (CurrIter < EmissionParameters['max_it']) and ((abs(CurrLogLikelihood - OldLogLikelihood)/max(abs(CurrLogLikelihood), abs(OldLogLikelihood))) > 0.01) and (abs(CurrLogLikelihood - OldLogLikelihood) > args.tol_lg_lik)
+            iter_cond = (
+                (CurrIter < EmissionParameters['max_it'])
+                and ((abs(CurrLogLikelihood - OldLogLikelihood)/max(abs(CurrLogLikelihood), abs(OldLogLikelihood))) > 0.01)
+                and (abs(CurrLogLikelihood - OldLogLikelihood) > args.tol_lg_lik))
 
     # Return the fitted parameters
     print('Finished parameter fitting')
@@ -157,13 +152,19 @@ def run_omniCLIP(args):
     # Determine which state has higher weight in fg.
     get_mem_usage(EmissionParameters['verbosity'])
 
-    fg_state, bg_state = emission_prob.get_fg_and_bck_state(EmissionParameters, final_pred=True)
+    fg_state, bg_state = emission_prob.get_fg_and_bck_state(EmissionParameters,
+                                                            final_pred=True)
     if EmissionParameters['fg_pen'] > 0.0:
         print('Recomputing paths')
         EmissionParameters['LastIter'] = True
         Sequences = h5py.File(EmissionParameters['dat_file_clip'], 'r')
         Background = h5py.File(EmissionParameters['dat_file_bg'], 'r')
-        Paths, LogLike = tools.ParallelGetMostLikelyPath(Paths, Sequences, Background, EmissionParameters, TransitionParameters, 'nonhomo', verbosity=EmissionParameters['verbosity'])
+
+        Paths, LogLike = tools.ParallelGetMostLikelyPath(
+            Paths, Sequences, Background, EmissionParameters,
+            TransitionParameters, 'nonhomo',
+            verbosity=EmissionParameters['verbosity'])
+
         Sequences = h5py.File(EmissionParameters['dat_file_clip'], 'r')
         Background = h5py.File(EmissionParameters['dat_file_bg'], 'r')
 
@@ -182,7 +183,8 @@ def run_omniCLIP(args):
     return
 
 
-def PerformIteration(Sequences, Background, IterParameters, NrOfStates, First, NewPaths={}, verbosity=1):
+def PerformIteration(Sequences, Background, IterParameters, NrOfStates, First,
+                     NewPaths={}, verbosity=1):
     """
     This function performs an iteration of the HMM algorithm
     """
@@ -192,9 +194,12 @@ def PerformIteration(Sequences, Background, IterParameters, NrOfStates, First, N
     TransitionType = EmissionParameters['TransitionType']
 
     # Get new most likely path
-    # if (not EmissionParameters['restart_from_file']) and First:
     if First:
-        NewPaths, LogLike = tools.ParallelGetMostLikelyPath(NewPaths, Sequences, Background, EmissionParameters, TransitionParameters, 'homo', RandomNoise = True, verbosity=verbosity)
+        NewPaths, LogLike = tools.ParallelGetMostLikelyPath(
+            NewPaths, Sequences, Background, EmissionParameters,
+            TransitionParameters, 'homo', RandomNoise=True,
+            verbosity=verbosity)
+
         Sequences = h5py.File(EmissionParameters['dat_file_clip'], 'r')
         Background = h5py.File(EmissionParameters['dat_file_bg'], 'r')
 
@@ -204,14 +209,17 @@ def PerformIteration(Sequences, Background, IterParameters, NrOfStates, First, N
     print('Fitting emission parameters')
     get_mem_usage(verbosity)
 
-    NewEmissionParameters = FitEmissionParameters(Sequences, Background, NewPaths, EmissionParameters, First, verbosity=verbosity)
+    NewEmissionParameters = FitEmissionParameters(
+        Sequences, Background, NewPaths, EmissionParameters, First,
+        verbosity=verbosity)
+
     if First:
         First = 0
+
     get_mem_usage(verbosity)
 
     # Fit the transition matrix parameters
     NewTransitionParameters = TransitionParameters
-    C = 1
     print('Fitting transition parameters')
     get_mem_usage(verbosity)
 
@@ -219,7 +227,10 @@ def PerformIteration(Sequences, Background, IterParameters, NrOfStates, First, N
     Sequences = h5py.File(EmissionParameters['dat_file_clip'], 'r')
     Background = h5py.File(EmissionParameters['dat_file_bg'], 'r')
 
-    TransistionPredictors = trans.FitTransistionParameters(Sequences, Background, TransitionParameters, NewPaths, C, TransitionType, verbosity=verbosity)
+    TransistionPredictors = trans.FitTransistionParameters(
+        Sequences, Background, TransitionParameters, NewPaths,
+        TransitionType, verbosity=verbosity)
+
     NewTransitionParameters[1] = TransistionPredictors
     get_mem_usage(verbosity)
 
@@ -229,7 +240,10 @@ def PerformIteration(Sequences, Background, IterParameters, NrOfStates, First, N
     get_mem_usage(verbosity)
 
     gc.collect()
-    NewPaths, LogLike = tools.ParallelGetMostLikelyPath(NewPaths, Sequences, Background, EmissionParameters, TransitionParameters, 'nonhomo', verbosity=verbosity)
+    NewPaths, LogLike = tools.ParallelGetMostLikelyPath(
+        NewPaths, Sequences, Background, EmissionParameters,
+        TransitionParameters, 'nonhomo', verbosity=verbosity)
+
     Sequences = h5py.File(EmissionParameters['dat_file_clip'], 'r')
     Background = h5py.File(EmissionParameters['dat_file_bg'], 'r')
 
@@ -241,7 +255,9 @@ def PerformIteration(Sequences, Background, IterParameters, NrOfStates, First, N
     return CurrLogLikelihood, NewIterParameters, First, NewPaths
 
 
-def FitEmissionParameters(Sequences, Background, NewPaths, OldEmissionParameters, First, verbosity=1):
+def FitEmissionParameters(Sequences, Background, NewPaths,
+                          OldEmissionParameters, First, verbosity=1):
+    """Fit EmissionParameters."""
     print('Fitting emission parameters')
     t = time.time()
     # Unpack the arguments
@@ -256,49 +272,62 @@ def FitEmissionParameters(Sequences, Background, NewPaths, OldEmissionParameters
         for path in NewPaths:
             PriorMatrix[State] += np.sum(NewPaths[path] == State)
 
-    # Check if one of the states is not used and add pseudo gene to prevent singularities during distribution fitting
+    # Check if one of the states is not used and add pseudo gene to prevent
+    # singularities during distribution fitting
     if np.sum(PriorMatrix == 0) > 0:
         LoadReads.close_data_handles(handles=[Sequences, Background])
         Sequences = h5py.File(NewEmissionParameters['dat_file_clip'], 'r+')
         Background = h5py.File(NewEmissionParameters['dat_file_bg'], 'r+')
-        Sequences, Background, NewPaths, pseudo_gene_names = add_pseudo_gene(Sequences, Background, NewPaths, PriorMatrix)
-        LoadReads.close_data_handles(handles=[Sequences, Background])
+        Sequences, Background, NewPaths, pseudo_gene_names = add_pseudo_gene(
+            Sequences, Background, NewPaths, PriorMatrix)
         print('Adds pseudo gene to prevent singular matrix during GLM fitting')
 
-    CorrectedPriorMatrix = np.copy(PriorMatrix)
-
-    CorrectedPriorMatrix[CorrectedPriorMatrix == 0] = np.min(CorrectedPriorMatrix[CorrectedPriorMatrix > 0])/10
-    CorrectedPriorMatrix /= np.sum(CorrectedPriorMatrix)
+    CorrPriorMatrix = np.copy(PriorMatrix)
+    CorrPriorMatrix[CorrPriorMatrix == 0] = np.min(
+        CorrPriorMatrix[CorrPriorMatrix > 0])/10
+    CorrPriorMatrix /= np.sum(CorrPriorMatrix)
     # Keep a copy to check which states are not used
-    NewEmissionParameters['PriorMatrix'] = CorrectedPriorMatrix
+    NewEmissionParameters['PriorMatrix'] = CorrPriorMatrix
 
     # Add Pseudo gene to Sequences, Background and Paths
     if NewEmissionParameters['ExpressionParameters'][0] is not None:
-        Sequences, Background, NewPaths, pseudo_gene_names = add_pseudo_gene(Sequences, Background, NewPaths, PriorMatrix)
+        Sequences, Background, NewPaths, pseudo_gene_names = add_pseudo_gene(
+            Sequences, Background, NewPaths, PriorMatrix)
 
     # Compute parameters for the expression
     sample_size = 10000
 
-    if NewEmissionParameters['bg_type'] != 'None':
-        if 'Pseudo' in Sequences:
+    Sequences = h5py.File(NewEmissionParameters['dat_file_clip'], 'r')
+    if (NewEmissionParameters['bg_type'] != 'None') and not First:
+        if 'Pseudo' in list(Sequences.keys()):
             nr_of_genes = len(list(Sequences.keys()))
             new_pars = NewEmissionParameters['ExpressionParameters'][0]
-            new_pars = np.vstack((new_pars[:(nr_of_genes), :], np.mean(new_pars[:(nr_of_genes), :]), new_pars[(nr_of_genes):, :]))
+            new_pars = np.vstack(
+                (new_pars[:(nr_of_genes), :],
+                 np.mean(new_pars[:(nr_of_genes), :]),
+                 new_pars[(nr_of_genes):, :]))
             NewEmissionParameters['ExpressionParameters'][0] = new_pars
     print('Estimating expression parameters')
     get_mem_usage(verbosity)
 
     bg_type = NewEmissionParameters['bg_type']
-    expr_data = (NewEmissionParameters, Sequences, Background, NewPaths, sample_size, bg_type)
-    NewEmissionParameters = emission_prob.estimate_expression_param(expr_data, verbosity=verbosity)
+    expr_data = (NewEmissionParameters,
+                 NewPaths, sample_size, bg_type)
+
+    NewEmissionParameters = emission_prob.estimate_expression_param(
+        expr_data, verbosity=verbosity)
 
     get_mem_usage(verbosity)
 
+    Sequences = h5py.File(NewEmissionParameters['dat_file_clip'], 'r')
+    Background = h5py.File(NewEmissionParameters['dat_file_bg'], 'r')
+
     if NewEmissionParameters['bg_type'] != 'None':
-        if 'Pseudo' in Sequences:
+        if 'Pseudo' in list(Sequences.keys()):
             nr_of_genes = len(list(Sequences.keys()))
             new_pars = NewEmissionParameters['ExpressionParameters'][0]
-            new_pars = np.vstack((new_pars[:(nr_of_genes-1), :], new_pars[(nr_of_genes):, :]))
+            new_pars = np.vstack((new_pars[:(nr_of_genes-1), :],
+                                  new_pars[(nr_of_genes):, :]))
             NewEmissionParameters['ExpressionParameters'][0] = new_pars
 
     if NewEmissionParameters['skip_diag_event_mdl'] is False:
@@ -306,7 +335,9 @@ def FitEmissionParameters(Sequences, Background, NewPaths, OldEmissionParameters
         print('Computing sufficient statistic for fitting md')
         get_mem_usage(verbosity)
 
-        SuffStat = tools.GetSuffStat(Sequences, Background, NewPaths, NrOfStates, Type='Conv', EmissionParameters=NewEmissionParameters, verbosity=verbosity)
+        SuffStat = tools.GetSuffStat(
+            NewPaths, NrOfStates, Type='Conv',
+            EmissionParameters=NewEmissionParameters, verbosity=verbosity)
 
         # Vectorize SuffStat
         Counts, NrOfCounts = tools.ConvertSuffStatToArrays(SuffStat)
@@ -320,15 +351,22 @@ def FitEmissionParameters(Sequences, Background, NewPaths, OldEmissionParameters
         get_mem_usage(verbosity)
         if NewEmissionParameters['diag_bg']:
             print("Adjusting background")
-            SuffStatBck = tools.GetSuffStatBck(Sequences, Background, NewPaths, NrOfStates, Type='Conv', EmissionParameters=NewEmissionParameters, verbosity=verbosity)
+            SuffStatBck = tools.GetSuffStatBck(
+                NewPaths, NrOfStates, Type='Conv',
+                EmissionParameters=NewEmissionParameters, verbosity=verbosity)
+
             # Vectorize SuffStat
-            CountsBck, NrOfCountsBck = tools.ConvertSuffStatToArrays(SuffStatBck)
+            CountsBck, NrOfCountsBck = tools.ConvertSuffStatToArrays(
+                SuffStatBck)
 
             if NewEmissionParameters['subs']:
-                CountsBck, NrOfCountsBck = tools.subsample_suff_stat(CountsBck, NrOfCountsBck)
+                CountsBck, NrOfCountsBck = tools.subsample_suff_stat(
+                    CountsBck, NrOfCountsBck)
 
             # Overwrite counts in other bins
-            fg_state, bg_state = emission_prob.get_fg_and_bck_state(NewEmissionParameters, final_pred=True)
+            fg_state, bg_state = emission_prob.get_fg_and_bck_state(
+                NewEmissionParameters, final_pred=True)
+
             for curr_state in list(Counts.keys()):
                 if curr_state != fg_state:
                     Counts[curr_state] = CountsBck[fg_state]
@@ -336,11 +374,14 @@ def FitEmissionParameters(Sequences, Background, NewPaths, OldEmissionParameters
 
             del SuffStatBck
 
-        NewEmissionParameters = mixture_tools.em(Counts, NrOfCounts, NewEmissionParameters, x_0=OldAlpha, First=First, verbosity=verbosity)
+        NewEmissionParameters = mixture_tools.em(
+            Counts, NrOfCounts, NewEmissionParameters, x_0=OldAlpha,
+            First=First, verbosity=verbosity)
+
         get_mem_usage(verbosity)
         del Counts, NrOfCounts
 
-    if 'Pseudo' in Sequences:
+    if 'Pseudo' in list(Sequences.keys()):
         del Sequences['Pseudo']
         del Background['Pseudo']
         del NewPaths['Pseudo']
@@ -356,6 +397,10 @@ def add_pseudo_gene(Sequences, Background, NewPaths, PriorMatrix):
 
     # If no pseudo gen has tp be generated, continue
     if nr_of_genes_to_gen == 0:
+        return Sequences, Background, NewPaths, pseudo_gene_names
+
+    # If pseudo is already in Sequences, skip
+    if 'Pseudo' in list(Sequences.keys()):
         return Sequences, Background, NewPaths, pseudo_gene_names
 
     # Generate pseudo genes
