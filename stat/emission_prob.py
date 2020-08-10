@@ -47,7 +47,7 @@ def NB_parameter_estimation(mean, var):
 
 def estimate_expression_param(expr_data, verbosity=1):
     """Estimate the parameters for the expression GLM."""
-    (EmissionParameters, Paths, bg_type) = expr_data
+    (EmissionParameters, Paths) = expr_data
 
     Sequences = h5py.File(EmissionParameters['dat_file_clip'], 'r')
     Background = h5py.File(EmissionParameters['dat_file_bg'], 'r')
@@ -119,8 +119,7 @@ def estimate_expression_param(expr_data, verbosity=1):
     return EmissionParameters
 
 
-def construct_glm_matrix(EmissionParameters, Sequences, Background, Paths,
-                         bg_type=None):
+def construct_glm_matrix(EmissionParameters, Sequences, Background, Paths):
     """Construct the GLM matrix."""
     # Determine shape of the matrix
     bg_type = EmissionParameters['bg_type']
@@ -268,14 +267,15 @@ def process_bck_gene_for_glm_mat(data):
     # Estimate the gene expression by a random count
     if bg_type == 'Coverage_bck':
         if np.sum(CurrGenePath == 3) == len(CurrGenePath):
+            # Number of tmp samples
             tmp_vals = gene_rep_back[0, :]
             tmp_nb_sample = np.sum(np.sum(tmp_vals > 0))
             if tmp_nb_sample > 0:
-                curr_y.append(np.random.choice(tmp_vals, min(tmp_nb_sample, 10)) + 1)
                 nr_of_sample_sub = min(tmp_nb_sample, 10)
             else:
-                curr_y.append(np.random.choice(tmp_vals, 10) + 1)
                 nr_of_sample_sub = 10
+
+            curr_y.append(np.random.choice(tmp_vals, nr_of_sample_sub) + 1)
 
             curr_data.append(np.ones(nr_of_sample_sub))
             curr_rows.append(np.arange(curr_pos, curr_pos + nr_of_sample_sub))
@@ -293,34 +293,28 @@ def process_bck_gene_for_glm_mat(data):
             temp_weights = counts[CurrState][1]
             curr_weights.append(temp_weights)
             curr_y.append(temp_y)
-
             nr_of_obs = len(temp_weights)
 
+            curr_data.append(np.ones(nr_of_obs))
+            curr_rows.append(np.arange(curr_pos, curr_pos + nr_of_obs))
+            # Add information for numper of replicates
+            curr_reps.append(-np.ones(nr_of_obs) * (rep + 1))
+
             if bg_type == 'Coverage':
-                curr_data.append(np.ones(nr_of_obs))
-                curr_rows.append(np.arange(curr_pos, curr_pos + nr_of_obs))
                 curr_cols.append(np.ones(nr_of_obs) * gene_nr)
-                # Add information for numper of replicates
-                curr_reps.append(-np.ones(nr_of_obs) * (rep + 1))
 
                 if CurrState == fg_state:
                     curr_data.append(-np.ones(nr_of_obs))
                     curr_rows.append(np.arange(curr_pos, curr_pos + nr_of_obs))
                     curr_cols.append(np.ones(nr_of_obs) * (nr_of_genes))
-
                 elif CurrState == bg_state:
                     curr_data.append(np.ones(nr_of_obs))
                     curr_rows.append(np.arange(curr_pos, curr_pos + nr_of_obs))
                     curr_cols.append(np.ones(nr_of_obs) * (nr_of_genes))
-                else:
-                    pass
+
             elif bg_type == 'Coverage_bck':
                 if CurrState < NrOfStates - 1:
-                    curr_data.append(np.ones(nr_of_obs))
-                    curr_rows.append(np.arange(curr_pos, curr_pos + nr_of_obs))
                     curr_cols.append(np.ones(nr_of_obs) * gene_nr)
-                    # Add information for numper of replicates
-                    curr_reps.append(-np.ones(nr_of_obs) * (rep + 1))
 
                     if CurrState == fg_state:
                         curr_data.append(-np.ones(nr_of_obs))
@@ -331,13 +325,8 @@ def process_bck_gene_for_glm_mat(data):
                         curr_data.append(np.ones(nr_of_obs))
                         curr_rows.append(np.arange(curr_pos, curr_pos + nr_of_obs))
                         curr_cols.append(np.ones(nr_of_obs) * (nr_of_genes))
-                    else:
-                        pass
+
                 else:
-                    # Add information for number of replicates
-                    curr_reps.append(-np.ones(nr_of_obs) * (rep + 1))
-                    curr_data.append(np.ones(nr_of_obs))
-                    curr_rows.append(np.arange(curr_pos, curr_pos + nr_of_obs))
                     curr_cols.append(np.ones(nr_of_obs) * (nr_of_genes + 1))
 
             curr_pos += nr_of_obs
@@ -375,6 +364,7 @@ def process_bck_gene_for_glm_mat(data):
     y = np.hstack(curr_y)
     reps = np.hstack(curr_reps)
     new_pos = curr_pos
+
     return gene_mat, weights, y, reps, new_pos
 
 
@@ -411,11 +401,11 @@ def process_gene_for_glm_mat(data):
             tmp_nb_sample = np.sum(np.sum(tmp_vals > 0))
             if tmp_nb_sample > 0:
                 tmp_vals = tmp_vals[tmp_vals > 0]
-                curr_y.append(np.random.choice(tmp_vals, min(tmp_nb_sample, 10)) + 1)
                 nr_of_sample_sub = min(tmp_nb_sample, 10)
             else:
-                curr_y.append(np.random.choice(tmp_vals, 10) + 1)
                 nr_of_sample_sub = 10
+
+            curr_y.append(np.random.choice(tmp_vals, nr_of_sample_sub) + 1)
 
             curr_data.append(np.ones(nr_of_sample_sub))
             curr_rows.append(np.arange(curr_pos, curr_pos + nr_of_sample_sub))
@@ -437,64 +427,46 @@ def process_gene_for_glm_mat(data):
         curr_y.append(temp_y)
 
         nr_of_obs = len(temp_weights)
+        curr_data.append(np.ones(nr_of_obs))
+        curr_rows.append(np.arange(curr_pos, curr_pos + nr_of_obs))
+        # Add information for numper of replicates
+        curr_reps.append(np.ones(nr_of_obs) * (rep + 1))
 
         if bg_type == 'None':
-            # Add information for numper of replicates
-            curr_reps.append(np.ones(nr_of_obs) * (rep + 1))
             # Add rows for foreground and background
-            curr_data.append(np.ones(nr_of_obs))
-            curr_rows.append(np.arange(curr_pos, curr_pos + nr_of_obs))
             curr_cols.append(np.ones(nr_of_obs) * CurrState)
         elif bg_type == 'Coverage':
-            curr_data.append(np.ones(nr_of_obs))
-            curr_rows.append(np.arange(curr_pos, curr_pos + nr_of_obs))
             curr_cols.append(np.ones(nr_of_obs) * gene_nr)
-            # Add information for numper of replicates
-            curr_reps.append(np.ones(nr_of_obs) * (rep + 1))
 
             if CurrState == fg_state:
                 curr_data.append(np.ones(nr_of_obs))
                 curr_rows.append(np.arange(curr_pos, curr_pos + nr_of_obs))
-                curr_cols.append(np.ones(nr_of_obs) * (nr_of_genes ))
+                curr_cols.append(np.ones(nr_of_obs) * (nr_of_genes))
 
             elif CurrState == bg_state:
                 curr_data.append(-np.ones(nr_of_obs))
                 curr_rows.append(np.arange(curr_pos, curr_pos + nr_of_obs))
-                curr_cols.append(np.ones(nr_of_obs) * (nr_of_genes ))
-            else:
-                pass
+                curr_cols.append(np.ones(nr_of_obs) * (nr_of_genes))
+
         elif bg_type == 'Coverage_bck':
             if CurrState < NrOfStates - 1:
-                curr_data.append(np.ones(nr_of_obs))
-                curr_rows.append(np.arange(curr_pos, curr_pos + nr_of_obs))
                 curr_cols.append(np.ones(nr_of_obs) * gene_nr)
-                # Add information for numper of replicates
-                curr_reps.append(np.ones(nr_of_obs) * (rep + 1))
 
                 if CurrState == fg_state:
                     curr_data.append(np.ones(nr_of_obs))
                     curr_rows.append(np.arange(curr_pos, curr_pos + nr_of_obs))
-                    curr_cols.append(np.ones(nr_of_obs) * (nr_of_genes ))
+                    curr_cols.append(np.ones(nr_of_obs) * (nr_of_genes))
 
                 elif CurrState == bg_state:
                     curr_data.append(-np.ones(nr_of_obs))
                     curr_rows.append(np.arange(curr_pos, curr_pos + nr_of_obs))
-                    curr_cols.append(np.ones(nr_of_obs) * (nr_of_genes ))
-                else:
-                    pass
+                    curr_cols.append(np.ones(nr_of_obs) * (nr_of_genes))
+
             else:
-                # Add information for numper of replicates
-                curr_reps.append(np.ones(nr_of_obs) * (rep + 1))
-                curr_data.append(np.ones(nr_of_obs))
-                curr_rows.append(np.arange(curr_pos, curr_pos + nr_of_obs))
                 curr_cols.append(np.ones(nr_of_obs) * (nr_of_genes + 1))
         else:
             # Add rows for transcript abundance
-            curr_data.append(np.ones(nr_of_obs))
-            curr_rows.append(np.arange(curr_pos, curr_pos + nr_of_obs))
             curr_cols.append(np.ones(nr_of_obs) * gene_nr)
-            # Add information for numper of replicates
-            curr_reps.append(np.ones(nr_of_obs) * (rep + 1))
             # Add rows for foreground and background
             if not((bg_type == 'Coverage_bck') and (CurrState == (NrOfStates - 1))):
                 curr_data.append(np.ones(nr_of_obs))

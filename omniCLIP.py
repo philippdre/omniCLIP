@@ -290,11 +290,8 @@ def FitEmissionParameters(Sequences, Background, NewPaths,
     print('Estimating expression parameters')
     get_mem_usage(verbosity)
 
-    bg_type = NewEmissionParameters['bg_type']
-    expr_data = (NewEmissionParameters, NewPaths, bg_type)
-
     NewEmissionParameters = emission_prob.estimate_expression_param(
-        expr_data, verbosity=verbosity)
+        (NewEmissionParameters, NewPaths), verbosity=verbosity)
 
     get_mem_usage(verbosity)
 
