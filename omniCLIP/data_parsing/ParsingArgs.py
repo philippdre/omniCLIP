@@ -22,8 +22,8 @@ import os
 import random
 import shutil
 
-import LoadReads
-import tools
+from omniCLIP.data_parsing import LoadReads
+from omniCLIP.data_parsing import tools
 
 
 def parsing_argparse(args):

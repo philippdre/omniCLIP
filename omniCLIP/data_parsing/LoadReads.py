@@ -17,16 +17,16 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-
 from Bio import SeqIO
 from collections import defaultdict
 from scipy.sparse import csr_matrix
-import GetCoverageFromBam
 import gzip
 import h5py
 import numpy as np
 import os
 import pysam
+
+from omniCLIP.data_parsing import GetCoverageFromBam
 
 
 def get_data_handle(file_path, write=False):

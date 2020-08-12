@@ -22,19 +22,14 @@
     Thus, for this file the licence of the original file applies additionally.
 """
 
-
-from scipy.sparse import csc_matrix, linalg as sla
-from statsmodels.genmod import families
-from statsmodels.genmod.generalized_linear_model import GLM
-from statsmodels.tools.sm_exceptions import PerfectSeparationError
 import pickle
 import numpy as np
 import scipy
+from scipy.sparse import csc_matrix, linalg as sla
 import statsmodels
-# import statsmodels.api as sm
-# import statsmodels.base.model as base
-# import statsmodels.base.wrapper as wrap
-# import statsmodels.regression.linear_model as lm
+from statsmodels.genmod import families
+from statsmodels.genmod.generalized_linear_model import GLM
+from statsmodels.tools.sm_exceptions import PerfectSeparationError
 import time
 
 __all__ = ['GLM']

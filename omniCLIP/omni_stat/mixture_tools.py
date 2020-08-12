@@ -17,14 +17,14 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-
 from copy import deepcopy
-from scipy.special import logsumexp
-import diag_event_model
-import emission_prob
 import itertools
 import multiprocessing
 import numpy as np
+from scipy.special import logsumexp
+
+from omniCLIP.omni_stat import diag_event_model
+from omniCLIP.omni_stat import emission_prob
 
 
 def em(counts, nr_of_counts, EmissionParameters, x_0=None, First=False, max_nr_iter=15, tol=0.0001, rand_sample_size=10, verbosity=1):

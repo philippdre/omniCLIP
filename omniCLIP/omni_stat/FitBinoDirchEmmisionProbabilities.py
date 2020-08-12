@@ -17,9 +17,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from scipy.special import psi
-import multdirichletVect
 import numpy as np
+from scipy.special import psi
+
+from omniCLIP.omni_stat import multdirichletVect
 
 
 def ComputeStateProbForGeneMD_unif(*args):

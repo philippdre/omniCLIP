@@ -17,8 +17,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from scipy.special import gammaln
 import numpy as np
+from scipy.special import gammaln
 
 
 def log_pdf_vect(k, alpha):

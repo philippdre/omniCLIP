@@ -17,16 +17,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-
-import sys
-sys.path.append('../data_parsing/')
-from scipy.special import logsumexp
-from sklearn.linear_model import SGDClassifier
 import numpy as np
 import random
+from scipy.special import logsumexp
+from sklearn.linear_model import SGDClassifier
+import sys
 import time
-import tools
-from utils import get_mem_usage
+
+from omniCLIP.data_parsing import tools
+from omniCLIP.omni_stat.utils import get_mem_usage
 
 
 def PredictTransistions(Counts, TransitionParameters, NrOfStates, Type='multi',

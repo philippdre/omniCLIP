@@ -17,24 +17,22 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import sys
-sys.path.append('../stat/')
 from collections import defaultdict
 from scipy.special import logsumexp
 from scipy.sparse import csr_matrix
 from scipy.stats import nbinom
-import diag_event_model
-import emission_prob
 import h5py
 import itertools
 import multiprocessing
 import numpy as np
 import pandas as pd
 import time
-import trans
-import viterbi
 
-import LoadReads
+from omniCLIP import viterbi
+from omniCLIP.data_parsing import LoadReads
+from omniCLIP.omni_stat import diag_event_model
+from omniCLIP.omni_stat import emission_prob
+from omniCLIP.omni_stat import trans
 
 
 def GetModelIx(Sequences, Type='all', snps_thresh=0.4, snps_min_cov=10,

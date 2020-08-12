@@ -17,8 +17,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import sys
-sys.path.append('./data_parsing/')
 from scipy import special
 from scipy.sparse import csc_matrix, coo_matrix
 from scipy.stats import nbinom
@@ -27,11 +25,10 @@ import itertools
 import multiprocessing
 import numpy as np
 import scipy as sp
-import sparse_glm
 import time
 
-import LoadReads
-from utils import get_mem_usage
+from omniCLIP.omni_stat import sparse_glm
+from omniCLIP.omni_stat.utils import get_mem_usage
 
 
 def NB_parameter_estimation(mean, var):

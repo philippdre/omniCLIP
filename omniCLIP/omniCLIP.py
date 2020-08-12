@@ -17,28 +17,23 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-
-import sys
-sys.path.append('./data_parsing/')
-sys.path.append('./stat/')
-sys.path.append('./visualisation/')
 import argparse
-import emission_prob
 import gc
 import gffutils
 import h5py
-import mixture_tools
 import numpy as np
 import os
 import time
-import tools
-import trans
 
-import LoadReads
-import CreateGeneAnnotDB
-import ParsingPositions
-import ParsingArgs
-from utils import get_mem_usage
+from omniCLIP.data_parsing import tools
+from omniCLIP.data_parsing import CreateGeneAnnotDB
+from omniCLIP.data_parsing import LoadReads
+from omniCLIP.data_parsing import ParsingArgs
+from omniCLIP.data_parsing import ParsingPositions
+from omniCLIP.omni_stat import emission_prob
+from omniCLIP.omni_stat import mixture_tools
+from omniCLIP.omni_stat import trans
+from omniCLIP.omni_stat.utils import get_mem_usage
 
 
 def run_omniCLIP(args):
@@ -468,7 +463,8 @@ def parsingCLIP(args):
         ParsingPositions.mask_overlapping_positions(Sequences, GeneAnnotation)
 
 
-if __name__ == '__main__':
+# if __name__ == '__main__':
+def main():
 
     parser = argparse.ArgumentParser(prog='PROG', description='omniCLIP - probabilistic identification of protein-RNA interactions from CLIP-seq data')
     subparsers = parser.add_subparsers(title='subcommands', help='sub-command help', dest='command')

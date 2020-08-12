@@ -17,10 +17,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import FitBinoDirchEmmisionProbabilities as FBProb
 import numpy as np
 from scipy.optimize import fmin_tnc
 from scipy.special import logsumexp
+
+from omniCLIP.omni_stat import FitBinoDirchEmmisionProbabilities as FBProb
 
 
 def pred_log_lik(counts, state, EmissionParameters, single_mix=None):
