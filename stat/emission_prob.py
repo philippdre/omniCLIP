@@ -26,6 +26,7 @@ import h5py
 import itertools
 import multiprocessing
 import numpy as np
+import os
 import resource
 import scipy as sp
 import sparse_glm
@@ -306,7 +307,14 @@ def estimate_expression_param(expr_data, verbosity=1):
     if verbosity > 0:
         print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
-    start_params, disp = fit_glm(A, w, Y, offset, sample_size, disp, start_params, norm_class=EmissionParameters['norm_class'])
+
+    #Create temporary read-files that can be modified by the masking operations
+    if EmissionParameters['tmp_dir'] is None:
+        tmp_dir =  os.path.dirname(os.path.abspath(EmissionParameters['DataOutFile_seq']))
+    else:
+        tmp_dir = EmissionParameters['tmp_dir']
+
+    start_params, disp = fit_glm(A, w, Y, offset, sample_size, disp, start_params, norm_class=EmissionParameters['norm_class'], tmp_dir=tmp_dir)
 
     if verbosity > 0:
         print('Estimating expression parameters: after fitting')
@@ -807,7 +815,7 @@ def process_pseudo_gene_for_glm_mat(Sequences, Background, rep, NrOfStates, curr
 
 
  
-def fit_glm(A, w, Y, offset, sample_size, disp = None, start_params = None, norm_class=False, verbosity=1):
+def fit_glm(A, w, Y, offset, sample_size, disp = None, start_params = None, norm_class=False, verbosity=1, tmp_dir=''):
     '''
     This function fits the GLM
     '''
@@ -839,8 +847,8 @@ def fit_glm(A, w, Y, offset, sample_size, disp = None, start_params = None, norm
             Ix_expr =(A[:,-1].toarray() == 0) * (A[:,-2].toarray() < 0)
             tempw[Ix_expr] = tempw[Ix_expr] / np.sum(tempw[Ix_expr])
 
-        glm_binom = sparse_glm.sparse_glm(Y, A, offset = np.log(offset), family = sparse_glm.families.NegativeBinomial(alpha = disp))
-        res = glm_binom.fit(method = "irls_sparse", data_weights = tempw, start_params = start_params)
+        glm_binom = sparse_glm.sparse_glm(Y, A, offset = np.log(offset), family = sparse_glm.families.NegativeBinomial(alpha = disp), tmp_dir=tmp_dir)
+        res = glm_binom.fit(method = "irls_sparse", data_weights = tempw, start_params = start_params, tmp_dir=tmp_dir)
         start_params = res[0] 
         mu = res[1]['mu'] 
         del res, glm_binom
@@ -854,7 +862,7 @@ def fit_glm(A, w, Y, offset, sample_size, disp = None, start_params = None, norm
 
         if verbosity > 1:
             print('Dispersion ' + str(disp))
-        glm_binom = sparse_glm.sparse_glm(Y, A, offset = np.log(offset), family = sparse_glm.families.NegativeBinomial(alpha = disp))
+        glm_binom = sparse_glm.sparse_glm(Y, A, offset = np.log(offset), family = sparse_glm.families.NegativeBinomial(alpha = disp), tmp_dir=tmp_dir)
         res = glm_binom.fit(method = "irls_sparse", data_weights = tempw, start_params = start_params)
 
         start_params = res[0]

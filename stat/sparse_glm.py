@@ -29,6 +29,7 @@ from statsmodels.genmod.generalized_linear_model import *
 from statsmodels.tools.sm_exceptions import PerfectSeparationError
 import pickle
 import numpy as np
+import os
 import pdb
 import scipy
 import statsmodels
@@ -48,7 +49,7 @@ def _check_convergence(criterion, iteration, tol):
 
 
 class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
-    def __init__(self, endog, exog, family=None, offset=None, exposure=None, missing='none', data_weights = None, **kwargs):
+    def __init__(self, endog, exog, family=None, offset=None, exposure=None, missing='none', data_weights = None, tmp_dir='./', **kwargs):
 
         if hasattr(family, 'safe_links'):
             if (family is not None) and not isinstance(family.link, tuple(family.safe_links)):
@@ -59,6 +60,7 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
         self.exog = exog
         self.offset = offset
         self.exposure = exposure
+        self.tmp_dir=tmp_dir
         if data_weights is not None:
         	self.data_weights = data_weights
         if exposure is not None:
@@ -195,6 +197,8 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
             mu = self.family.fitted(lin_pred)
 
         dev = self.family.deviance(self.endog[self.endog[:,0]>0,:], mu[self.endog[:,0]>0,:])
+
+        
         if np.isnan(dev):
             if not (start_params is None):
                 #This is a hack for a faster warm start
@@ -206,14 +210,17 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
                 dev = self.family.deviance(self.endog, mu)
 
                 if np.isnan(dev):
-                    pickle.dump([lin_pred, mu, endog, exog, start_params], open('/home/pdrewe/tmp/tmpdump.' + time.asctime().replace(' ', '_') + '.dat', 'w'))
+                    dump_path = os.path.join(self.tmp_dir, 'tmpdump.' + time.asctime().replace(' ', '_') + '.dat')
+
+                    pickle.dump([lin_pred, mu, endog, exog, start_params], open(dump_path, 'w'))
                     raise ValueError("The first guess on the deviance function "
                                  "returned a nan.  This could be a boundary "
-                                 " problem and should be reported.")
+                                 " problem and should be reported. Please try to restart omniCLIP."
+                                 "Parameter dump at: " + dump_path)
             else:
                 raise ValueError("The first guess on the deviance function "
                              "returned a nan.  This could be a boundary "
-                             " problem and should be reported.")
+                             " problem and should be reported. Please try to restart omniCLIP.")
 
         # first guess on the deviance is assumed to be scaled by 1.
         # params are none to start, so they line up with the deviance
