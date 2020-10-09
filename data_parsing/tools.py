@@ -571,7 +571,6 @@ def GetSites(Paths, Sequences, Background, EmissionParameters, TransitionParamet
     This function get the predicted sites
     '''
     NrOfStates = EmissionParameters['NrOfStates']
-    TransitionType = EmissionParameters['TransitionType']
     alpha = EmissionParameters['Diag_event_params']
     
     #Extract the paths
@@ -623,7 +622,6 @@ def GetSitesForGene(data):
         return gene, []
 
     NrOfStates = EmissionParameters['NrOfStates']
-    TransitionType = EmissionParameters['TransitionType']
     
     Sites = dict([(gene, Sites)])
 
@@ -682,12 +680,7 @@ def GetSitesForGene(data):
         EmmisionProbGeneDir[State, Ix] = np.log(weight2) + diag_event_model.pred_log_lik(CurrStackVar[:, Ix], State, EmissionParameters)
         EmmisionProbGene[State, Ix] += np.log(weight2) + EmmisionProbGeneDir[State, Ix]
 
-    if TransitionType == 'unif_bck' or TransitionType == 'binary_bck':
-        CountsSeq = StackData(Sequences_per_gene, add = 'all')
-        CountsBck = StackData(Background_per_gene, add = 'only_cov')
-        Counts = np.vstack((CountsSeq, CountsBck))
-    else:
-        Counts = StackData(Sequences_per_gene, add = 'all')
+    Counts = StackData(Sequences_per_gene, add = 'all')
     
 
     Score = EmmisionProbGene
@@ -938,7 +931,6 @@ def GetMostLikelyPath(MostLikelyPaths, Sequences, Background, EmissionParameters
     np_proc = EmissionParameters['NbProc']
     LogLikelihood = 0
 
-    TransitionType = EmissionParameters['TransitionType']
 
     #Iterate over genes
     nr_of_genes = len(list(Sequences.keys()))
@@ -990,16 +982,7 @@ def GetMostLikelyPath(MostLikelyPaths, Sequences, Background, EmissionParameters
             EmmisionProbGene = np.logaddexp(EmmisionProbGene, np.random.uniform(np.min(EmmisionProbGene[np.isfinite(EmmisionProbGene)]) - 4, np.min(EmmisionProbGene[np.isfinite(EmmisionProbGene)]) -1, EmmisionProbGene.shape)) #Add some random noise 
             
         #Get the transition probabilities
-        if TransitionTypeFirst == 'nonhomo':
-            if TransitionType == 'unif_bck' or TransitionType == 'binary_bck':
-                CountsSeq = StackData(Sequences_per_gene, add = 'all')
-                CountsBck = StackData(Background, gene, add = 'only_cov')
-                Counts = np.vstack((CountsSeq, CountsBck))
-            else:
-                Counts = StackData(Sequences_per_gene, add = 'all')
-            TransistionProbabilities = np.float64(trans.PredictTransistions(Counts, TransitionParameters, NrOfStates, TransitionType))
-        else: 
-            TransistionProbabilities = np.float64(np.tile(np.log(TransitionParameters[0]), (EmmisionProbGene.shape[1],1,1)).T)
+        TransistionProbabilities = np.float64(np.tile(np.log(TransitionParameters[0]), (EmmisionProbGene.shape[1],1,1)).T)
 
         #Perform Viterbi algorithm and append Path
         CurrPath, Currloglik = viterbi.viterbi(np.float64(EmmisionProbGene), TransistionProbabilities, np.float64(np.log(PriorMatrix)))
@@ -1018,7 +1001,7 @@ def GetMostLikelyPath(MostLikelyPaths, Sequences, Background, EmissionParameters
 #@profile 
 def ParallelGetMostLikelyPath(MostLikelyPaths, Sequences, Background, EmissionParameters, TransitionParameters, TransitionTypeFirst, RandomNoise = False, chunksize = 1, verbosity=1):
     '''
-    This function computes the most likely path. Ther are two options, 'homo' and 'nonhomo' for TransitionType.
+    This function computes the most likely path. 
     This specifies whether the transition probabilities should be homogenous or non-homogenous.
     '''
 
@@ -1080,7 +1063,6 @@ def ParallelGetMostLikelyPathForGene(data):
     PriorMatrix = EmissionParameters['PriorMatrix']
     NrOfStates = EmissionParameters['NrOfStates']
 
-    TransitionType = EmissionParameters['TransitionType']
 
     fg_state, bg_state = emission_prob.get_fg_and_bck_state(EmissionParameters, final_pred=True)
     fg_pen = EmissionParameters['fg_pen']
@@ -1139,16 +1121,7 @@ def ParallelGetMostLikelyPathForGene(data):
         EmmisionProbGene = np.logaddexp(EmmisionProbGene, np.random.uniform(np.min(EmmisionProbGene[np.isfinite(EmmisionProbGene)]) - 4, np.min(EmmisionProbGene[np.isfinite(EmmisionProbGene)]) - 0.1, EmmisionProbGene.shape)) #Add some random noise 
         
     #Get the transition probabilities
-    if TransitionTypeFirst == 'nonhomo':
-        if TransitionType == 'unif_bck' or TransitionType == 'binary_bck':
-            CountsSeq = StackData(Sequences_per_gene, add = 'all')
-            CountsBck = StackData(Background_per_gene, add = 'only_cov')
-            Counts = np.vstack((CountsSeq, CountsBck))
-        else:
-            Counts = StackData(Sequences_per_gene, add = 'all')
-        TransistionProbabilities = np.float64(trans.PredictTransistions(Counts, TransitionParameters, NrOfStates, TransitionType))
-    else: 
-        TransistionProbabilities = np.float64(np.tile(np.log(TransitionParameters[0]), (EmmisionProbGene.shape[1],1,1)).T)
+    TransistionProbabilities = np.float64(np.tile(np.log(TransitionParameters[0]), (EmmisionProbGene.shape[1],1,1)).T)
     
     CurrPath, Currloglik = viterbi.viterbi(np.float64(EmmisionProbGene), TransistionProbabilities, np.float64(np.log(PriorMatrix)))
     CurrPath = np.int8(CurrPath)

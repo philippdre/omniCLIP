@@ -258,7 +258,6 @@ def run_omniCLIP(args):
     EmissionParameters['ExpressionParameters'] = [None, None]
     EmissionParameters['BckType'] = bg_type
     EmissionParameters['NrOfBckReplicates'] = len(args.bg_libs)
-    EmissionParameters['TransitionType'] = 'binary'
     EmissionParameters['Verbosity'] = args.verbosity
     EmissionParameters['NbProc'] = args.nb_proc
     EmissionParameters['Subsample'] = args.subs
@@ -302,7 +301,6 @@ def run_omniCLIP(args):
             EmissionParameters['ign_diag'] = EmissionParameters['ign_out_rds']
         EmissionParameters['ign_GLM'] = args.ign_GLM
         TransitionParameters = IterParameters[1]
-        TransitionType = EmissionParameters['TransitionType']
         OldLogLikelihood = -np.inf
         fg_state, bg_state = emission_prob.get_fg_and_bck_state(EmissionParameters, final_pred=True)
         
@@ -322,7 +320,6 @@ def run_omniCLIP(args):
         EmissionParameters['ign_diag'] = args.ign_diag
         EmissionParameters['ign_GLM'] = args.ign_GLM
         TransitionParameters = IterParameters[1]
-        TransitionType = EmissionParameters['TransitionType']
         OldLogLikelihood = -np.inf
         Paths, CurrLogLikelihood = tools.ParallelGetMostLikelyPath(Paths, Sequences, Background, EmissionParameters, TransitionParameters, 'nonhomo')
         Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
@@ -638,7 +635,6 @@ def PerformIteration(Sequences, Background, IterParameters, NrOfStates, First, N
     #unpack the Iteration parameters
     EmissionParameters = IterParameters[0]
     TransitionParameters = IterParameters[1]
-    TransitionType = EmissionParameters['TransitionType']
 
     #Get new most likely path
     if (not EmissionParameters['restart_from_file']) and First:
@@ -677,7 +673,7 @@ def PerformIteration(Sequences, Background, IterParameters, NrOfStates, First, N
     Sequences = h5py.File(EmissionParameters['DataOutFile_seq'], 'r')
     Background = h5py.File(EmissionParameters['DataOutFile_bck'], 'r')
 
-    TransistionPredictors = trans.FitTransistionParameters(Sequences, Background, TransitionParameters, NewPaths, C, TransitionType, verbosity=verbosity)
+    TransistionPredictors = trans.FitTransistionParameters(Sequences, Background, TransitionParameters, NewPaths, C, verbosity=verbosity)
     NewTransitionParameters[1] = TransistionPredictors
     if verbosity > 0:
         print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
@@ -894,9 +890,6 @@ if __name__ == '__main__':
 
     # BG type
     parser.add_argument('--bg-type', action='store', dest='bg_type', help='Background type', choices=['None', 'Coverage', 'Coverage_bck'], default='Coverage_bck')
-
-    # Transistion type
-    #parser.add_argument('--trans-model', action='store', dest='tr_type', help='Transition type', choices=['binary', 'binary_bck', 'multi'], default='binary')
 
     # verbosity
     parser.add_argument('--verbosity', action='store', dest='verbosity', help='Verbosity: 0 (default) gives information of current state of site prediction, 1 gives aditional output on runtime and meomry consupmtiona and 2 shows selected internal variables', type=int, default=0)
