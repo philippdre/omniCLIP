@@ -168,7 +168,6 @@ def PerformIteration(Sequences, Background, IterParameters, NrOfStates, First,
     # Unpack the Iteration parameters
     EmissionParameters = IterParameters[0]
     TransitionParameters = IterParameters[1]
-    TransitionType = EmissionParameters['TransitionType']
 
     # Get new most likely path
     if First:
@@ -206,7 +205,7 @@ def PerformIteration(Sequences, Background, IterParameters, NrOfStates, First,
 
     TransistionPredictors = trans.FitTransistionParameters(
         Sequences, Background, TransitionParameters, NewPaths,
-        TransitionType, verbosity=verbosity)
+        verbosity=verbosity)
 
     NewTransitionParameters[1] = TransistionPredictors
     get_mem_usage(verbosity)

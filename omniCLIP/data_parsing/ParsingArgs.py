@@ -50,7 +50,6 @@ def parsing_argparse(args):
     # Defining fixed-value params
     params['ExpressionParameters'] = [None, None]
     params['LastIter'] = False
-    params['TransitionType'] = 'binary'
 
     # Conditional params - Number of States
     if params['bg_type'] == 'Coverage_bck':

@@ -82,7 +82,7 @@ def PredictTransistionsSimple(Counts, TransitionParameters, NrOfStates,
 
 
 def FitTransistionParameters(Sequences, Background, TransitionParameters,
-                             CurrPath, Type='multi', verbosity=1):
+                             CurrPath, verbosity=1):
     """Determine optimal logistic regression parameters.
 
     Return the optimal parameters of the logistic regression for predicting
