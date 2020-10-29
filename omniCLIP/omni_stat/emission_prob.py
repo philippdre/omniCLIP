@@ -24,6 +24,7 @@ import h5py
 import itertools
 import multiprocessing
 import numpy as np
+import os
 import scipy as sp
 import time
 
@@ -97,7 +98,8 @@ def estimate_expression_param(expr_data, verbosity=1):
 
     start_params, disp = fit_glm(
         A, w, Y, offset, disp, start_params,
-        norm_class=EmissionParameters['norm_class'])
+        norm_class=EmissionParameters['norm_class'],
+        tmp_dir=EmissionParameters['tmp_dir'])
 
     get_mem_usage(
         verbosity,
@@ -500,7 +502,7 @@ def process_gene_for_glm_mat(data):
 
 
 def fit_glm(A, w, Y, offset, disp=None, start_params=None, norm_class=False,
-            verbosity=1):
+            tmp_dir='', verbosity=1):
     """Fit the GLM."""
     if disp is None:
         disp = 1.0
@@ -528,11 +530,12 @@ def fit_glm(A, w, Y, offset, disp=None, start_params=None, norm_class=False,
 
         glm_binom = sparse_glm.sparse_glm(
             Y, A, offset=np.log(offset),
-            family=sparse_glm.families.NegativeBinomial(alpha=disp))
+            family=sparse_glm.families.NegativeBinomial(alpha=disp),
+            tmp_dir=tmp_dir)
 
         res = glm_binom.fit(
             method="irls_sparse", data_weights=tempw,
-            start_params=start_params)
+            start_params=start_params, tmp_dir=tmp_dir)
         start_params = res[0]
 
         mu = res[1]['mu']
@@ -551,7 +554,8 @@ def fit_glm(A, w, Y, offset, disp=None, start_params=None, norm_class=False,
 
         glm_binom = sparse_glm.sparse_glm(
             Y, A, offset=np.log(offset),
-            family=sparse_glm.families.NegativeBinomial(alpha=disp))
+            family=sparse_glm.families.NegativeBinomial(alpha=disp),
+            tmp_dir=tmp_dir)
 
         res = glm_binom.fit(
             method="irls_sparse", data_weights=tempw,

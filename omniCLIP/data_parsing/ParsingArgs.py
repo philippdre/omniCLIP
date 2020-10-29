@@ -88,6 +88,12 @@ def parsing_argparse(args):
     if params['ign_diag']:
         params['out_file_base'] += '_no_diag'
 
+    # Conditional params - tmp_dir
+    # If no tmp_dir is specified, will place files in the CLIP files location
+    if params['tmp_dir'] is None:
+        params['tmp_dir'] = os.path.dirname(
+            os.path.realpath(params['dat_file_clip']))
+
     # Optional params - Random seeding
     if args.rnd_seed is not None:
         random.seed(args.rnd_seed)
@@ -99,17 +105,11 @@ def parsing_argparse(args):
 def dup_seqfiles(params):
     """Create temporary Seqfiles that will be modified by omniCLIP.
 
-    If no tmp_dir has been specified, both tmp files will be created in the
-    same location as the CLIP dat file.
     """
-    if params['tmp_dir'] is None:
-        dir_path = os.path.dirname(os.path.realpath(params['dat_file_clip']))
-        fg_tmp = params['dat_file_clip'] + '.tmp'
-        bg_tmp = os.path.join(dir_path, 'bg_data.dat.tmp')
-    else:
-        fg_tmp = os.path.join(params['tmp_dir'], 'clip_data.dat.tmp')
-        bg_tmp = os.path.join(params['tmp_dir'], 'bg_data.dat.tmp')
+    fg_tmp = os.path.join(params['tmp_dir'], 'clip_data.dat.tmp')
+    bg_tmp = os.path.join(params['tmp_dir'], 'bg_data.dat.tmp')
 
+    os.makedirs(os.path.dirname(fg_tmp), exist_ok=True)
     shutil.copy(params['dat_file_clip'], fg_tmp)
     shutil.copy(params['dat_file_bg'], bg_tmp)
 
