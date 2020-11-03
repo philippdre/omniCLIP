@@ -17,6 +17,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+__version__ = "0.2.0"
+
 import argparse
 import gc
 import gffutils
@@ -462,10 +464,13 @@ def parsingCLIP(args):
         ParsingPositions.mask_overlapping_positions(Sequences, GeneAnnotation)
 
 
-# if __name__ == '__main__':
 def main():
+    version = {}
+    with open("version.py") as fp:
+        exec(fp.read(), version)
 
     parser = argparse.ArgumentParser(prog='PROG', description='omniCLIP - probabilistic identification of protein-RNA interactions from CLIP-seq data')
+    parser.add_argument('--version', action='version', version=version['__version__'])
     subparsers = parser.add_subparsers(title='subcommands', help='sub-command help', dest='command')
 
     # Create the parser for the generateDB command
@@ -540,7 +545,6 @@ def main():
     parser_run_omniCLIP.add_argument('--save-tmp', action='store_true', dest='safe_tmp', help='Safe temporary results', default=False)
     parser_run_omniCLIP.add_argument('--tmp-dir', action='store', dest='tmp_dir', help='Output directory for temporary results', default=None)
     parser_run_omniCLIP.add_argument('--verbosity', action='store', dest='verbosity', help='verbosity: 0 (default) gives information of current state of site prediction, 1 gives aditional output on runtime and meomry consupmtiona and 2 shows selected internal variables', type=int, default=0)
-    # TODO : need to implement this in the Sequence file
     parser_run_omniCLIP.add_argument('--mask-ovrlp', action='store_true', dest='mask_ovrlp', help='Ignore overlapping gene regions for diagnostic event model fitting', default=False)
 
     # Parsing the arguments if only sites should be predicted

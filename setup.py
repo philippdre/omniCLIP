@@ -10,15 +10,19 @@ this_directory = path.abspath(path.dirname(__file__))
 with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
+version = {}
+with open("version.py") as fp:
+    exec(fp.read(), version)
+
 setup(
-    name='omniCLIP_test',
-    version="0.1a7",
-    description='Test of the omniCLIP project',
+    name='omniCLIP',
+    version=version['__version__'],
+    description='omniCLIP is a CLIP-seq Bayesian peak caller.',
     long_description=long_description,
     long_description_content_type='text/markdown',
     author='Philipp Boss',
-    author_email='joel.simoneau@mdc-berlin.de',
-    url='https://github.com/simojoe/omniCLIP',
+    author_email='philipp.drewe@googlemail.com',
+    url='https://github.com/philippdre/omniCLIP',
     cmdclass={'build_ext': Cython.Build.build_ext},
     package_dir={'omniCLIP': 'omniCLIP'},
     packages=['omniCLIP', 'omniCLIP.data_parsing', 'omniCLIP.omni_stat'],
@@ -36,6 +40,7 @@ setup(
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
+        "License :: OSI Approved :: GNU General Public License (GPL)",
     ],
     setup_requires=['numpy>=1.18', 'cython>=0.24.1'],
     install_requires=[

@@ -143,10 +143,3 @@ def parsing_files(args, params):
             0.9, 1.1, size=(alphashape, args.nr_mix_comp))
 
     return params
-
-
-def verifying_args(params):
-    """Testing the arguments.
-
-    TODO: Implement more testing."""
-    pass
