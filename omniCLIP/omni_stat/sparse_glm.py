@@ -1,5 +1,5 @@
 
-'''
+"""
     omniCLIP is a CLIP-Seq peak caller
 
     Copyright (C) 2017 Philipp Boss
@@ -16,40 +16,33 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-    
+
     The code in this file has been adapted from the statsmodels package:
     https://github.com/statsmodels/statsmodels/blob/master/statsmodels/genmod/generalized_linear_model.py
     Thus, for this file the licence of the original file applies additionally.
-'''
+"""
 
-
-from scipy.sparse import csc_matrix, linalg as sla
-from statsmodels.genmod import families
-from statsmodels.genmod.generalized_linear_model import *
-from statsmodels.tools.sm_exceptions import PerfectSeparationError
 import pickle
 import numpy as np
-import os
-import pdb
 import scipy
+from scipy.sparse import csc_matrix, linalg as sla
 import statsmodels
-import statsmodels.api as sm
-import statsmodels.base.model as base
-import statsmodels.base.wrapper as wrap
-import statsmodels.regression.linear_model as lm
-import statsmodels.regression.linear_model as lm
+from statsmodels.genmod import families
+from statsmodels.genmod.generalized_linear_model import GLM
+from statsmodels.tools.sm_exceptions import PerfectSeparationError
+import os
 import time
 
 __all__ = ['GLM']
 
 
-#@profile 
 def _check_convergence(criterion, iteration, tol):
     return not (np.fabs(criterion[iteration] - criterion[iteration-1]) > tol)
 
 
 class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
-    def __init__(self, endog, exog, family=None, offset=None, exposure=None, missing='none', data_weights = None, tmp_dir='./', **kwargs):
+    def __init__(self, endog, exog, family=None, offset=None, exposure=None,
+                 missing='none', data_weights=None, tmp_dir='./', **kwargs):
 
         if hasattr(family, 'safe_links'):
             if (family is not None) and not isinstance(family.link, tuple(family.safe_links)):
@@ -60,27 +53,25 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
         self.exog = exog
         self.offset = offset
         self.exposure = exposure
-        self.tmp_dir=tmp_dir
+        self.tmp_dir = tmp_dir
         if data_weights is not None:
-        	self.data_weights = data_weights
+            self.data_weights = data_weights
         if exposure is not None:
             exposure = np.log(exposure)
         if offset is not None:  # this should probably be done upstream
             offset = np.asarray(offset)
-        
+
         self._check_inputs(family, self.offset, self.exposure, self.endog)
         if offset is None:
             delattr(self, 'offset')
         if exposure is None:
             delattr(self, 'exposure')
-        #things to remove_data
-        
 
     def fit(self, start_params=None, maxiter=100, method='IRLS', tol=1e-8,
             scale=None, cov_type='nonrobust', cov_kwds=None, use_t=None,
-            full_output=True, disp=False, max_start_irls=3, data_weights = None, **kwargs):
-        """
-        Fits a generalized linear model for a given family.
+            full_output=True, disp=False, max_start_irls=3, data_weights=None,
+            **kwargs):
+        """Fits a generalized linear model for a given family.
 
         parameters
         ----------
@@ -127,10 +118,9 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
         -----
         This method does not take any extra undocumented ``kwargs``.
         """
-      
         endog = self.endog
         self.df_resid = self.endog.shape[0] - self.exog.shape[1]
-        
+
         if not isinstance(data_weights, np.ndarray):
             if endog.ndim > 1 and endog.shape[1] == 2:
                 data_weights = endog.sum(1)  # weights are total trials
@@ -142,9 +132,9 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
             self.data_weights = self.data_weights * np.ones((endog.shape[0]))
         self.scaletype = scale
         if isinstance(self.family, families.Binomial):
-        # this checks what kind of data is given for Binomial.
-        # family will need a reference to endog if this is to be removed from
-        # preprocessing
+            # This checks what kind of data is given for Binomial.
+            # Family will need a reference to endog if this is to be removed
+            # from preprocessing
             self.endog = self.family.initialize(self.endog)
 
         # Construct a combined offset/exposure term.  Note that
@@ -157,31 +147,32 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
         self._offset_exposure = offset_exposure
 
         if method.lower() == "irls_sparse":
-        	return self._fit_irls_sparse(start_params=start_params, maxiter=maxiter,
-                                  tol=tol, scale=scale, cov_type=cov_type,
-                                  cov_kwds=cov_kwds, use_t=use_t, **kwargs)
+            return self._fit_irls_sparse(
+                start_params=start_params, maxiter=maxiter,
+                tol=tol, scale=scale, cov_type=cov_type,
+                cov_kwds=cov_kwds, use_t=use_t, **kwargs)
         else:
-            return self._fit_gradient(start_params=start_params,
-                                      method=method,
-                                      maxiter=maxiter,
-                                      tol=tol, scale=scale,
-                                      full_output=full_output,
-                                      disp=disp, cov_type=cov_type,
-                                      cov_kwds=cov_kwds, use_t=use_t,
-                                      max_start_irls=max_start_irls,
-                                      **kwargs)
+            return self._fit_gradient(
+                start_params=start_params,
+                method=method,
+                maxiter=maxiter,
+                tol=tol, scale=scale,
+                full_output=full_output,
+                disp=disp, cov_type=cov_type,
+                cov_kwds=cov_kwds, use_t=use_t,
+                max_start_irls=max_start_irls,
+                **kwargs)
 
-    
-    def _fit_irls_sparse(self, start_params=None, maxiter=50, tol=1e-3,
-                  scale=None, cov_type='nonrobust', cov_kwds=None,
-                  use_t=None, **kwargs):
-        """
-        Fits a generalized linear model for a given family using
+    def _fit_irls_sparse(
+            self, start_params=None, maxiter=50, tol=1e-3, scale=None,
+            cov_type='nonrobust', cov_kwds=None, use_t=None, **kwargs):
+        """Fit a GLM using IRLS.
+
+        Fit a generalized linear mode (GLM) for a given family using
         iteratively reweighted least squares (IRLS).
-        """ 
-
+        """
         if not scipy.sparse.issparse(self.exog):
-        	raise ValueError("Matrix not sparse")
+            raise ValueError("Matrix not sparse")
 
         endog = self.endog
         wlsexog = self.exog
@@ -190,18 +181,17 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
             mu = self.family.starting_mu(self.endog)
             lin_pred = self.family.predict(mu)
         else:
-            #This is a hack for a faster warm start       
+            # This is a hack for a faster warm start
             start_params[start_params > 1e2] = 1e2
             start_params[start_params < -1e2] = -1e2
             lin_pred = wlsexog.dot(start_params) + self._offset_exposure
             mu = self.family.fitted(lin_pred)
 
-        dev = self.family.deviance(self.endog[self.endog[:,0]>0,:], mu[self.endog[:,0]>0,:])
-
-        
+        dev = self.family.deviance(
+            self.endog[self.endog[:, 0] > 0, :], mu[self.endog[:, 0] > 0, :])
         if np.isnan(dev):
             if not (start_params is None):
-                #This is a hack for a faster warm start
+                # This is a hack for a faster warm start
                 start_params[start_params > 1e1] = 1e1
                 start_params[start_params < -1e1] = -1e1
                 lin_pred = wlsexog.dot(start_params) + self._offset_exposure
@@ -210,17 +200,23 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
                 dev = self.family.deviance(self.endog, mu)
 
                 if np.isnan(dev):
-                    dump_path = os.path.join(self.tmp_dir, 'tmpdump.' + time.asctime().replace(' ', '_') + '.dat')
 
-                    pickle.dump([lin_pred, mu, endog, exog, start_params], open(dump_path, 'w'))
-                    raise ValueError("The first guess on the deviance function "
-                                 "returned a nan.  This could be a boundary "
-                                 " problem and should be reported. Please try to restart omniCLIP."
-                                 "Parameter dump at: " + dump_path)
+                    dump_path = os.path.join(
+                        self.tmp_dir,
+                        'tmpdump.' + time.asctime().replace(' ', '_') + '.dat')
+                    pickle.dump(
+                        [lin_pred, mu, endog, exog, start_params],
+                        open(dump_path, 'w'))
+                    raise ValueError(
+                        "The first guess on the deviance function returned a "
+                        " nan. This could be a boundary problem and should "
+                        " be reported. Please try to restart omniCLIP. "
+                        "Parameter dump at: " + dump_path)
             else:
-                raise ValueError("The first guess on the deviance function "
-                             "returned a nan.  This could be a boundary "
-                             " problem and should be reported. Please try to restart omniCLIP.")
+                raise ValueError(
+                    "The first guess on the deviance function returned a "
+                    " nan. This could be a boundary problem and should "
+                    " be reported. Please try to restart omniCLIP. ")
 
         # first guess on the deviance is assumed to be scaled by 1.
         # params are none to start, so they line up with the deviance
@@ -238,7 +234,7 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
                         - self._offset_exposure)
             W = scipy.sparse.diags(self.weights[:, 0], 0)
 
-            #Compute x for current interation
+            # Compute x for current interation
             temp_mat = wlsexog.transpose().dot(W)
             lu = sla.splu(csc_matrix(temp_mat.dot(wlsexog)))
             wls_results = lu.solve(temp_mat.dot(wlsendog))
@@ -265,7 +261,6 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
 
         return [wls_results, history]
 
-
     def _check_inputs(self, family, offset, exposure, endog):
         # Default family is Gaussian
         if family is None:
@@ -282,5 +277,3 @@ class sparse_glm(statsmodels.genmod.generalized_linear_model.GLM):
         if offset is not None:
             if offset.shape[0] != endog.shape[0]:
                 raise ValueError("offset is not the same length as endog")
-
-

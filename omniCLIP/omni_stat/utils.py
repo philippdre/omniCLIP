@@ -1,4 +1,4 @@
-'''
+"""
     omniCLIP is a CLIP-Seq peak caller
 
     Copyright (C) 2017 Philipp Boss
@@ -15,20 +15,19 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-'''
+"""
 
-#@profile 
-def FilterRead(Read, Filter):
-    '''
-    This function determines whether a read should be filtered or not
-    '''
+import resource
+import time
 
-    if True:
-        return True
-    
-    #Filter for length
-    if Read.alen < Filter['Length']:
-        return False
-    #Filter for quality
 
-    return True
+def get_mem_usage(verbosity, t=False, msg=''):
+    """Return the maximum resident set size with optional message."""
+    if verbosity:
+        if msg:
+            print(msg)
+        if t:
+            print('Done: Elapsed time: ' + str(time.time() - t))
+
+        mem_usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        print('Memory usage: %s (kb)' % mem_usage)
